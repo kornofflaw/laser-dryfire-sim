@@ -19,6 +19,7 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | Tab | Next course |
 | L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid |
 | [ / ] | Shorter / longer time targets stay up (flip grid, pop-ups) |
+| V | Review the last run: where each shot landed and when |
 | S | Setup: camera, threshold, calibration, run log |
 | C | Calibrate the laser camera |
 | F | Fullscreen |

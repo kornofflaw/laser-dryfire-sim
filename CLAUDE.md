@@ -114,6 +114,7 @@ web/                    the app; deploy this folder as-is
   js/homography.js      4-point perspective transform
   js/audio.js           procedural beeps / shot / hit / steel / penalty sounds
   js/log.js             per-run log in localStorage, CSV export
+  js/review.js          shot review: records shots + frames during a run, review screen (V)
   js/storage.js         safe localStorage helpers
 archive/                old Python + Unity code, reference only
 ```

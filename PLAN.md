@@ -103,6 +103,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 
 ## Phase 3 — Review & analytics
 - [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
+- [x] Shot review (V) after any course: all shots numbered on the final frame,
+      or shot by shot on the frame at that moment (2D: captured at the instant
+      of the shot; 3D: right after the next render), list with time (from the
+      beep / charge / start), split, zone, points, and a timeline. Last 5 runs
+      kept in memory (not saved across page reloads).
 - [ ] Post-session summary screen from the log.
 - [ ] Trend view across sessions.
 
@@ -165,6 +170,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Shot review screen (review.js).
 - 2026-09-25: 3D office active-shooter scenario (office3d.js, char3d.js).
 - 2026-09-25: 3D hit reactions, knee-buckle fall, blood (wounds/spray/mist/drops).
 - 2026-09-25: First 3D scene: parking-lot knife attack in three.js (vendored),

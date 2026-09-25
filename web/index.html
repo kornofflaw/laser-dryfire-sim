@@ -25,6 +25,7 @@
       <button data-act="start" title="Start a timed run (Space)">Start <kbd>Space</kbd></button>
       <button data-act="courses" title="Choose a drill, Dot Torture or a scenario (D)">Courses <kbd>D</kbd></button>
       <button data-act="layout" title="Change target layout (L)">Targets <kbd>L</kbd></button>
+      <button data-act="review" title="Review where each shot landed and when (V)">Review <kbd>V</kbd></button>
       <button data-act="setup" title="Camera, calibration and settings (S)">Setup <kbd>S</kbd></button>
       <button data-act="fullscreen" title="Fullscreen (F)">Fullscreen <kbd>F</kbd></button>
       <button data-act="help" title="Help (?)">?</button>
@@ -119,6 +120,7 @@
         <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Shorter / longer time targets stay up (flip grid, pop-ups)</td></tr>
         <tr><td><kbd>Z</kbd></td><td>Show or hide zone labels</td></tr>
         <tr><td><kbd>R</kbd></td><td>Reset session stats and clear holes</td></tr>
+        <tr><td><kbd>V</kbd></td><td>Review the last run: where each shot landed and when</td></tr>
         <tr><td><kbd>S</kbd></td><td>Setup: camera, calibration, log</td></tr>
         <tr><td><kbd>C</kbd></td><td>Calibrate the laser camera</td></tr>
         <tr><td><kbd>F</kbd></td><td>Fullscreen (use it on the projector)</td></tr>
@@ -144,6 +146,42 @@
         <button class="icon" data-act="close-courses" aria-label="Close">✕</button>
       </header>
       <div id="course-list"></div>
+    </div>
+  </div>
+
+  <div id="review" hidden role="dialog" aria-modal="true" aria-labelledby="review-title">
+    <div class="rv-card">
+      <header>
+        <h2 id="review-title">Shot review</h2>
+        <select id="review-run" aria-label="Which run"></select>
+        <button class="icon" data-act="review-close" aria-label="Close review">✕</button>
+      </header>
+      <div class="rv-body">
+        <div class="rv-view">
+          <div class="rv-canvas-box"><canvas id="review-canvas"></canvas></div>
+          <p id="review-caption"></p>
+          <div class="rv-nav">
+            <button data-act="review-prev">◀ Prev <kbd>←</kbd></button>
+            <button data-act="review-all">All shots <kbd>A</kbd></button>
+            <button data-act="review-next">Next <kbd>→</kbd> ▶</button>
+          </div>
+        </div>
+        <div class="rv-side">
+          <p class="note" id="review-zero"></p>
+          <div class="rv-list-box">
+            <table id="review-list">
+              <thead><tr><th>#</th><th>Time</th><th>Split</th><th>Zone</th><th>Pts</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p id="review-empty" class="note">No shots were fired in this run.</p>
+        </div>
+      </div>
+      <div class="rv-timeline-wrap">
+        <span class="muted small">0s</span>
+        <div id="review-timeline"></div>
+        <span id="review-span" class="muted small"></span>
+      </div>
     </div>
   </div>
 

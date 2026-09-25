@@ -17,6 +17,7 @@ import { PopupRunner } from './popdrill.js';
 import { KnifeRunner } from './knife.js';
 import { FlipRunner } from './flipdrill.js';
 import { COURSES, CATEGORIES } from './courses.js';
+import { ShotReview } from './review.js';
 import { RunLog } from './log.js';
 import { LaserCamera } from './camera.js';
 import { Calibration } from './calibrate.js';
@@ -96,7 +97,7 @@ function ensure3D(type) {
       throw e;
     }
     view.blood = settings.blood;
-    runner.onComplete(result => log.add(result, lastInput));
+    runner.onComplete(runDone);
     runners[type] = runner;
     if (course().type === type) runner.setCourse(withUpTime(course()));
   })();
@@ -108,7 +109,7 @@ let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course)
 const course = () => COURSES[courseIndex];
 const active = () => runners[course().type];
 game.on(score => active().onShot(score));
-for (const r of Object.values(runners)) r.onComplete(result => log.add(result, lastInput));
+for (const r of Object.values(runners)) r.onComplete(runDone);
 
 camera.threshold = settings.threshold;
 
@@ -130,12 +131,36 @@ const calibration = new Calibration(camera, H => {
   refreshSetup();
 });
 
+// ---- Shot review -------------------------------------------------------------------
+const review = new ShotReview({ canvases: () => [views3d[range.layout]?.canvas, $('#range')] });
+
+// What shot times count from, per course type.
+function reviewZero(r) {
+  switch (course().type) {
+    case 'drill': return [r.runStart || null, 'beep'];
+    case 'dots': return [r.startT, 'start'];
+    case 'scenario': return [r.sceneStart, 'scene appearing'];
+    case 'popup': return [r.startT, 'start'];
+    case 'flip': return [r.revealMs || r.startMs, r.revealMs ? 'plates turning' : 'start'];
+    case 'knife': case 'knife3d': return [r.chargeAt || null, 'charge'];
+    default: return [r.t0 || null, 'start'];
+  }
+}
+
+function runDone(result) {
+  log.add(result, lastInput);
+  const [zero, label] = reviewZero(active());
+  review.finishRun(result, zero, label);
+  setTimeout(() => { if (!review.isOpen) toast('Press V to review your shots'); }, 900);
+}
+
 // ---- The single shot path ------------------------------------------------------
 function shoot(nx, ny, tMs, source) {
   let score = { ...range.scoreShot(nx, ny), nx, ny, t: tMs, source };
   // A runner may re-judge a shot before it counts (Dot Torture: wrong dot = miss).
   score = active().judge?.(score) ?? score;
   lastInput = source;
+  if (active().busy) review.recordShot(score);
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
   shotPop();
@@ -221,6 +246,7 @@ function frame(now) {
   if (v3?.ready) v3.render(now);
   range.draw(g, now / 1000, settings.showZones);
   active().drawOverlay?.(g, W, H, now);
+  review.captureFrame();
 
   setHUD('stats', statsHTML(now));
   setHUD('timer', active().timerHTML(now));
@@ -288,7 +314,9 @@ const actions = {
     const r = active();
     if (r.busy) return;
     if (course().type === 'drill') range.setLayout(course().layout ?? settings.layout);
-    r.start(performance.now());
+    const t = performance.now();
+    r.start(t);
+    if (r.busy) review.startRun(course(), t);
   },
   drill(step = 1) { selectCourse(courseIndex + step); },
   courses() { toggleCourses(); },
@@ -329,6 +357,10 @@ const actions = {
     calibration.open();
   },
   hideHud() { $('#hud').classList.toggle('hidden'); },
+  review() {
+    if (active().busy) return toast('Finish or cancel the run first (Esc).');
+    if (!review.open()) toast('No runs to review yet. Finish a course first.');
+  },
 };
 
 $('#toolbar').addEventListener('click', e => {
@@ -356,6 +388,10 @@ window.addEventListener('keydown', e => {
   if ((tag === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') || tag === 'SELECT') return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+  if (review.isOpen) {
+    if (review.handleKey(e)) e.preventDefault();
+    return;
+  }
   if (!$('#courses').hidden) {
     if (e.key === 'Escape' || e.key.toLowerCase() === 'd') { e.preventDefault(); closeCourses(); }
     return;
@@ -378,6 +414,7 @@ window.addEventListener('keydown', e => {
     c: () => actions.calibrate(),
     h: () => actions.hideHud(),
     '?': () => actions.help(),
+    v: () => actions.review(),
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
     Escape: () => {
@@ -635,5 +672,5 @@ requestAnimationFrame(frame);
 
 // Test hook: open the page with ?debug to drive it from automated tests.
 if (new URLSearchParams(location.search).has('debug')) {
-  window.sim = { range, game, runners, active, course, selectCourse, shoot, COURSES, views3d };
+  window.sim = { range, game, runners, active, course, selectCourse, shoot, COURSES, views3d, review };
 }
