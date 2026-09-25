@@ -1,7 +1,7 @@
 // char3d.js — reusable 3D people for scenario scenes (three.js).
 // ---------------------------------------------------------------------------
 // A Character wraps one cloned, rigged model with:
-//   * retargeted Mixamo clips (idle / walk / run) from anims.glb
+//   * motion-capture clips from its rig (people3d.js: idle, walk, run, phone ...)
 //   * procedural poses layered on the clip, solved with a small two-bone arm
 //     IK so they work on any rig: 'aim' (two-handed pistol at a point),
 //     'handsUp', 'hostage' (arm around a hostage, pistol to their head),
@@ -47,36 +47,6 @@ const REACT = {
   legL: { head: 0, chest: -0.15, twist: 0.2, dip: 0.14 },
   legR: { head: 0, chest: -0.15, twist: -0.2, dip: 0.14 },
 };
-
-// Retargeted clips are built once per rig and shared by every clone.
-export function buildClips(templateScene, animGltf, names = ['Idle', 'Walk', 'Run']) {
-  let target = null, source = null;
-  templateScene.traverse(o => { if (o.isSkinnedMesh && !target) target = o; });
-  animGltf.scene.traverse(o => { if (o.isSkinnedMesh && !source) source = o; });
-  templateScene.updateMatrixWorld(true);
-  animGltf.scene.updateMatrixWorld(true);
-  const sourceBones = new Set(source.skeleton.bones.map(b => b.name));
-  const targetPrefixed = target.skeleton.bones.some(b => b.name.startsWith('mixamorig'));
-  const targetBones = new Set(target.skeleton.bones.map(b => b.name));
-  const clips = {};
-  for (const n of names) {
-    const c = animGltf.animations.find(a => a.name === n).clone();
-    c.tracks = c.tracks.filter(t => sourceBones.has(t.name.split('.')[0]));
-    // A Mixamo rig (same bone names and units as the source) plays the clips
-    // directly; retargeting would write metre positions into its cm skeleton.
-    if (targetPrefixed) {
-      c.tracks = c.tracks.filter(t => targetBones.has(t.name.split('.')[0]) && !t.name.endsWith('.scale'));
-      clips[n.toLowerCase()] = c;
-      continue;
-    }
-    clips[n.toLowerCase()] = SkeletonUtils.retargetClip(target, source, c, {
-      hip: 'mixamorigHips',
-      getBoneName: bone => (targetPrefixed ? bone.name : 'mixamorig' + bone.name),
-      hipInfluence: new THREE.Vector3(0, 1, 0),
-    });
-  }
-  return clips;
-}
 
 export class Character {
   // rig: { scene (gltf.scene template), clips, facing (radians), tints: { materialName: color } }

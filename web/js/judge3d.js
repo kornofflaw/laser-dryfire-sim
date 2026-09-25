@@ -23,7 +23,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { Lot3DView } from './knife3d.js';
 import { Character } from './char3d.js';
-import { People, CAST } from './people3d.js';
+import { People, CAST, attachProp } from './people3d.js';
 
 const J = () => CONFIG.judge3d;
 const IDLES = ['idle', 'look', 'nervous'];
@@ -74,13 +74,14 @@ export class Judge3DView extends Lot3DView {
     char.aimAt.set((Math.random() - 0.5) * J().aimJitter, CONFIG.knife.eyeHeight - 0.1, 0);
     this.scene.add(char.obj);
     this.scene.add(char.addGun());
+    // Phone and wallet in the right hand, along the fingers (hidden until used).
     const phone = box(0.07, 0.145, 0.009, '#15161a', 0.3);
-    const wallet = box(0.11, 0.09, 0.02, '#3b2417', 0.7);
-    for (const [prop, pos] of [[phone, [0, 0.09, 0.035]], [wallet, [0, 0.1, 0.04]]]) {
-      prop.position.set(...pos);
+    const wallet = box(0.09, 0.11, 0.02, '#3b2417', 0.7);
+    char.update(0, 0); // bind the pose so the hand's direction is known
+    for (const prop of [phone, wallet]) {
       prop.visible = false;
       prop.traverse(o => { if (o.isMesh) { o.userData.char = char; char.meshes.push(o); } });
-      char.bones.RightHand?.add(prop);
+      if (char.bones.RightHand) attachProp(char.bones.RightHand, prop, { toward: char.bones.RightHandMiddle1, along: 0.07 });
     }
     const p = { a, char, idle: IDLES[Math.floor(Math.random() * IDLES.length)], phone, wallet, yaw: null, z };
     this.people.set(a, p);

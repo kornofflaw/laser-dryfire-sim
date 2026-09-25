@@ -149,9 +149,7 @@ export const CONFIG = {
     lampIntensity: 60,      // parking-lot lamp spotlights (candela)
     fogColor: '#6d6474',
     fogDensity: 0.011,
-    runClipSpeed: 3.2,      // m/s the run animation was captured at (sets its playback rate)
-    // When stopped: knees buckle, then he pitches forward.
-    fall: { kneelTime: 0.35, pitchTime: 0.55, thigh: -1.1, knee: 1.9, slump: 0.35, drop: 0.42, pitch: 1.35 },
+    runClipSpeed: 3.2,      // m/s the run clip looks right at (sets its playback rate)
     // Hit reactions: snap in fast, recover slower (1/s rates).
     react: { snap: 35, recover: 5, duration: 1.2, legDip: 0.12 },
     hitSlow: 0.8,           // speed multiplier after a hit that doesn't stop him
@@ -165,13 +163,9 @@ export const CONFIG = {
       backSpatter: 0.3,     // fraction spraying back toward the shooter
     },
     aZoneRadius: 0.1,       // metres from the spine line that count as A zone on the chest
-    jacketTint: '#4b4f55',  // multiplies the avatar's jacket texture (dark street jacket)
-    pantsTint: '#3c4a63',   // multiplies the trousers texture (dark jeans)
-    facingOffset: Math.PI,  // radians: turns the retargeted rig to face the shooter
     defaultCars: 6,         // parked cars (user can pick 0-maxCars in Setup; fewer = faster)
     maxCars: 16,
     carDetailDist: 20,      // metres: cars further than this skip interior parts
-    maxCars: 14,            // parked cars (the car model is detailed; more = slower)
     carDetailDist: 20,      // metres: cars further than this skip interior parts
   },
 

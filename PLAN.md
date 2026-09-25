@@ -135,8 +135,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       call, wallet held out, pistol aimed, hands up, walking; hit reactions,
       blood, falls). Same scripts and grading as 2D. The office scenario uses
       the same people (gunmen in street clothes, office staff, hostage).
-- [ ] Knife attacker in the 3D lot: move to Character + a Rocketbox person
-      (its reactions/fall are tuned to the old rig's bone axes).
+- [x] Knife attacker in the 3D lot is a realistic person too (Character:
+      angry idle, sprint, world-space hit reactions, falls forward when
+      stopped). The old Ready Player Me / Mixamo files are removed.
 - [ ] More realism: post-processing (ambient occlusion, bloom), more
       environments (street, store interior), facial expressions (Rocketbox
       avatars have face bones), drawing-a-gun motion instead of a pose blend.
@@ -224,7 +225,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
-  (judge3d.js, people3d.js) and the office scenario; Blender asset tool.
+  (judge3d.js, people3d.js), the knife attack and the office scenario; Blender
+  asset tool. Props held in hands at true size (attachProp). Fixed a
+  duplicate knife3d.maxCars (the Setup max is 16).
 - 2026-09-25: iPad remote control: Controller + Display windows (remote.js,
   controller.html/js/css), sound forwarding to the Controller (audio.js).
 - 2026-09-25: Flip Grid Pairs is strict: a plate that spins back unhit ends

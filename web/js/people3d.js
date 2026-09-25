@@ -98,3 +98,24 @@ function inPlaceClips(animGltf, scene) {
   }
   return clips;
 }
+
+// Put a prop in a hand (or on any bone) at its real size. These skeletons are
+// in centimetres under a 0.01 scale, so a plain child would be 100x too small.
+// With `toward` (another bone), the prop sits `along` metres from the bone in
+// that direction and its +Y axis points that way (e.g. along the fingers).
+export function attachProp(bone, prop, { toward = null, along = 0 } = {}) {
+  bone.updateWorldMatrix(true, false);
+  const s = new THREE.Vector3();
+  bone.getWorldScale(s);
+  bone.add(prop);
+  prop.scale.setScalar(1 / s.x);
+  if (!toward) return prop;
+  toward.updateWorldMatrix(true, false);
+  const a = bone.getWorldPosition(new THREE.Vector3());
+  const d = toward.getWorldPosition(new THREE.Vector3()).sub(a).normalize();
+  prop.position.copy(bone.worldToLocal(a.clone().addScaledVector(d, along)));
+  const q = bone.getWorldQuaternion(new THREE.Quaternion()).invert()
+    .multiply(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d));
+  prop.quaternion.copy(q);
+  return prop;
+}

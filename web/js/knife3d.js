@@ -2,7 +2,8 @@
 // ---------------------------------------------------------------------------
 // Same rules as knife.js (distances, sprint physics, grading, stab distance);
 // only the presentation changes. Knife3DRunner extends KnifeRunner and swaps
-// the drawn 2D actor for a rigged, animated 3D man in a lit parking lot.
+// the drawn 2D actor for a realistic, motion-captured man (people3d.js,
+// char3d.js Character: hit reactions, blood, falls) in a lit parking lot.
 //
 // Loaded on demand (main.js imports this module only when the 3D course is
 // picked), because three.js and the assets are a few MB.
@@ -15,46 +16,27 @@
 // first thing it hits decides the shot: the man (zone from the nearest bone),
 // a car, the building or the ground (a miss, with a dust puff or spark).
 //
-// Assets (web/assets/3d, see CREDITS.md): man.glb (Ready Player Me avatar),
-// anims.glb (Mixamo idle/run clips, retargeted onto the avatar), car.glb,
-// car_shadow.png, sky.hdr (Poly Haven, lighting and reflections only).
+// Assets (web/assets/3d, see CREDITS.md): people/ (Rocketbox avatars and
+// clips), car.glb, car_shadow.png, sky.hdr (Poly Haven, lighting and
+// reflections only).
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { CONFIG } from './config.js';
 import { KnifeRunner } from './knife.js';
-import { addWound, addSpray, GroundDrops } from './blood3d.js';
+import { GroundDrops } from './blood3d.js';
+import { Character } from './char3d.js';
+import { People, attachProp } from './people3d.js';
 
 const K = () => CONFIG.knife;
 const V = () => CONFIG.knife3d;
 const ASSETS = 'assets/3d/';
 
-// Bone segments (parent -> child): scoring zone, and which hit reaction plays.
-const SEGMENTS = [
-  ['Neck', 'Head', 'Head', 'head'], ['Head', 'HeadTop_End', 'Head', 'head'],
-  ['Spine2', 'Neck', 'chest', 'chest'], ['Spine1', 'Spine2', 'chest', 'chest'],
-  ['Spine', 'Spine1', 'C', 'gut'], ['Hips', 'Spine', 'C', 'gut'],
-  ['LeftShoulder', 'LeftArm', 'C', 'armL'], ['RightShoulder', 'RightArm', 'C', 'armR'],
-  ['LeftArm', 'LeftForeArm', 'D', 'armL'], ['LeftForeArm', 'LeftHand', 'D', 'armL'],
-  ['RightArm', 'RightForeArm', 'D', 'armR'], ['RightForeArm', 'RightHand', 'D', 'armR'],
-  ['LeftUpLeg', 'LeftLeg', 'D', 'legL'], ['LeftLeg', 'LeftFoot', 'D', 'legL'],
-  ['RightUpLeg', 'RightLeg', 'D', 'legR'], ['RightLeg', 'RightFoot', 'D', 'legR'],
-];
-
-// Hit reactions: extra bone rotations (radians) layered on the animation.
-// 'side' entries flip sign with the side of the body that was hit.
-const REACTIONS = {
-  head: [['Neck', 'x', -0.45], ['Head', 'x', -0.65]],                                  // snaps back
-  chest: [['Spine2', 'x', -0.35], ['Spine1', 'x', -0.25], ['Spine1', 'y', 0.35, 'side'], ['Head', 'x', 0.3]], // knocked back, twisted
-  gut: [['Spine', 'x', 0.5], ['Spine1', 'x', 0.35], ['Head', 'x', -0.15]],             // doubles over
-  armL: [['LeftArm', 'x', -0.9], ['LeftForeArm', 'x', -0.6], ['Spine1', 'y', 0.2]],     // arm flung back
-  armR: [['RightArm', 'x', -0.9], ['RightForeArm', 'x', -0.6], ['Spine1', 'y', -0.2]],
-  legL: [['LeftUpLeg', 'x', -0.6], ['LeftLeg', 'x', 1.2], ['Spine', 'x', 0.25], ['Spine', 'z', 0.3, 'side']], // leg buckles
-  legR: [['RightUpLeg', 'x', -0.6], ['RightLeg', 'x', 1.2], ['Spine', 'x', 0.25], ['Spine', 'z', 0.3, 'side']],
-};
+// The man with the knife: one of these realistic people (people3d.js), picked
+// at random each time the scene loads. Street clothes.
+const KNIFE_CAST = ['m04', 'm06', 'm09', 'm17', 'm18'];
 
 // ---------------------------------------------------------------------------
 // The 3D view: scene, camera, assets, man, hit testing, effects.
@@ -92,9 +74,10 @@ export class Lot3DView {
     draco.setDecoderPath('vendor/three/addons/libs/draco/gltf/'); // the car is Draco-compressed
     gltf.setDRACOLoader(draco);
     this.gltf = gltf;
-    const [manG, animG, carG, sky, carShadow] = await Promise.all([
-      man ? gltf.loadAsync(ASSETS + 'man.glb') : null,
-      man ? gltf.loadAsync(ASSETS + 'anims.glb') : null,
+    this.cast = new People(gltf);
+    const manId = KNIFE_CAST[Math.floor(Math.random() * KNIFE_CAST.length)];
+    const [, carG, sky, carShadow] = await Promise.all([
+      man ? this.cast.load([manId]) : null,
       gltf.loadAsync(ASSETS + 'car.glb'),
       new HDRLoader(manager).loadAsync(ASSETS + 'sky.hdr'),
       new THREE.TextureLoader(manager).loadAsync(ASSETS + 'car_shadow.png'),
@@ -115,7 +98,7 @@ export class Lot3DView {
     this.buildPoles();
     this.buildCars(carG.scene, carShadow);
     this.setCarCount(cars);
-    if (man) this.buildMan(manG, animG);
+    if (man) this.buildMan(manId);
     this.groundDrops = new GroundDrops(scene);
     this.blood = true; // Setup can turn blood effects off
     this.resize(window.innerWidth, window.innerHeight);
@@ -335,108 +318,59 @@ export class Lot3DView {
     });
   }
 
-  buildMan(manG, animG) {
-    const man = manG.scene;
-    this.man = man;
-    this.manMeshes = [];
-    man.traverse(o => {
-      // Street clothes: no top hat, and a dark jacket instead of the suit colour.
-      if (o.isMesh && o.material?.name === 'Wolf3D_Headwear') o.visible = false;
-      if (o.isMesh && o.material?.name === 'Wolf3D_Outfit_Top') {
-        o.material = o.material.clone();
-        o.material.color = new THREE.Color(V().jacketTint);
-      }
-      if (o.isMesh && o.material?.name === 'Wolf3D_Outfit_Bottom') {
-        o.material = o.material.clone();
-        o.material.color = new THREE.Color(V().pantsTint);
-      }
-      if (o.isMesh && o.visible) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        o.frustumCulled = false;
-        o.userData.surface = 'man';
-        this.manMeshes.push(o);
-      }
-    });
-    this.bones = {};
-    man.traverse(o => { if (o.isBone) this.bones[o.name] = o; });
-    this.scene.add(man);
+  buildMan(id) {
+    this.manRig = this.cast.rig(id);
+    this.newMan();
+  }
 
-    // Retarget the Mixamo clips (Soldier rig) onto the avatar's skeleton.
-    const target = this.manMeshes.find(m => m.isSkinnedMesh);
-    let source = null;
-    animG.scene.traverse(o => { if (o.isSkinnedMesh && !source) source = o; });
-    animG.scene.updateMatrixWorld(true);
-    man.updateMatrixWorld(true);
-    // Only keep tracks for bones the source rig actually has (the clips carry a
-    // few finger bones the Soldier mesh lacks, which would just log warnings).
-    const sourceBones = new Set(source.skeleton.bones.map(b => b.name));
-    const clip = name => {
-      const c = animG.animations.find(a => a.name === name).clone();
-      c.tracks = c.tracks.filter(t => sourceBones.has(t.name.split('.')[0]));
-      return SkeletonUtils.retargetClip(target, source, c, {
-        // GLTFLoader strips the ':' from Mixamo names (mixamorig:Hips -> mixamorigHips).
-        hip: 'mixamorigHips',
-        getBoneName: bone => 'mixamorig' + bone.name,
-        hipInfluence: new THREE.Vector3(0, 1, 0), // keep the vertical bob, drop drift
-      });
-    };
-    // Retargeted tracks address `.bones[name]`, so the mixer runs on the skinned mesh.
-    this.mixer = new THREE.AnimationMixer(target);
-    this.actions = {
-      idle: this.mixer.clipAction(clip('Idle')),
-      run: this.mixer.clipAction(clip('Run')),
-    };
-    this.actions.idle.play();
-    this.current = 'idle';
-    man.position.set(0, 0, -9.1); // waiting at ~30 ft until a run starts
-    man.rotation.set(0, V().facingOffset, 0);
-
-    // A fixed-blade knife in his right hand.
+  // A fresh Character for the man (a new run starts from a clean slate:
+  // no wounds, standing, idle).
+  newMan() {
+    if (this.char) {
+      this.char.obj.removeFromParent();
+      this.char.effects.forEach(e => e.obj.removeFromParent());
+    }
+    const c = new Character(this.manRig, { role: 'knife' });
+    this.char = c;
+    this.man = c.obj;
+    this.bones = c.bones;
+    c.play('angry', 0);
+    c.update(0, 0);
+    // A fixed-blade knife in his right hand, blade along his fingers.
     const knife = makeKnife();
-    this.bones.RightHand.add(knife);
-    knife.position.set(0, 0.09, 0.02);
-    knife.rotation.set(Math.PI / 2, 0, 0);
-    knife.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.surface = 'man'; this.manMeshes.push(o); } });
+    attachProp(c.bones.RightHand, knife, { toward: c.bones.RightHandMiddle1, along: 0.02 });
+    knife.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.char = c; c.meshes.push(o); } });
     this.knife = knife;
-
-    this.fall = null;       // { t0 } once he's going down
-    this.impulses = [];     // active hit reactions
+    for (const m of c.meshes) m.userData.surface = 'man';
+    this.manMeshes = c.meshes;
+    this.man.position.set(0, 0, -9.1); // waiting at ~30 ft until a run starts
+    this.scene.add(this.man);
   }
 
   // ---- Runner interface ---------------------------------------------------------
 
   // Put the man at distance d (m), lateral x (m), with the runner's state.
   setMan({ d, x, pose, speed, stopped }) {
-    if (!this.ready) return;
-    const man = this.man;
-    man.visible = true;
-    man.position.set(x, 0, -d);
-    // Face the shooter (the retargeted clips carry the source rig's facing,
-    // corrected by facingOffset).
-    man.rotation.set(0, Math.atan2(-x, d) + V().facingOffset, 0);
-    const want = pose === 'charge' ? 'run' : 'idle';
-    if (want !== this.current && !this.fall) {
-      this.actions[want].reset().play();
-      this.actions[this.current].crossFadeTo(this.actions[want], 0.25, false);
-      this.current = want;
+    if (!this.ready || !this.char) return;
+    const c = this.char;
+    this.man.visible = true;
+    if (!c.fall) {
+      this.man.position.set(x, 0, -d);
+      this.man.rotation.set(0, Math.atan2(x, d), 0); // facing the shooter
     }
-    if (this.current === 'run') this.actions.run.timeScale = Math.max(0.6, speed / V().runClipSpeed);
-    if (stopped && !this.fall) this.fall = { t0: performance.now() / 1000 };
+    c.play(pose === 'charge' ? 'run' : 'angry');
+    // Legs keep up with his real speed.
+    if (c.current === 'run') c.actions.run.timeScale = Math.max(0.6, speed / V().runClipSpeed);
+    // Stopped: he goes down forward, toward the shooter, at full stride.
+    if (stopped && !c.fall) c.goDown(performance.now() / 1000, 'forward');
   }
 
   resetMan() {
-    if (!this.ready) return;
-    this.fall = null;
-    this.impulses = [];
+    if (!this.ready || !this.manRig) return;
     this.groundDrops?.clear();
-    this.mixer.stopAllAction();
-    this.actions.idle.reset().play();
-    this.current = 'idle';
-    this.man.rotation.set(0, V().facingOffset, 0);
-    this.man.position.set(0, 0, -9.1);
     this.effects.forEach(e => e.obj.removeFromParent());
     this.effects = [];
+    this.newMan();
   }
 
   resize(W, H) {
@@ -459,39 +393,8 @@ export class Lot3DView {
     const now = nowMs / 1000;
     const dt = Math.min(0.05, this.lastT ? now - this.lastT : 0.016);
     this.lastT = now;
-    this.mixer.update(dt);
-
-    // Hit reactions: each is a quick snap then recovery, layered on the clip.
-    const R = V().react;
-    this.impulses = this.impulses.filter(imp => now - imp.t0 < R.duration);
-    for (const imp of this.impulses) {
-      const t = now - imp.t0;
-      const k = (1 - Math.exp(-t * R.snap)) * Math.exp(-t * R.recover);
-      for (const [bone, axis, amp, side] of REACTIONS[imp.kind]) {
-        const b = this.bones[bone];
-        if (b) b.rotation[axis] += amp * k * imp.scale * (side ? imp.side : 1);
-      }
-      // A leg hit also drops his hips as the leg gives.
-      if (!this.fall && (imp.kind === 'legL' || imp.kind === 'legR')) this.man.position.y -= R.legDip * k;
-    }
-    // Going down: knees buckle, then he pitches forward toward the shooter.
-    if (this.fall) {
-      const F = V().fall;
-      const t = now - this.fall.t0;
-      const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
-      const kneel = ease(t / F.kneelTime);
-      const pitch = ease((t - F.kneelTime * 0.6) / F.pitchTime);
-      for (const side of ['Left', 'Right']) {
-        const up = this.bones[side + 'UpLeg'], knee = this.bones[side + 'Leg'];
-        if (up) up.rotation.x += F.thigh * kneel;
-        if (knee) knee.rotation.x += F.knee * kneel;
-      }
-      const sp = this.bones.Spine1;
-      if (sp) sp.rotation.x += F.slump * kneel;
-      this.man.position.y = -F.drop * kneel;
-      this.man.rotation.x = pitch * F.pitch;
-      this.actions[this.current].timeScale = Math.max(0, 1 - t / 0.4) * 0.6;
-    }
+    // The man: clip, hit reactions, fall (char3d.js Character).
+    this.char?.update(dt, now);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => {
       if (fx.done) fx.obj.removeFromParent();
@@ -512,38 +415,12 @@ export class Lot3DView {
     let surface = o.userData.surface;
     while (!surface && o.parent) { o = o.parent; surface = o.userData.surface; }
     const dir = this.raycaster.ray.direction.clone();
-    if (surface === 'man' && !this.fall) {
-      const info = this.boneAt(h.point);
+    if (surface === 'man' && !this.char.down) {
+      const info = this.char.boneAt(h.point);
       const zone = threat ? info.zone : 'NS';
       return { zone, points: CONFIG.points[zone], targetId: 'man', kind: 'actor', bodyZone: info.zone, threat, point: h.point, dir, hit: info };
     }
     return { zone: 'Miss', points: 0, targetId: null, kind: null, surface, point: h.point, dir };
-  }
-
-  // Nearest bone segment to a world point: zone (Head / A / C / D), the
-  // reaction to play, the bone to attach a wound to, and the surface normal
-  // (from the bone line out to the hit point).
-  boneAt(p) {
-    const a = new THREE.Vector3(), b = new THREE.Vector3(), q = new THREE.Vector3();
-    let best = null, bestD = Infinity;
-    for (const seg of SEGMENTS) {
-      const A = this.bones[seg[0]], Bn = this.bones[seg[1]];
-      if (!A || !Bn) continue;
-      A.getWorldPosition(a);
-      Bn.getWorldPosition(b);
-      new THREE.Line3(a, b).closestPointToPoint(p, true, q);
-      const d = q.distanceTo(p);
-      if (d < bestD) { bestD = d; best = { seg, closest: q.clone() }; }
-    }
-    if (!best) return { zone: 'D', kind: 'chest', bone: this.bones.Spine1, normal: new THREE.Vector3(0, 0, 1) };
-    const [from, , zoneKind, kind] = best.seg;
-    const zone = zoneKind === 'chest' ? (bestD <= V().aZoneRadius ? 'A' : 'C') : zoneKind;
-    const normal = p.clone().sub(best.closest);
-    if (normal.lengthSq() < 1e-8) normal.set(0, 0, 1);
-    normal.normalize();
-    // Which side of his body (his left/right) the hit was on.
-    const local = this.man.worldToLocal(p.clone());
-    return { zone, kind, bone: this.bones[from], normal, side: local.x >= 0 ? 1 : -1 };
   }
 
   // Reaction to a shot: body reaction + blood on the man, dust on the ground,
@@ -551,12 +428,7 @@ export class Lot3DView {
   onShot(score) {
     if (!this.ready || !score.point) return;
     if (score.kind === 'actor' && score.hit) {
-      const h = score.hit;
-      this.impulses.push({ kind: h.kind, t0: performance.now() / 1000, side: h.side, scale: 0.8 + Math.random() * 0.4 });
-      if (this.blood) {
-        this.effects.push(addWound(h.bone, score.point, h.normal));
-        this.effects.push(addSpray(this.scene, score.point, score.dir, this.groundDrops));
-      }
+      this.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
     } else if (score.surface === 'car' || score.surface === 'building') {
       this.effects.push(puff(this.scene, score.point, '#ffcf8a', 0.15, 0.12, true));
     } else if (score.surface === 'ground') {
@@ -565,7 +437,7 @@ export class Lot3DView {
   }
 
   // Debug/test helper: play a reaction without a shot.
-  react(kind, side = 1) { this.impulses.push({ kind, t0: performance.now() / 1000, side, scale: 1 }); }
+  react(kind, side = 1) { this.char.impulses.push({ kind, t0: performance.now() / 1000, side, scale: 1 }); }
 
   setVisible(on) {
     if (this.visible === on) return; // called every frame; only touch the DOM on change
