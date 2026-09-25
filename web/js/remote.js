@@ -37,6 +37,8 @@ export const SETUP_CONTROLS = [
   { id: 'dist3d', kind: 'range', label: 'Distance', out: 'dist3d-val' },
   { id: 'cars3d', kind: 'range', label: 'Parked cars', out: 'cars3d-val' },
   { id: 'opt-blood', kind: 'check', label: 'Blood effects' },
+  { id: 'flip-speed', kind: 'range', label: 'Flip speed', out: 'flip-speed-val' },
+  { id: 'flip-var', kind: 'check', label: 'Variable timing' },
   { id: 'of-gunmen', kind: 'select', label: 'Armed suspects' },
   { id: 'of-innocents', kind: 'select', label: 'Office workers' },
   { id: 'of-fire', kind: 'range', label: 'Time before a suspect fires', out: 'of-fire-val' },

@@ -43,6 +43,8 @@ const settings = Object.assign({
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
+  flipSpeed: 1,       // flip grid: plate spin / pace multiplier (CONFIG.flip.speed)
+  flipVariable: false, // flip grid: vary each time up and pause
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
@@ -708,6 +710,32 @@ function refreshOffice() {
   $('#of-voice').checked = o.victimVoice;
 }
 
+// Flip grid: spin speed and variable timing (apply to the board right away).
+function applyFlip() {
+  range.flip.speed = settings.flipSpeed;
+  range.flip.variable = settings.flipVariable;
+}
+applyFlip();
+$('#flip-speed').oninput = e => {
+  settings.flipSpeed = Number(e.target.value);
+  persist();
+  applyFlip();
+  refreshSetup();
+};
+$('#flip-var').onchange = e => {
+  settings.flipVariable = e.target.checked;
+  persist();
+  applyFlip();
+};
+function refreshFlip() {
+  const S = CONFIG.flip.speed, el = $('#flip-speed');
+  el.min = S.min; el.max = S.max; el.step = S.step;
+  el.value = settings.flipSpeed;
+  const v = settings.flipSpeed;
+  $('#flip-speed-val').textContent = v === 1 ? 'normal' : v > 1 ? `${v}× faster` : `${+(1 / v).toFixed(1)}× slower`;
+  $('#flip-var').checked = settings.flipVariable;
+}
+
 $('#opt-blood').onchange = e => {
   settings.blood = e.target.checked;
   persist();
@@ -735,6 +763,8 @@ function refreshSetup() {
   $('#cars3d-row').hidden = !(is3D(c.type) || range.layout === 'scene3d');
   $('#office-row').hidden = c.type !== 'office3d';
   refreshOffice();
+  $('#flip-row').hidden = c.layout !== 'grid' && range.layout !== 'grid';
+  refreshFlip();
   $('#cars3d-only').hidden = c.type !== 'knife3d' && range.layout !== 'scene3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;

@@ -113,7 +113,15 @@ export const CONFIG = {
     boardWidthFrac: 0.62,   // frame width as a fraction of viewport width (max)
     boardHeightFrac: 0.56,  // frame height as a fraction of viewport height (max)
     centreY: 0.44,          // frame centre, fraction of viewport height
-    flipTime: 0.2,          // seconds for a plate to spin 180 degrees
+    flipTime: 0.2,          // seconds for a plate to spin 180 degrees (at speed 1)
+    // Setup: "Flip speed" multiplies how fast plates spin and how soon the next
+    // one turns (the time a plate stays up is its own setting). "Variable
+    // timing" varies each plate's time up and the pause before it by +/- spread.
+    speed: { min: 0.5, max: 2, step: 0.25 },
+    variableSpread: 0.5,
+    // Shape / colour plates (Called Shapes & Colours).
+    shapes: ['circle', 'square', 'triangle', 'star'],
+    colors: { red: '#d7322b', blue: '#2563d4', green: '#2c9a45', yellow: '#f0c02a' },
     hittableAbove: 0.45,    // plate must be at least this face-on to be hit
     // Free practice: random target faces.
     freeExposure: [1.2, 2.4],

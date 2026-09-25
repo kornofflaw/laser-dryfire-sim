@@ -88,6 +88,9 @@ const FLIP = [
   { name: 'Called Numbers', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'called',
     calls: 10, gap: [0.7, 1.8], callPar: 1.5,
     desc: 'A voice calls a number; shoot that plate. The numbers reshuffle after every hit.' },
+  { name: 'Called Shapes & Colours', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'shape',
+    calls: 10, gap: [0.7, 1.8], callPar: 1.8, callKinds: ['color', 'shape', 'both'],
+    desc: 'A voice calls a colour, a shape, or both ("Blue", "Star", "Red triangle"). Shoot a plate that matches. The plates reshuffle after every hit.' },
 ];
 
 // Stages. Items: type 'paper' | 'noshoot' | 'popper' | 'mini' | 'plate', x in

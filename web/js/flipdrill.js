@@ -6,19 +6,30 @@
 //                them in order 1..N. A hit on the wrong number is a penalty.
 // mode 'called'  plates show shuffled numbers; a voice calls one; shoot it.
 //                After each correct hit every plate spins and re-shuffles.
+// mode 'shape'   plates show coloured shapes (every plate different); a voice
+//                calls a colour ("Blue"), a shape ("Star") or both ("Red
+//                triangle"); shoot any plate that matches. Re-shuffles like
+//                'called'.
+//
+// Setup "Flip speed" (board.speed) shortens the spins and the pauses between
+// plates or calls; "Variable timing" (board.vary) varies each time up and pause.
 //
 // judge() turns a hit on the wrong plate into a miss before it counts, so the
 // score and sounds agree with the drill.
 //
 // Course fields: mode, and for 'flash': exposures, together, upTime, gap,
 // passPct, failOnMiss (a plate that spins back unhit ends the run as a FAIL);
-// for 'order': parTime; for 'called': calls, gap, callPar.
+// for 'order': parTime; for 'called' and 'shape': calls, gap, callPar; for
+// 'shape': callKinds (any of 'color', 'shape', 'both').
 
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { startBeep, say } from './audio.js';
+import { shapePath } from './fliptiles.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const cap = w => w[0].toUpperCase() + w.slice(1);
 const shuffle = arr => {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -78,10 +89,34 @@ export class FlipRunner extends Runner {
     this.clearRun();
   }
 
-  // Show shuffled numbers 1..n on every plate.
+  // Show shuffled numbers 1..n on every plate (or, in 'shape' mode, a
+  // different colour + shape combination on every plate).
   showNumbers(nowSec) {
+    if (this.course.mode === 'shape') {
+      const { colors, shapes } = CONFIG.flip;
+      const combos = shuffle(Object.keys(colors).flatMap(c => shapes.map(sh => `${c}:${sh}`)));
+      this.board.flipAll(combos.slice(0, this.n).map(num => ({ face: 'shape', num })), nowSec);
+      return;
+    }
     const nums = shuffle(Array.from({ length: this.n }, (_, i) => i + 1));
     this.board.flipAll(nums.map(num => ({ face: 'number', num })), nowSec);
+  }
+
+  // A shape-mode call, built from one of the plates showing so it always has
+  // at least one match.
+  makeShapeCall() {
+    const faces = this.board.tiles.filter(t => t.face === 'shape').map(t => t.num);
+    const [color, shape] = pick(faces).split(':');
+    const kind = pick(this.course.callKinds || ['color', 'shape', 'both']);
+    const text = kind === 'color' ? cap(color) : kind === 'shape' ? cap(shape) : `${cap(color)} ${shape}`;
+    return { kind, color: kind === 'shape' ? null : color, shape: kind === 'color' ? null : shape, text };
+  }
+
+  matches(num) {
+    const call = this.call;
+    if (!call || typeof num !== 'string') return false;
+    const [color, shape] = num.split(':');
+    return (!call.color || call.color === color) && (!call.shape || call.shape === shape);
   }
 
   update(nowMs) {
@@ -91,9 +126,9 @@ export class FlipRunner extends Runner {
     if (this.state === State.Delay && nowMs >= this.nextAt) {
       startBeep();
       this.showNumbers(now);
-      this.revealMs = nowMs + CONFIG.flip.flipTime * 1000 * 0.5; // plates face-on halfway through the spin
+      this.revealMs = nowMs + this.board.spinTime * 1000 * 0.5; // plates face-on halfway through the spin
       this.state = State.Running;
-      if (c.mode === 'called') this.nextAt = nowMs + 700; // first call once they've turned
+      if (c.mode === 'called' || c.mode === 'shape') this.nextAt = nowMs + 500 + this.board.spinTime * 1000; // first call once they've turned
       return;
     }
     if (this.state !== State.Running) return;
@@ -106,24 +141,25 @@ export class FlipRunner extends Runner {
       if (this.current.length && this.current.every(r => r.hitAt != null || r.expired)) {
         this.current = [];
         if (this.done >= c.exposures) return this.finish(nowMs);
-        this.nextAt = nowMs + rand(...c.gap) * 1000;
+        this.nextAt = nowMs + this.gap(c) * 1000;
       }
       if (!this.current.length && nowMs >= this.nextAt && this.done < c.exposures && !this.board.anyFaceUp) {
         const tiles = shuffle(this.board.blankTiles()).slice(0, c.together);
-        this.current = tiles.map(i => this.board.expose(i, c.upTime, now)).filter(Boolean);
+        const up = this.board.vary(c.upTime); // a pair stays up together
+        this.current = tiles.map(i => this.board.expose(i, up, now)).filter(Boolean);
         this.records.push(...this.current);
         this.done++;
       }
-    } else if (c.mode === 'called') {
+    } else if (c.mode === 'called' || c.mode === 'shape') {
       if (this.reshuffleAt != null && nowMs >= this.reshuffleAt) {
         this.reshuffleAt = null;
         this.showNumbers(now);
       }
       if (!this.call && this.reshuffleAt == null && nowMs >= this.nextAt) {
         if (this.calls.length >= c.calls) return this.finish(nowMs);
-        this.call = 1 + Math.floor(Math.random() * this.n);
+        this.call = c.mode === 'shape' ? this.makeShapeCall() : 1 + Math.floor(Math.random() * this.n);
         this.callAt = nowMs;
-        say(this.call);
+        say(c.mode === 'shape' ? this.call.text : this.call);
       }
     }
   }
@@ -137,6 +173,7 @@ export class FlipRunner extends Runner {
     if (c.mode === 'flash') good = score.face === 'target';
     else if (c.mode === 'order') good = score.face === 'number' && score.num === this.next;
     else if (c.mode === 'called') good = score.face === 'number' && this.call != null && score.num === this.call;
+    else if (c.mode === 'shape') good = score.face === 'shape' && this.matches(score.num);
     return good ? score : { ...score, zone: 'Miss', points: 0, wrongTile: true };
   }
 
@@ -165,13 +202,17 @@ export class FlipRunner extends Runner {
       this.board.flip(score.tile, 'blank', null, now);
       this.next++;
       if (this.next > this.n) this.finish(score.t);
-    } else if (c.mode === 'called') {
+    } else {
       this.calls.push((score.t - this.callAt) / 1000);
       this.call = null;
-      this.nextAt = score.t + rand(...c.gap) * 1000;
+      this.nextAt = score.t + this.gap(c) * 1000;
       if (this.calls.length < c.calls) this.reshuffleAt = score.t + 250; // plates spin to new numbers
     }
   }
+
+  // Pause before the next plate / call: faster at higher flip speed, varied
+  // if variable timing is on.
+  gap(c) { return this.board.vary(rand(...c.gap)) / this.board.speed; }
 
   finish(endMs) {
     const c = this.course;
@@ -216,17 +257,43 @@ export class FlipRunner extends Runner {
     this.emit();
   }
 
-  // Big call-out number at the top of the screen in 'called' mode.
+  // Big call-out at the top of the screen in 'called' / 'shape' mode.
   drawOverlay(g, W, H) {
-    if (this.course?.mode !== 'called' || this.state !== State.Running || this.call == null) return;
-    g.fillStyle = 'rgba(0,0,0,0.55)';
-    const bw = H * 0.16;
-    g.fillRect(W / 2 - bw / 2, H * 0.015, bw, bw * 0.7);
-    g.fillStyle = '#ffd34d';
-    g.font = `800 ${Math.round(bw * 0.5)}px system-ui, sans-serif`;
+    const mode = this.course?.mode;
+    if ((mode !== 'called' && mode !== 'shape') || this.state !== State.Running || this.call == null) return;
+    const bh = H * 0.11, y = H * 0.015;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText(String(this.call), W / 2, H * 0.015 + bw * 0.36);
+    if (mode === 'called') {
+      const bw = bh * 1.45;
+      g.fillStyle = 'rgba(0,0,0,0.55)';
+      g.fillRect(W / 2 - bw / 2, y, bw, bh);
+      g.fillStyle = '#ffd34d';
+      g.font = `800 ${Math.round(bh * 0.7)}px system-ui, sans-serif`;
+      g.fillText(String(this.call), W / 2, y + bh * 0.52);
+      return;
+    }
+    // Shape call: the icon (in its colour, or white if any colour goes) and the words.
+    const call = this.call, col = call.color ? CONFIG.flip.colors[call.color] : '#f4f4f4';
+    g.font = `800 ${Math.round(bh * 0.5)}px system-ui, sans-serif`;
+    const tw = g.measureText(call.text.toUpperCase()).width;
+    const bw = tw + bh * 1.4;
+    g.fillStyle = 'rgba(0,0,0,0.6)';
+    g.fillRect(W / 2 - bw / 2, y, bw, bh);
+    const ix = W / 2 - bw / 2 + bh * 0.6, iy = y + bh / 2;
+    g.save();
+    g.translate(ix, iy);
+    if (call.shape) shapePath(g, call.shape, bh * 0.3);
+    else { g.beginPath(); g.rect(-bh * 0.3, -bh * 0.3, bh * 0.6, bh * 0.6); } // colour swatch
+    g.fillStyle = col;
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.8)';
+    g.lineWidth = 2;
+    g.stroke();
+    g.restore();
+    g.fillStyle = call.color ? col : '#f4f4f4';
+    g.textAlign = 'left';
+    g.fillText(call.text.toUpperCase(), ix + bh * 0.5, y + bh * 0.53);
   }
 
   timerHTML(now) {

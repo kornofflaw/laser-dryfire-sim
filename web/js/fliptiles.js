@@ -1,13 +1,17 @@
 // fliptiles.js — a steel frame holding a grid of square plates that spin.
 // ---------------------------------------------------------------------------
 // Each plate spins about its vertical axle. One side is bare steel ('blank');
-// the other shows a face: an orange 'target' or a white 'number' plate. While
+// the other shows a face: an orange 'target', a white 'number' plate, or a
+// coloured 'shape' (num is then 'colour:shape', e.g. 'red:star'). While
 // spinning, the plate's visible width is |cos(angle)| of its full width, and
 // hit testing uses exactly that, so an edge-on plate can't be hit.
 //
 // The board only draws, animates and hit-tests. What a hit MEANS (right
 // number, wrong number, reaction time) is up to the runner (flipdrill.js),
 // except in free practice (`auto`), where target faces flip back when hit.
+//
+// speed (Setup "Flip speed") makes plates spin faster and free practice turn
+// them sooner; variable (Setup "Variable timing") varies each time up and gap.
 
 import { CONFIG } from './config.js';
 import { pattern } from './scenery.js';
@@ -18,6 +22,8 @@ const rand = (a, b) => a + Math.random() * (b - a);
 export class FlipBoard {
   constructor() {
     this.auto = false;
+    this.speed = 1;
+    this.variable = false;
     this.reset();
   }
 
@@ -33,6 +39,15 @@ export class FlipBoard {
     }));
     this.nextAuto = 0.5;
     this.exposures = [];
+  }
+
+  // Seconds for a half turn at the current speed.
+  get spinTime() { return F().flipTime / this.speed; }
+
+  // A time (s) with the variable-timing spread applied, if on.
+  vary(sec) {
+    const k = F().variableSpread;
+    return this.variable ? sec * rand(1 - k, 1 + k) : sec;
   }
 
   // Spin a plate to show `face` (and number). No-op if already showing it.
@@ -55,7 +70,7 @@ export class FlipBoard {
     if (t.face !== 'blank' || t.anim) return null;
     const rec = { tile: i, raisedAt: nowSec, hitAt: null, expired: false, reaction: null };
     this.flip(i, 'target', null, nowSec);
-    t.until = nowSec + F().flipTime + upSec;
+    t.until = nowSec + this.spinTime + upSec;
     t.exposure = rec;
     this.exposures.push(rec);
     return rec;
@@ -68,14 +83,14 @@ export class FlipBoard {
   // face is visible.
   view(t, nowSec) {
     if (!t.anim) return { k: 1, face: t.face, num: t.num };
-    const p = Math.min(1, (nowSec - t.anim.t0) / F().flipTime);
+    const p = Math.min(1, (nowSec - t.anim.t0) / this.spinTime);
     const k = Math.abs(Math.cos(p * Math.PI));
-    return p < 0.5 ? { k, face: t.anim.fromFace, num: t.anim.fromNum } : { k, face: t.face, num: t.num };
+    return p < 0.5 ? { k, p, face: t.anim.fromFace, num: t.anim.fromNum } : { k, p, face: t.face, num: t.num };
   }
 
   update(dt, nowSec) {
     for (const t of this.tiles) {
-      if (t.anim && nowSec - t.anim.t0 >= F().flipTime) t.anim = null;
+      if (t.anim && nowSec - t.anim.t0 >= this.spinTime) t.anim = null;
       if (t.until != null && nowSec >= t.until) {
         if (t.exposure && t.exposure.hitAt == null) t.exposure.expired = true;
         t.until = null;
@@ -88,9 +103,9 @@ export class FlipBoard {
       const up = this.tiles.filter(t => t.face !== 'blank').length;
       const free = this.blankTiles();
       if (up < F().freeMaxUp && free.length) {
-        this.expose(free[Math.floor(Math.random() * free.length)], rand(...F().freeExposure), nowSec);
+        this.expose(free[Math.floor(Math.random() * free.length)], this.vary(rand(...F().freeExposure)), nowSec);
       }
-      this.nextAuto = nowSec + rand(...F().freeGap);
+      this.nextAuto = nowSec + this.vary(rand(...F().freeGap)) / this.speed;
     }
   }
 
@@ -184,16 +199,32 @@ export class FlipBoard {
     for (const t of this.tiles) {
       const [cx, cy] = L.centre(t);
       const v = this.view(t, nowSec);
-      if (v.k < 0.02) continue;
-      g.save();
-      g.translate(cx, cy);
-      g.scale(v.k, 1);
-      drawPlate(g, L.s, v.face, v.num, t.anim ? [] : t.marks);
-      if (t.flash > 0 && !t.anim) {
-        g.fillStyle = t.flashGood ? `rgba(90,255,120,${0.45 * t.flash})` : `rgba(255,60,60,${0.5 * t.flash})`;
-        g.fillRect(-L.s / 2, -L.s / 2, L.s, L.s);
+      const h = L.s / 2;
+      // Plate edge (its thickness) shows while it spins.
+      if (t.anim) {
+        const th = L.s * 0.06 * Math.sqrt(1 - v.k * v.k);
+        const side = v.p < 0.5 ? 1 : -1;
+        g.fillStyle = '#2e3237';
+        g.fillRect(side > 0 ? cx + h * v.k : cx - h * v.k - th, cy - h, th, L.s);
       }
-      g.restore();
+      if (v.k >= 0.02) {
+        g.save();
+        g.translate(cx, cy);
+        g.scale(v.k, 1);
+        drawPlate(g, L.s, v.face, v.num, t.anim ? [] : t.marks);
+        // Turned away from the light while it spins.
+        if (v.k < 1) { g.fillStyle = `rgba(0,0,0,${0.55 * (1 - v.k)})`; g.fillRect(-h, -h, L.s, L.s); }
+        if (t.flash > 0 && !t.anim) {
+          g.fillStyle = t.flashGood ? `rgba(90,255,120,${0.45 * t.flash})` : `rgba(255,60,60,${0.5 * t.flash})`;
+          g.fillRect(-h, -h, L.s, L.s);
+        }
+        g.restore();
+      }
+      // Axle caps above and below the plate.
+      g.fillStyle = '#9aa0a7';
+      for (const dy of [-1, 1]) {
+        g.beginPath(); g.arc(cx, cy + dy * (h + L.s * 0.03), L.s * 0.035, 0, Math.PI * 2); g.fill();
+      }
     }
   }
 }
@@ -202,35 +233,70 @@ export class FlipBoard {
 function drawPlate(g, s, face, num, marks) {
   const h = s / 2;
   if (face === 'blank') {
+    // Bare steel: grey with a sheen and faint brushing.
     const grad = g.createLinearGradient(-h, -h, h, h);
-    grad.addColorStop(0, '#8a9097');
-    grad.addColorStop(1, '#4d5258');
+    grad.addColorStop(0, '#a3aab1');
+    grad.addColorStop(0.45, '#7d848b');
+    grad.addColorStop(1, '#50565c');
     g.fillStyle = grad;
     g.fillRect(-h, -h, s, s);
     g.fillStyle = pattern(g, 'gravel');
-    g.globalAlpha = 0.15;
+    g.globalAlpha = 0.12;
     g.fillRect(-h, -h, s, s);
     g.globalAlpha = 1;
+    g.strokeStyle = 'rgba(255,255,255,0.06)';
+    g.lineWidth = 1;
+    for (let j = 1; j < 12; j++) {
+      const y = -h + (j / 12) * s;
+      g.beginPath(); g.moveTo(-h, y); g.lineTo(h, y + s * 0.01); g.stroke();
+    }
   } else if (face === 'target') {
-    g.fillStyle = '#f07a1a';
+    const grad = g.createRadialGradient(-h * 0.4, -h * 0.4, s * 0.05, 0, 0, s * 0.8);
+    grad.addColorStop(0, '#ff9d45');
+    grad.addColorStop(1, '#d95d0c');
+    g.fillStyle = grad;
     g.fillRect(-h, -h, s, s);
-    g.strokeStyle = '#fff';
+    g.strokeStyle = '#fbfbf7';
     g.lineWidth = s * 0.07;
     g.beginPath(); g.arc(0, 0, s * 0.3, 0, Math.PI * 2); g.stroke();
-    g.fillStyle = '#fff';
+    g.fillStyle = '#fbfbf7';
     g.beginPath(); g.arc(0, 0, s * 0.1, 0, Math.PI * 2); g.fill();
-  } else if (face === 'number') {
-    g.fillStyle = '#f4f2ea';
+  } else {
+    // White painted face: a number or a coloured shape.
+    const grad = g.createLinearGradient(-h, -h, h, h);
+    grad.addColorStop(0, '#fbfaf5');
+    grad.addColorStop(1, '#d9d6cc');
+    g.fillStyle = grad;
     g.fillRect(-h, -h, s, s);
-    g.fillStyle = '#111';
-    g.font = `800 ${Math.round(s * 0.62)}px system-ui, sans-serif`;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(String(num), 0, s * 0.04);
+    g.strokeStyle = 'rgba(20,20,20,0.55)';
+    g.lineWidth = Math.max(1, s * 0.02);
+    g.strokeRect(-h * 0.84, -h * 0.84, s * 0.84, s * 0.84);
+    if (face === 'number') {
+      g.fillStyle = '#111';
+      g.font = `800 ${Math.round(s * (String(num).length > 1 ? 0.46 : 0.6))}px system-ui, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(String(num), 0, s * 0.04);
+    } else if (face === 'shape' && num) {
+      const [color, shape] = num.split(':');
+      shapePath(g, shape, s * 0.3);
+      g.fillStyle = F().colors[color] || '#888';
+      g.fill();
+      g.strokeStyle = 'rgba(0,0,0,0.6)';
+      g.lineWidth = Math.max(1.5, s * 0.025);
+      g.stroke();
+    }
   }
-  // Bevelled edge.
-  g.strokeStyle = 'rgba(0,0,0,0.35)';
-  g.lineWidth = Math.max(1, s * 0.03);
+  // Bevel: lit top-left edge, shaded bottom-right edge, dark outline.
+  const b = s * 0.035;
+  g.fillStyle = 'rgba(255,255,255,0.28)';
+  g.fillRect(-h, -h, s, b);
+  g.fillRect(-h, -h, b, s);
+  g.fillStyle = 'rgba(0,0,0,0.3)';
+  g.fillRect(-h, h - b, s, b);
+  g.fillRect(h - b, -h, b, s);
+  g.strokeStyle = 'rgba(0,0,0,0.5)';
+  g.lineWidth = Math.max(1, s * 0.02);
   g.strokeRect(-h, -h, s, s);
   // Lead splashes where it was hit.
   g.fillStyle = 'rgba(110,112,115,0.85)';
@@ -244,4 +310,19 @@ function drawPlate(g, s, face, num, marks) {
     g.closePath();
     g.fill();
   }
+}
+
+// Path of a shape of radius r centred at (0,0) (also used for the call-out).
+export function shapePath(g, shape, r) {
+  g.beginPath();
+  if (shape === 'circle') g.arc(0, 0, r, 0, Math.PI * 2);
+  else if (shape === 'square') g.rect(-r * 0.85, -r * 0.85, r * 1.7, r * 1.7);
+  else if (shape === 'triangle') { g.moveTo(0, -r); g.lineTo(r * 0.95, r * 0.75); g.lineTo(-r * 0.95, r * 0.75); }
+  else if (shape === 'star') {
+    for (let j = 0; j < 10; j++) {
+      const a = -Math.PI / 2 + (j / 10) * Math.PI * 2, rr = j % 2 ? r * 0.45 : r * 1.05;
+      g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+  }
+  g.closePath();
 }

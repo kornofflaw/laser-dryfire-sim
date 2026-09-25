@@ -156,9 +156,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       in the lobby is alive, reaching up and calling for help (spoken); Setup
       -> Office scenario options (gunmen, staff, time before they fire,
       hits you can take, rifle, armour, hostage, fleeing, victim voice).
-- [ ] FLIP GRID BACKLOG (Andrew): nicer plates; a course that calls out a
-      shape or colour to hit; Setup option for flip speed; option for plates
-      to flip on and off at a variable rate.
+- [x] Flip grid pass (Andrew, 2026-09-25): nicer plates (bevelled steel,
+      painted faces, visible plate edge and shading while spinning, axle caps);
+      new course Called Shapes & Colours (a voice calls "Blue", "Star" or
+      "Red triangle"; shoot a matching plate); Setup -> Flip speed (0.5x-2x:
+      spin and pace) and Variable timing (each time up and pause varies).
 - [ ] More realism: post-processing (ambient occlusion, bloom), more
       environments (street, store interior), facial expressions (Rocketbox
       avatars have face bones), drawing-a-gun motion instead of a pose blend.
@@ -248,6 +250,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-25: Office realism pass 1 (interior3d.js, post3d.js), fairer fire timing.
 - 2026-09-25: Office pass 2: breakable glass, rifle + body-armour suspects,
   survive 3 hits, random positions, fleeing staff, living victim, Setup options.
+- 2026-09-25: Flip grid: nicer plates, Called Shapes & Colours course, flip
+  speed and variable timing options.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
