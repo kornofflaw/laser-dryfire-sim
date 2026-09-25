@@ -15,9 +15,9 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | Key | Action |
 | --- | --- |
 | Space | Start a timed run (random delay, then the beep) |
-| D | Choose a course: drills, Texas Star, Dot Torture, judgment scenarios |
+| D | Choose a course: drills, pop-ups, steel (Texas Star, plate rack, poppers), Dot Torture, judgment scenarios |
 | Tab | Next course |
-| L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid |
+| L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid, and the 3D range versions |
 | [ / ] | Shorter / longer time targets stay up (flip grid, pop-ups) |
 | V | Review the last run: where each shot landed and when |
 | S | Setup: camera, threshold, calibration, run log |

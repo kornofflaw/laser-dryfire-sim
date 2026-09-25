@@ -221,7 +221,7 @@ export class DrillRunner extends Runner {
     if (this.busy) {
       let counts = `Points: ${this.points}   A: ${this.counts.A}`;
       if (d.minBodyHits || d.minHeadHits) counts = `Body: ${this.bodyHits}   Head: ${this.counts.Head}`;
-      if (d.layout === 'star') counts = `Plates down: ${this.counts.Steel} / 5`;
+      if (d.category === 'Steel') counts = `Steel down: ${this.counts.Steel} / ${d.requiredHits}`;
       const progress = d.requiredHits ? `Hits: ${this.hits} / ${d.requiredHits}` :
         `Shots: ${this.shots}${d.requiredShots ? ' / ' + d.requiredShots : ''}`;
       return head + `<span class="go">${d.name}</span>\n${progress}\n${counts}`;
@@ -236,7 +236,7 @@ export class DrillRunner extends Runner {
       const lines = [`<b>${d.name}</b> — ${verdict}`];
       if (!r.complete) lines.push(`<span class="bad">Incomplete: ${d.requiredHits ? r.hits + '/' + d.requiredHits + ' hits' : r.shots + '/' + d.requiredShots + ' rounds'}</span>`);
       lines.push(`Time: ${f2(r.time)}s` + (d.requiredShots || d.requiredHits ? `   ${parTag}` : ''));
-      if (d.layout === 'star') lines.push(`Plates: ${r.counts.Steel}/5   Rounds: ${r.shots}`);
+      if (d.category === 'Steel') lines.push(`Steel down: ${r.counts.Steel}/${d.requiredHits}   Rounds: ${r.shots}`);
       else if (d.minBodyHits || d.minHeadHits) lines.push(`Body: ${r.bodyHits}   Head: ${r.counts.Head}   A: ${r.counts.A}`);
       else lines.push(`Points: ${r.points}   A: ${r.counts.A}  C: ${r.counts.C}  D: ${r.counts.D}  M: ${r.counts.Miss}`);
       lines.push(`Hit factor: ${f2(r.hitFactor)}`);

@@ -101,7 +101,8 @@ web/                    the app; deploy this folder as-is
   js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
   js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
-  js/range3d.js         photo-real 3D range bay (layouts range3d-single / range3d-bay), used by Fundamentals
+  js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
+  js/steel3d.js         3D steel for the range: plate rack, poppers, Texas Star (rotation from star.js)
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing

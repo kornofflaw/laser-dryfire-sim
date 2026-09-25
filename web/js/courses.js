@@ -10,7 +10,9 @@
 // type 'office3d'  active shooter in an office building, 3D (office3d.js, on demand)
 //
 // Drill fields (all optional except name/type/parTime):
-//   layout         range layout to use; null = whatever the user picked (L)
+//   layout         range layout to use; null = whatever the user picked (L).
+//                  single / bay / popup / star switch to the 3D range when it's
+//                  on (range.js TO_3D); 'range3d-*' layouts are always 3D.
 //   requiredShots  run ends after this many rounds (0 = ends at the par beep)
 //   requiredHits   run ends after this many hits (pop-ups, movers, steel)
 //   maxShots       with requiredHits: out of ammo after this many rounds = fail
@@ -54,6 +56,10 @@ const DRILLS = [
   // Steel
   { name: 'Texas Star', category: 'Steel', layout: 'star', requiredHits: 5, maxShots: 15, parTime: 8.0,
     desc: 'Clear all 5 plates. It starts spinning after the first plate falls.' },
+  { name: 'Plate Rack', category: 'Steel', layout: 'range3d-plates', requiredHits: 6, maxShots: 12, parTime: 6.0,
+    desc: 'Six 8-inch plates on a rack at 10 yards (3D). Knock them all down.' },
+  { name: 'Poppers', category: 'Steel', layout: 'range3d-poppers', requiredHits: 4, maxShots: 8, parTime: 4.0,
+    desc: 'Four full-size poppers (3D). Every one has to fall.' },
 ];
 
 const POPUPS = [

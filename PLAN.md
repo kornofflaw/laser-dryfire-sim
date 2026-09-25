@@ -57,10 +57,19 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       carries on into the berm and kicks dirt. Scoring maps the 3D hit back to
       the same USPSA shape (classifyUspsa). Setup → Current course: on/off and
       distance (3–25 yd, default 5). Free practice: L → "3D range" layouts.
-- [ ] 3D range next: steel (plates, poppers, Texas Star) and pop-ups in 3D;
-      life-size option (camera FOV from screen width + viewing distance).
+- [x] 3D pop-ups and steel on the same range. With the 3D range on, every
+      course whose targets exist in 3D uses it: Fundamentals, Transitions (3D
+      bay), Pop-ups, Texas Star (range.js TO_3D). Pop-ups hinge up from behind
+      a low dirt mound; their timing/state is still the PopupBank, so the drills
+      are unchanged. The 3D Texas Star turns with the same star.js physics;
+      hit plates fly off and land on the ground. Steel shows grey lead splashes
+      where hit; frame hits throw lead fragments.
+- [x] New steel courses (3D only): Plate Rack (six 8" plates, 10 yd, falls back
+      onto the stop bar) and Poppers (four full-size poppers, 12 yd, tip over).
+      Each target kind keeps its own distance (Setup → Current course).
+- [ ] 3D range next: life-size option (camera FOV from screen width + viewing
+      distance); movers and the flip grid in 3D; mini poppers / mixed arrays.
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
-- [ ] More steel: plate rack, poppers (need a "falls when hit" reaction).
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
 Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
@@ -156,7 +165,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   clips, CC BY car, CC0 sky); see web/assets/3d/CREDITS.md. Fine for a
   personal trainer; revisit licences before any commercial use.
 - 3D performance on the projector machine / iPad: needs a real-device check
-  (headless software rendering here runs ~20-70 ms/frame).
+  (headless software rendering is not representative: the 3D range runs about
+  1-2 s/frame here, roughly twice the knife scene, on a slow shared CPU).
 - Laser pulse duration vs. camera fps (gates rapid-fire detection). Browsers
   typically give 30–60 fps.
 - Camera auto-exposure/gain can't be locked from the browser on every OS; if the
@@ -180,6 +190,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: 3D pop-ups, 3D Texas Star, Plate Rack and Poppers (steel3d.js);
+  Transitions use the 3D bay; per-target-kind distances.
 - 2026-09-25: Photo-real 3D range for Fundamentals (range3d.js, assets/3d/range).
 - 2026-09-25: Shot review screen (review.js).
 - 2026-09-25: 3D office active-shooter scenario (office3d.js, char3d.js).

@@ -4,7 +4,8 @@
 //   uspsa  cardboard USPSA-style target, A/C/D + head zones
 //   dot    Dot Torture dot (numbered circle on a paper sheet)
 //   actor  scenario person (see actors.js); scenario.js drives their poses
-// plus the Texas Star (star.js) in the 'star' layout.
+// plus the Texas Star (star.js) in the 'star' layout, and the 3D range
+// layouts ('range3d-*', range3d.js), which ray-cast their own hits.
 //
 // scoreShot() is PURE classification: it never adds points. Points are added
 // only by Game.registerScoredShot() (the single scoring path). onShot() is the
@@ -27,8 +28,19 @@ export const LAYOUTS = {
   star: 'Texas Star (steel spinner)',
   'range3d-single': '3D range: single target (photo-real)',
   'range3d-bay': '3D range: 3 targets (photo-real)',
+  'range3d-popup': '3D range: pop-ups',
+  'range3d-star': '3D range: Texas Star',
+  'range3d-plates': '3D range: plate rack',
+  'range3d-poppers': '3D range: poppers',
   grid: 'Flip grid (spinning plates)',
 };
+// What each 3D range layout holds (range3d.js); each kind has its own distance.
+export const RANGE3D_KIND = {
+  'range3d-single': 'paper', 'range3d-bay': 'paper', 'range3d-popup': 'popup',
+  'range3d-star': 'star', 'range3d-plates': 'plates', 'range3d-poppers': 'poppers',
+};
+// The 3D range version of a 2D layout, used when the 3D range is switched on.
+export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star' };
 // Layouts only used by specific courses.
 const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d'];
 
@@ -181,7 +193,7 @@ export class Range {
     }
     this.targets = this.targets.filter(t => t.alive);
 
-    if (this.layout === 'popup') {
+    if (this.layout === 'popup' || this.layout === 'range3d-popup') {
       this.popups.auto = this.autoPopups;
       this.popups.update(dt, nowSec);
     }
@@ -199,7 +211,7 @@ export class Range {
       }
     }
 
-    if (this.layout === 'star') {
+    if (this.layout === 'star' || this.layout === 'range3d-star') {
       this.star.update(dt, W, H, nowSec);
       if (this.autoResetStar && this.star.clearedAt != null &&
           nowSec - this.star.clearedAt > CONFIG.star.resetDelay) {
@@ -317,6 +329,9 @@ export class Range {
     const px = nx * W, py = ny * H;
 
     if (this.layout === 'lot3d' || this.layout === 'office3d' || this.layout.startsWith('range3d')) {
+      // 3D pop-ups and the 3D star share their state with the 2D ones.
+      if (score.lane != null && this.layout === 'range3d-popup') this.popups.hit(score.lane, px, py, W, H, nowSec, score.t);
+      if (score.plate != null && this.layout === 'range3d-star') this.star.knockOff(score.plate, px, py, W, H, nowSec);
       this.view3d?.onShot(score);
       return;
     }

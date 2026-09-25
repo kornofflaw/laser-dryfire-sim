@@ -196,7 +196,11 @@ export const CONFIG = {
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
   range3d: {
-    distanceYards: 5,       // default distance to the targets (user can change it in Setup)
+    // Distance to the targets in yards, per kind of target (Setup slider), the
+    // slider's limits, and the height (m) the fixed camera looks at.
+    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12 },
+    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25] },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8 },
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay
     holeRadiusCm: 0.45,     // 9 mm bullet hole
@@ -219,6 +223,20 @@ export const CONFIG = {
     dirtTile: 3.0,          // metres per berm texture tile
     berm: { width: 44, depth: 9, height: 4.5, backZ: 28, lumps: 0.6, sideX: 7.5, sideLength: 34, sideStartZ: 3 },
     maxPixelRatio: 2,
+    // Pop-ups: lanes from CONFIG.popup.lanes spread over `spread` metres, hinged
+    // at hingeY behind a dirt mound whose crest is crestAhead in front of them.
+    popup: { spread: 8, hingeY: 0.55, moundHeight: 0.7, moundDepth: 1.2, crestAhead: 0.25, downAngle: 1.75, pxPerCm: 12 },
+    steel: {
+      paint: '#e9e6dc',     // target paint
+      frame: '#64615c',     // weathered steel frames and stands
+      splashCm: 6,          // lead splash left on the paint by a hit
+      resetDelay: 2.5,      // free practice: seconds after the last one falls before it all resets
+      // 8" plates on 12" centres; paddle = hinge to plate centre (m); kick = rad/s a hit gives;
+      // fallTo = angle (rad) where it lands on the stop bar / ground.
+      rack: { plates: 6, spacing: 0.3048, plateRadius: 0.1016, beamY: 0.95, paddle: 0.22, kick: 3.0, fallTo: 1.3 },
+      popper: { count: 4, spacing: 1.5, height: 1.07, kick: 1.2, fallTo: 1.52 },
+      star: { hubY: 1.5 },  // hub height (m); arm and plate sizes and the physics are CONFIG.star
+    },
   },
 
   // ---- Adjustable "time up" for flash courses (flip grid, pop-ups) ----------------

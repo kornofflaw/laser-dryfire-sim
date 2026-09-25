@@ -1,8 +1,17 @@
-// range3d.js — photo-realistic 3D range bay for the fundamentals drills.
+// range3d.js — photo-realistic 3D range bay: paper, pop-ups and steel.
 // ---------------------------------------------------------------------------
 // An outdoor bay lit by a real HDRI (a quarry, which also shows as the
 // backdrop above the berms): gravel floor and dirt berms with PBR textures,
 // cardboard USPSA targets on pine stakes in wooden stands, sun shadows.
+//
+// Layouts (range.js RANGE3D_KIND gives each one's kind):
+//   range3d-single / range3d-bay  paper on stands (1 or 3)
+//   range3d-popup    pop-ups hinged behind a dirt mound. Their timing and
+//                    state are the 2D PopupBank's (range.popups), so the pop-up
+//                    drills run unchanged; this view only draws and ray-casts.
+//   range3d-star     Texas Star; rotation from range.star (star.js physics)
+//   range3d-plates   plate rack      } state and falling in steel3d.js
+//   range3d-poppers  poppers         }
 //
 // Targets are drawn from the same geometry as the 2D ones (CONFIG.uspsa):
 // the die-cut shape comes from an alpha map, and scoring maps the ray's hit
@@ -15,12 +24,14 @@
 // berm. Misses throw dirt and leave a strike mark.
 //
 // The camera is fixed (the projector/laser calibration depends on it).
-// Distance to the targets is a user setting (yards).
+// Distance to the targets is a user setting (yards), one per kind of target.
 
 import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
+import { RANGE3D_KIND } from './range.js';
+import { steelMaterials, PlateRack, Poppers, Star3D } from './steel3d.js';
 
 const R = () => CONFIG.range3d;
 const Ucfg = () => CONFIG.uspsa;
@@ -36,14 +47,25 @@ export class Range3DView {
     this.ready = false;
     this.progress = 0;
     this.layoutName = null;
-    this.targets = [];
+    this.layoutGroup = null;
+    this.layoutSolids = [];
+    this.targets = [];   // paper targets on stands
+    this.cards = [];     // every cardboard face (stands and pop-ups)
+    this.steel = null;   // steel set for the layout (steel3d.js)
     this.fx = [];
     this.marks = [];
-    this.distanceYards = R().distanceYards;
+    this.autoReset = true; // free practice: stand the steel back up after it's cleared
+    this.yards = { ...R().yards };
   }
 
-  async init({ distanceYards } = {}) {
-    if (distanceYards) this.distanceYards = distanceYards;
+  get kind() { return RANGE3D_KIND[this.layoutName] || 'paper'; }
+  get distanceYards() { return this.yards[this.kind]; }
+
+  // yards: { kind: yards } overrides; star / popups: range.star, range.popups.
+  async init({ yards, star, popups } = {}) {
+    Object.assign(this.yards, yards || {});
+    this.star = star;
+    this.bank = popups;
     const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, R().maxPixelRatio));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -92,6 +114,7 @@ export class Range3DView {
       dirt: new THREE.MeshStandardMaterial({ map: dirtC, normalMap: dirtN, normalScale: new THREE.Vector2(1.2, 1.2), roughness: 1, color: tint(R().dirtTint), vertexColors: true }),
       wood: new THREE.MeshStandardMaterial({ map: woodC, roughnessMap: woodR, bumpMap: woodB, bumpScale: 0.6, roughness: 0.9, color: tint(R().woodTint) }),
     };
+    this.steelMats = steelMaterials();
     this.tex = { gravC, gravN, gravR, dirtC, dirtN, woodC, woodR, woodB };
 
     this.solids = [];
@@ -139,7 +162,7 @@ export class Range3DView {
     repeat(1 / R().dirtTile);
     // Berm geometry: a strip `length` long; `across` goes from the toe (0) up the
     // slope to the crest (1) and a little over the top.
-    const berm = (length, depth, height, seed) => {
+    const berm = (length, depth, height, seed, lumps = B.lumps) => {
       const g = new THREE.PlaneGeometry(length, depth, Math.ceil(length * 3), Math.ceil(depth * 4));
       const pos = g.attributes.position;
       const uv = g.attributes.uv;
@@ -148,7 +171,7 @@ export class Range3DView {
       const heightAt = (x, v) => {
         const y = v * depth - depth / 2;
         const prof = v < 0.8 ? smooth(v / 0.8) : 1 - (v - 0.8) * 0.6;
-        return Math.max(0, height * prof + (noise(x * 0.5, y * 0.5) - 0.5) * B.lumps + (noise(x * 2.1, y * 2.3) - 0.5) * B.lumps * 0.35);
+        return Math.max(0, height * prof + (noise(x * 0.5, y * 0.5) - 0.5) * lumps + (noise(x * 2.1, y * 2.3) - 0.5) * lumps * 0.35);
       };
       const col = new Float32Array(pos.count * 3);
       for (let i = 0; i < pos.count; i++) {
@@ -171,6 +194,7 @@ export class Range3DView {
       m.userData.surface = 'dirt';
       return m;
     };
+    this.makeBerm = berm; // also the pop-up mound
     const back = berm(B.width, B.depth, B.height, 3);
     back.position.set(0, 0, -B.backZ);
     this.scene.add(back);
@@ -277,39 +301,55 @@ export class Range3DView {
   }
 
   // ---- targets ---------------------------------------------------------------------
-  // layout: 'range3d-single' | 'range3d-bay'
+  // Everything for a layout sits in one group at the targets' distance.
   setLayout(layout, force = false) {
     if (this.layoutName === layout && !force) return;
     this.layoutName = layout;
     if (!this.ready) return;
-    for (const t of this.targets) {
-      t.group.removeFromParent();
-      this.solids = this.solids.filter(o => !t.solids.includes(o));
-    }
+    if (this.layoutGroup) this.layoutGroup.removeFromParent();
+    this.solids = this.solids.filter(o => !this.layoutSolids.includes(o));
+    this.layoutSolids = [];
     this.targets = [];
-    const xs = layout === 'range3d-bay' ? [-R().bayGap, 0, R().bayGap] : [0];
-    xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot)));
+    this.cards = [];
+    this.steel = null;
+    this.layoutGroup = new THREE.Group();
+    this.scene.add(this.layoutGroup);
+    const kind = this.kind;
+    if (kind === 'paper') {
+      const xs = layout === 'range3d-bay' ? [-R().bayGap, 0, R().bayGap] : [0];
+      xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot)));
+    } else if (kind === 'popup') {
+      this.buildPopups();
+    } else {
+      const S = kind === 'star' ? new Star3D(this.star, this.steelMats)
+        : kind === 'plates' ? new PlateRack(this.steelMats) : new Poppers(this.steelMats);
+      this.steel = S;
+      this.layoutGroup.add(S.group);
+      this.addSolids(S.solids);
+    }
     this.placeTargets();
     this.clearMarks();
   }
 
-  setDistance(yards) {
-    this.distanceYards = yards;
-    if (this.ready) { this.placeTargets(); this.resize(window.innerWidth, window.innerHeight); }
+  addSolids(list) {
+    this.solids.push(...list);
+    this.layoutSolids.push(...list);
+  }
+
+  setDistance(kind, yards) {
+    this.yards[kind] = yards;
+    if (this.ready && kind === this.kind) { this.placeTargets(); this.resize(window.innerWidth, window.innerHeight); }
   }
 
   placeTargets() {
-    const z = -this.distanceYards * YARD;
-    for (const t of this.targets) t.group.position.set(t.x, 0, z);
+    this.layoutGroup?.position.set(0, 0, -this.distanceYards * YARD);
   }
 
-  makeTarget(x, slot) {
+  // A cardboard USPSA face with its own colour and alpha canvases (for holes).
+  makeCard(meta, pxPerCm = PX_PER_CM) {
     const U = Ucfg();
-    const W = U.width / 100, H = U.height / 100;
-    const group = new THREE.Group();
-    // Cardboard face.
-    const color = cardboardCanvas();
-    const alpha = alphaCanvas();
+    const color = cardboardCanvas(pxPerCm);
+    const alpha = alphaCanvas(pxPerCm);
     const colorTex = new THREE.CanvasTexture(color.canvas);
     colorTex.colorSpace = THREE.SRGBColorSpace;
     colorTex.anisotropy = 8;
@@ -318,11 +358,31 @@ export class Range3DView {
       map: colorTex, alphaMap: alphaTex, alphaTest: 0.5, normalMap: this.cardboardNormal,
       normalScale: new THREE.Vector2(R().cardboardRelief, R().cardboardRelief), roughness: 0.92, side: THREE.DoubleSide,
     });
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(W, H), mat);
-    face.position.y = R().targetCenterY;
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(U.width / 100, U.height / 100), mat);
     face.castShadow = true;
     face.receiveShadow = true;
     face.userData.surface = 'target';
+    const card = { face, mat, color, alpha, colorTex, alphaTex, pxPerCm, meta, jolt: null, phase: Math.random() * 6 };
+    face.userData.card = card;
+    this.cards.push(card);
+    return card;
+  }
+
+  resetCard(c) {
+    c.color.reset();
+    c.alpha.reset();
+    c.colorTex.needsUpdate = true;
+    c.alphaTex.needsUpdate = true;
+    c.jolt = null;
+  }
+
+  makeTarget(x, slot) {
+    const U = Ucfg();
+    const H = U.height / 100;
+    const group = new THREE.Group();
+    const card = this.makeCard({ kind: 'uspsa', slot });
+    const face = card.face;
+    face.position.y = R().targetCenterY;
     // Face and stakes flex together from the stand when hit (or in the breeze).
     const pivot = new THREE.Group();
     pivot.position.y = 0.09;
@@ -360,22 +420,54 @@ export class Range3DView {
     blob.position.set(0, 0.002, -0.024);
     blob.renderOrder = 1;
     group.add(blob);
-    this.scene.add(group);
-    this.solids.push(...solids);
-    const t = { x, slot, group, pivot, face, mat, color, alpha, colorTex, alphaTex, solids, jolt: null, phase: Math.random() * 6 };
-    t.id = 'target3d-' + slot;
-    return t;
+    group.position.x = x;
+    this.layoutGroup.add(group);
+    this.addSolids(solids);
+    card.pivot = pivot;
+    card.id = 'target3d-' + slot;
+    return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
-  // Clear holes and strike marks (a new run).
+  // Pop-ups: one hinged face per lane of the PopupBank, behind a low dirt
+  // mound with a timber edge. Down = folded back past flat, out of sight.
+  buildPopups() {
+    const P = R().popup;
+    const U = Ucfg();
+    const lanes = CONFIG.popup.lanes;
+    const len = P.spread + 3;
+    const mound = this.makeBerm(len, P.moundDepth, P.moundHeight, 19, 0.1);
+    mound.position.set(0, 0, P.crestAhead + 0.8 * P.moundDepth);
+    this.layoutGroup.add(mound);
+    // Old, grey railroad-tie timber along the toe.
+    this.mats.timber ??= Object.assign(this.mats.wood.clone(), { color: new THREE.Color().setRGB(0.3, 0.42, 0.75) });
+    const timber = new THREE.Mesh(new THREE.BoxGeometry(len, 0.15, 0.15), this.mats.timber);
+    timber.position.set(0, 0.075, P.crestAhead + 0.8 * P.moundDepth + 0.05);
+    timber.castShadow = timber.receiveShadow = true;
+    timber.userData.surface = 'wood';
+    this.layoutGroup.add(timber);
+    this.addSolids([mound, timber]);
+    this.popups = lanes.map((f, lane) => {
+      const card = this.makeCard({ kind: 'popup', lane }, P.pxPerCm);
+      const pivot = new THREE.Group();
+      pivot.position.set((f - 0.5) * P.spread, P.hingeY, 0);
+      card.face.position.y = U.height / 200; // bottom edge on the hinge
+      pivot.add(card.face);
+      // Lifter arm behind the face.
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.02), this.steelMats.frame);
+      arm.position.set(0, 0.2, -0.02);
+      pivot.add(arm);
+      pivot.rotation.x = -P.downAngle;
+      this.layoutGroup.add(pivot);
+      card.pivot = pivot;
+      card.exposure = null;
+      return card;
+    });
+  }
+
+  // Clear holes, strike marks and stand the steel back up (a new run).
   resetTargets() {
-    for (const t of this.targets) {
-      t.color.reset();
-      t.alpha.reset();
-      t.colorTex.needsUpdate = true;
-      t.alphaTex.needsUpdate = true;
-      t.jolt = null;
-    }
+    this.cards.forEach(c => this.resetCard(c));
+    this.steel?.reset();
     this.clearMarks();
   }
 
@@ -394,25 +486,42 @@ export class Range3DView {
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
     this.camera.position.set(0, CONFIG.knife.eyeHeight, 0);
-    this.camera.lookAt(0, R().targetCenterY + 0.05, -this.distanceYards * YARD);
+    this.camera.lookAt(0, R().aimY[this.kind], -this.distanceYards * YARD);
     this.camera.updateProjectionMatrix();
   }
 
   render(nowMs) {
     if (!this.ready) return;
     const now = nowMs / 1000;
+    const dt = Math.max(0, Math.min(0.1, now - (this.lastT ?? now)));
+    this.lastT = now;
     if (this.wind) this.wind.value = now;
     for (const t of this.targets) {
       // A light breeze, plus the jolt of a hit (a damped spring).
-      let ry = Math.sin(now * 0.8 + t.phase) * 0.01, rx = Math.sin(now * 0.53 + t.phase * 2) * 0.0015;
-      if (t.jolt) {
-        const k = now - t.jolt.t0;
+      const c = t.card;
+      let ry = Math.sin(now * 0.8 + c.phase) * 0.01, rx = Math.sin(now * 0.53 + c.phase * 2) * 0.0015;
+      if (c.jolt) {
+        const k = now - c.jolt.t0;
         const s = Math.exp(-k * 7) * Math.sin(k * 38);
-        ry += t.jolt.ry * s;
-        rx += t.jolt.rx * s;
-        if (k > 1) t.jolt = null;
+        ry += c.jolt.ry * s;
+        rx += c.jolt.rx * s;
+        if (k > 1) c.jolt = null;
       }
       t.pivot.rotation.set(rx, ry, 0);
+    }
+    if (this.kind === 'popup' && this.bank) {
+      // Follow the PopupBank: a = 0 folded down, 1 upright.
+      for (const c of this.popups || []) {
+        const L = this.bank.lanes[c.meta.lane];
+        if (!L) continue;
+        if (L.exposure && L.exposure !== c.exposure) this.resetCard(c); // fresh target each time it comes up
+        c.exposure = L.exposure;
+        c.pivot.rotation.x = -(1 - L.a) * R().popup.downAngle;
+      }
+    }
+    if (this.steel) {
+      this.steel.update(dt, now);
+      if (this.autoReset && this.steel.clearedAt != null && now - this.steel.clearedAt > R().steel.resetDelay) this.resetTargets();
     }
     for (const f of this.fx) f.update(now);
     this.fx = this.fx.filter(f => { if (f.done) f.obj.removeFromParent(); return !f.done; });
@@ -425,18 +534,36 @@ export class Range3DView {
     if (!this.ready) return miss;
     this.raycaster.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), this.camera);
     const dir = this.raycaster.ray.direction.clone();
-    const faces = this.targets.map(t => t.face);
-    const hits = this.raycaster.intersectObjects([...faces, ...this.solids], false);
+    const faces = this.cards.map(c => c.face);
+    const steel = this.steel ? this.steel.hittables() : [];
+    const hits = this.raycaster.intersectObjects([...faces, ...steel, ...this.solids], false);
     const U = Ucfg();
     for (const h of hits) {
-      if (h.object.userData.surface === 'target') {
-        const t = this.targets.find(x => x.face === h.object);
+      const o = h.object;
+      if (o.userData.surface === 'target') {
+        const card = o.userData.card;
         const cm = { x: (h.uv.x - 0.5) * U.width, y: (h.uv.y - 0.5) * U.height };
         const zone = classifyUspsa(cm.x, cm.y);
         if (!zone) continue; // outside the die-cut shape: the round goes past
-        return { zone, points: CONFIG.points[zone], targetId: t.id, kind: 'uspsa', slot: t.slot, local: cm, point: h.point, dir, target: t, uv: h.uv };
+        const base = { zone, points: CONFIG.points[zone], local: cm, point: h.point, dir, card, uv: h.uv };
+        if (card.meta.kind === 'popup') {
+          // Same rule as the 2D pop-ups: only a target on its way up or up
+          // counts (a falling one is already down).
+          const L = this.bank?.lanes[card.meta.lane];
+          if (!L || L.state === 'down' || L.state === 'falling' || Math.sin(L.a * Math.PI / 2) < CONFIG.popup.hittableAbove) continue;
+          return { ...base, targetId: `popup-${card.meta.lane}`, kind: 'popup', lane: card.meta.lane };
+        }
+        return { ...base, targetId: card.id, kind: 'uspsa', slot: card.meta.slot };
       }
-      return { ...miss, point: h.point, dir, surface: h.object.userData.surface, normal: h.face?.normal?.clone().transformDirection(h.object.matrixWorld) };
+      if (o.userData.steel != null && this.steel) {
+        const i = o.userData.steel;
+        const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: `${this.steel.name}-${i}`, kind: 'steel', steel: i, point: h.point, dir };
+        if (this.kind === 'star') s.plate = i; // range.js knocks it off the star's physics
+        return s;
+      }
+      const normal = h.face?.normal?.clone().transformDirection(o.matrixWorld);
+      if (o.userData.surface === 'steel-frame') return { ...miss, frame: true, point: h.point, dir, surface: 'steel', normal };
+      return { ...miss, point: h.point, dir, surface: o.userData.surface, normal };
     }
     return { ...miss, dir };
   }
@@ -444,10 +571,17 @@ export class Range3DView {
   onShot(score) {
     if (!this.ready || !score.point) return;
     const now = performance.now() / 1000;
-    if (score.target) {
-      const t = score.target;
+    if (score.steel != null && this.steel) {
+      this.steel.hit(score.steel, score.point, score.dir, now);
+      // Lead and paint spray off the face, mostly sideways and down.
+      this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
+      this.fx.push(dustPuff(this.scene, score.point, score.dir.clone().negate(), '#b9b9b4', 0.5));
+      return;
+    }
+    if (score.card) {
+      const t = score.card;
       punchHole(t, score.uv);
-      t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
+      if (t.meta.kind === 'uspsa') t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
       this.fx.push(debris(this.scene, score.point, score.dir, '#c9a36b', 14, [0.6, 2.2], 0.01, 0.6));
       // The round carries on into the berm behind.
       const ray = new THREE.Raycaster(score.point.clone().addScaledVector(score.dir, 0.05), score.dir);
@@ -459,6 +593,12 @@ export class Range3DView {
   }
 
   impact(point, dir, normal, surface, now) {
+    if (surface === 'steel') {
+      // Frame hit: a splash of lead fragments, no dirt.
+      this.fx.push(debris(this.scene, point, dir.clone().negate(), '#9a9c9f', 12, [1.5, 4], 0.005, 0.5));
+      this.fx.push(dustPuff(this.scene, point, dir.clone().negate(), '#c4c4bf', 0.35));
+      return;
+    }
     if (surface === 'wood') {
       this.fx.push(debris(this.scene, point, dir, '#d9b98a', 10, [0.8, 2.5], 0.008, 0.7));
       return;
@@ -478,26 +618,29 @@ export class Range3DView {
 // ---------------------------------------------------------------------------
 // Target textures (drawn from CONFIG.uspsa, in centimetres)
 // ---------------------------------------------------------------------------
-const PX_PER_CM = 22; // 46 cm wide -> 1012 px
+const PX_PER_CM = 22; // close targets: 46 cm wide -> 1012 px (far ones use less)
 
-function cmToPx(x, y) {
+function cmToPx(x, y, k) {
   const U = Ucfg();
-  return [(x + U.width / 2) * PX_PER_CM, (U.height / 2 - y) * PX_PER_CM];
+  return [(x + U.width / 2) * k, (U.height / 2 - y) * k];
 }
 
-function polyPath(g, pts) {
+function polyPath(g, pts, k) {
   g.beginPath();
-  pts.forEach(([x, y], i) => { const [px, py] = cmToPx(x, y); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+  pts.forEach(([x, y], i) => { const [px, py] = cmToPx(x, y, k); i ? g.lineTo(px, py) : g.moveTo(px, py); });
   g.closePath();
 }
 
 // Cardboard: tan with fibre streaks and blotches, the printed perforation
 // lines and zone letters, and staples where it's fixed to the stakes.
-function cardboardCanvas() {
+// k = pixels per cm; sizes below are for k = PX_PER_CM and scale with it.
+function cardboardCanvas(k = PX_PER_CM) {
   const U = Ucfg();
+  const sc = k / PX_PER_CM;
+  const P = (x, y) => cmToPx(x, y, k);
   const c = document.createElement('canvas');
-  c.width = Math.round(U.width * PX_PER_CM);
-  c.height = Math.round(U.height * PX_PER_CM);
+  c.width = Math.round(U.width * k);
+  c.height = Math.round(U.height * k);
   const g = c.getContext('2d');
   const rnd = mulberry(Math.floor(Math.random() * 1e6));
   const grad = g.createLinearGradient(0, 0, c.width, c.height);
@@ -507,7 +650,7 @@ function cardboardCanvas() {
   g.fillRect(0, 0, c.width, c.height);
   // Soft blotches.
   for (let i = 0; i < 60; i++) {
-    const x = rnd() * c.width, y = rnd() * c.height, r = 30 + rnd() * 120;
+    const x = rnd() * c.width, y = rnd() * c.height, r = (30 + rnd() * 120) * sc;
     const b = g.createRadialGradient(x, y, 0, x, y, r);
     const dark = rnd() < 0.5;
     b.addColorStop(0, dark ? 'rgba(120,85,45,0.07)' : 'rgba(240,215,170,0.07)');
@@ -517,8 +660,8 @@ function cardboardCanvas() {
   }
   // Fibres.
   g.lineWidth = 1;
-  for (let i = 0; i < 9000; i++) {
-    const x = rnd() * c.width, y = rnd() * c.height, a = rnd() * Math.PI, l = 2 + rnd() * 7;
+  for (let i = 0; i < 9000 * sc * sc; i++) {
+    const x = rnd() * c.width, y = rnd() * c.height, a = rnd() * Math.PI, l = (2 + rnd() * 7) * sc;
     g.strokeStyle = rnd() < 0.5 ? `rgba(95,65,35,${0.05 + rnd() * 0.12})` : `rgba(245,225,185,${0.05 + rnd() * 0.12})`;
     g.beginPath();
     g.moveTo(x, y);
@@ -527,36 +670,36 @@ function cardboardCanvas() {
   }
   // Printed perforation lines (short slits).
   g.strokeStyle = 'rgba(70,45,20,0.75)';
-  g.lineWidth = 2.2;
-  g.setLineDash([9, 7]);
-  polyPath(g, U.cZone);
+  g.lineWidth = Math.max(1, 2.2 * sc);
+  g.setLineDash([9 * sc, 7 * sc]);
+  polyPath(g, U.cZone, k);
   g.stroke();
   const a = U.aZone;
-  polyPath(g, [[a.x0, a.y1], [a.x1, a.y1], [a.x1, a.y0], [a.x0, a.y0]]);
+  polyPath(g, [[a.x0, a.y1], [a.x1, a.y1], [a.x1, a.y0], [a.x0, a.y0]], k);
   g.stroke();
   const hd = U.head;
   g.beginPath();
-  g.moveTo(...cmToPx(hd.x0, hd.y0));
-  g.lineTo(...cmToPx(hd.x1, hd.y0));
+  g.moveTo(...P(hd.x0, hd.y0));
+  g.lineTo(...P(hd.x1, hd.y0));
   g.stroke();
   g.setLineDash([]);
   // Zone letters, small, as printed.
   g.fillStyle = 'rgba(70,45,20,0.75)';
-  g.font = '600 34px Arial, sans-serif';
+  g.font = `600 ${Math.round(34 * sc)}px Arial, sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText('A', ...cmToPx(0, a.y1 - 2));
-  g.fillText('C', ...cmToPx(0, -23));
-  g.fillText('D', ...cmToPx(0, -35));
-  g.fillText('A', ...cmToPx(0, 35));
+  g.fillText('A', ...P(0, a.y1 - 2));
+  g.fillText('C', ...P(0, -23));
+  g.fillText('D', ...P(0, -35));
+  g.fillText('A', ...P(0, 35));
   // Staples at the stakes.
   g.strokeStyle = 'rgba(150,150,150,0.95)';
-  g.lineWidth = 3;
+  g.lineWidth = 3 * sc;
   for (const sx of [-13, 13]) for (const sy of [20, -5, -28]) {
-    const [px, py] = cmToPx(sx, sy);
+    const [px, py] = P(sx, sy);
     g.beginPath();
-    g.moveTo(px, py - 10);
-    g.lineTo(px, py + 10);
+    g.moveTo(px, py - 10 * sc);
+    g.lineTo(px, py + 10 * sc);
     g.stroke();
   }
   const pristine = document.createElement('canvas');
@@ -567,17 +710,17 @@ function cardboardCanvas() {
 }
 
 // Alpha: white inside the die-cut outline, black outside (and in holes).
-function alphaCanvas() {
+function alphaCanvas(k = PX_PER_CM) {
   const U = Ucfg();
   const c = document.createElement('canvas');
-  c.width = Math.round(U.width * PX_PER_CM);
-  c.height = Math.round(U.height * PX_PER_CM);
+  c.width = Math.round(U.width * k);
+  c.height = Math.round(U.height * k);
   const g = c.getContext('2d');
   const draw = () => {
     g.fillStyle = '#000';
     g.fillRect(0, 0, c.width, c.height);
     g.fillStyle = '#fff';
-    polyPath(g, U.outline);
+    polyPath(g, U.outline, k);
     g.fill();
   };
   draw();
@@ -587,7 +730,7 @@ function alphaCanvas() {
 // Cut a bullet hole at a uv point: see-through centre, grey wipe ring, torn fibres.
 function punchHole(t, uv) {
   const x = uv.x * t.alpha.canvas.width, y = (1 - uv.y) * t.alpha.canvas.height;
-  const r = R().holeRadiusCm * PX_PER_CM;
+  const r = Math.max(1.5, R().holeRadiusCm * t.pxPerCm);
   const jag = (g, rad, n) => {
     g.beginPath();
     for (let i = 0; i <= n; i++) {
@@ -806,7 +949,7 @@ function debris(scene, point, dir, color, n, speed, size, life) {
 }
 
 let puffTex = null;
-function dustPuff(scene, point, normal) {
+function dustPuff(scene, point, normal, color = '#a58f73', size = 1) {
   if (!puffTex) {
     const c = document.createElement('canvas');
     c.width = c.height = 64;
@@ -818,7 +961,7 @@ function dustPuff(scene, point, normal) {
     g.fillRect(0, 0, 64, 64);
     puffTex = new THREE.CanvasTexture(c);
   }
-  const mat = new THREE.SpriteMaterial({ map: puffTex, color: '#a58f73', transparent: true, depthWrite: false });
+  const mat = new THREE.SpriteMaterial({ map: puffTex, color, transparent: true, depthWrite: false });
   const s = new THREE.Sprite(mat);
   s.position.copy(point).addScaledVector(normal, 0.05);
   scene.add(s);
@@ -826,7 +969,7 @@ function dustPuff(scene, point, normal) {
   const fx = { obj: s, done: false, update(now) {
     const k = (now - t0) / 1.4;
     if (k >= 1) { fx.done = true; return; }
-    s.scale.setScalar(0.15 + k * 0.9);
+    s.scale.setScalar((0.15 + k * 0.9) * size);
     s.position.y += 0.002;
     mat.opacity = 0.75 * (1 - k) * (1 - k);
   } };

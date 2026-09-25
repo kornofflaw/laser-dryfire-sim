@@ -8,7 +8,7 @@
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
 import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz } from './audio.js';
-import { Range, LAYOUTS } from './range.js';
+import { Range, LAYOUTS, RANGE3D_KIND, TO_3D } from './range.js';
 import { Game } from './game.js';
 import { DrillRunner } from './run.js';
 import { DotTortureRunner } from './dots.js';
@@ -36,12 +36,18 @@ const settings = Object.assign({
   course: 'Free Run',
   seenHelp: false,
   upTimes: {},        // per-course "time up" overrides (seconds)
-  real3d: true,       // fundamentals on the photo-realistic 3D range
-  dist3d: CONFIG.range3d.distanceYards, // yards to the 3D targets
+  real3d: true,       // courses whose targets exist in 3D use the photo-realistic 3D range
+  yards3d: {},        // 3D range distance per kind of target (defaults: CONFIG.range3d.yards)
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
+// Older versions kept one 3D distance (for the paper targets).
+if (typeof settings.dist3d === 'number') {
+  settings.yards3d = { paper: settings.dist3d, ...settings.yards3d };
+  delete settings.dist3d;
+}
+const yards3d = kind => settings.yards3d?.[kind] ?? CONFIG.range3d.yards[kind];
 
 const range = new Range();
 const game = new Game();
@@ -107,8 +113,9 @@ function ensure3D(type) {
 }
 const is3D = type => type === 'knife3d' || type === 'office3d';
 
-// The photo-realistic 3D range (fundamentals, and free practice). The drills
-// run on the normal DrillRunner; only the range and targets are 3D.
+// The photo-realistic 3D range. The drills run on their normal runners
+// (DrillRunner, PopupRunner); only the range and targets are 3D. One view
+// serves every 'range3d-*' layout.
 let range3dLoading = null;
 let range3dError = '';
 function ensureRange3D() {
@@ -116,22 +123,24 @@ function ensureRange3D() {
   range3dLoading = (async () => {
     const mod = await import('./range3d.js');
     const view = new mod.Range3DView();
-    views3d['range3d-single'] = view;
-    views3d['range3d-bay'] = view;
+    for (const l of Object.keys(RANGE3D_KIND)) views3d[l] = view;
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
-    await view.init({ distanceYards: settings.dist3d });
+    const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
+    await view.init({ yards, star: range.star, popups: range.popups });
     view.resize(window.innerWidth, window.innerHeight);
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
 }
 const isRange3D = layout => typeof layout === 'string' && layout.startsWith('range3d');
 
-// Which layout a course uses: fundamentals go to the 3D range when it's on.
+// Which layout a course uses: its own (the 3D range version when that's on
+// and exists), or for free practice the one picked with L.
 function layoutFor(c) {
-  const l = c.layout ?? settings.layout;
-  if (settings.real3d && c.category === 'Fundamentals' && l === 'single') return 'range3d-single';
-  return l;
+  if (c.layout == null) return settings.layout;
+  return settings.real3d && TO_3D[c.layout] ? TO_3D[c.layout] : c.layout;
 }
+// The 3D range layout the Setup distance slider is about, if any.
+const setupLayout3D = () => (isRange3D(range.layout) ? range.layout : TO_3D[course().layout] || null);
 
 // Clearing the range (new run, R) also clears holes on the 3D targets.
 range.onReset = () => {
@@ -223,7 +232,7 @@ function resize() {
 }
 window.addEventListener('resize', () => {
   resize();
-  for (const v of Object.values(views3d)) v.resize(window.innerWidth, window.innerHeight);
+  for (const v of new Set(Object.values(views3d))) v.resize(window.innerWidth, window.innerHeight);
   refreshSetup();
 });
 
@@ -284,6 +293,7 @@ function frame(now) {
   }
   const v3 = views3d[range.layout] || null;
   range.view3d = v3;
+  if (v3) v3.autoReset = range.autoResetStar; // free practice: steel stands back up
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
   if (v3?.ready) v3.render(now);
   range.draw(g, now / 1000, settings.showZones);
@@ -594,10 +604,13 @@ $('#opt-real3d').onchange = e => {
   refreshSetup();
 };
 $('#dist3d').oninput = e => {
-  settings.dist3d = Number(e.target.value);
-  $('#dist3d-val').textContent = `${settings.dist3d} yd`;
+  const kind = RANGE3D_KIND[setupLayout3D()];
+  if (!kind) return;
+  const yd = Number(e.target.value);
+  settings.yards3d = { ...(settings.yards3d || {}), [kind]: yd };
+  $('#dist3d-val').textContent = `${yd} yd`;
   persist();
-  views3d['range3d-single']?.setDistance(settings.dist3d);
+  views3d['range3d-single']?.setDistance(kind, yd);
 };
 
 $('#opt-blood').onchange = e => {
@@ -610,9 +623,18 @@ function refreshSetup() {
   const c = course();
   $('#opt-blood').checked = settings.blood;
   $('#opt-real3d').checked = settings.real3d;
-  $('#dist3d').value = settings.dist3d;
-  $('#dist3d-val').textContent = `${settings.dist3d} yd`;
-  $('#range3d-row').hidden = !(c.category === 'Fundamentals' || isRange3D(range.layout));
+  const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
+  $('#range3d-row').hidden = !l3;
+  if (kind) {
+    const [lo, hi] = CONFIG.range3d.yardsRange[kind];
+    const dist = $('#dist3d');
+    dist.min = lo; dist.max = hi;
+    dist.value = yards3d(kind);
+    $('#dist3d-val').textContent = `${yards3d(kind)} yd`;
+    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers' }[kind];
+  }
+  // Only courses with both a 2D and a 3D version can switch (free practice uses L).
+  $('#opt-real3d').disabled = !TO_3D[c.layout];
   $('#cars3d-row').hidden = !is3D(c.type);
   $('#cars3d-only').hidden = c.type !== 'knife3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
