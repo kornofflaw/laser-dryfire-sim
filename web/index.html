@@ -65,6 +65,13 @@
         </div>
         <label class="check"><input type="checkbox" id="opt-blood"> Blood effects (wounds, spray)</label>
       </div>
+      <div id="range3d-row" hidden>
+        <label class="check"><input type="checkbox" id="opt-real3d"> Photo-realistic 3D range for Fundamentals</label>
+        <label>Distance to target <output id="dist3d-val"></output>
+          <input type="range" id="dist3d" min="3" max="25" step="1">
+        </label>
+        <p class="note">Bill Drill is usually shot at 7 yards. Targets look true to size only when the projection matches the camera's field of view.</p>
+      </div>
       <p class="note" id="up-time-none">This course has no time-up setting. It applies to the flip grid and pop-up courses.</p>
     </section>
 

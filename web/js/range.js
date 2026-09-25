@@ -25,6 +25,8 @@ export const LAYOUTS = {
   popup: 'Pop-ups: flip up, drop when hit',
   movers: 'Movers: moving targets',
   star: 'Texas Star (steel spinner)',
+  'range3d-single': '3D range: single target (photo-real)',
+  'range3d-bay': '3D range: 3 targets (photo-real)',
   grid: 'Flip grid (spinning plates)',
 };
 // Layouts only used by specific courses.
@@ -78,6 +80,7 @@ export class Range {
 
   // Clear holes and rebuild the targets for the current layout.
   reset() {
+    this.onReset?.();
     this.targets = [];
     this.holes = [];
     this.highlightDot = null;
@@ -239,7 +242,7 @@ export class Range {
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
 
-    if (this.layout === 'office3d') return this.view3d ? this.view3d.hitTest(nx, ny) : miss;
+    if (this.layout === 'office3d' || this.layout.startsWith('range3d')) return this.view3d ? this.view3d.hitTest(nx, ny) : miss;
 
     if (this.layout === 'lot3d') {
       // The 3D view ray-casts; the man is a threat only while charging.
@@ -313,7 +316,7 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
-    if (this.layout === 'lot3d' || this.layout === 'office3d') {
+    if (this.layout === 'lot3d' || this.layout === 'office3d' || this.layout.startsWith('range3d')) {
       this.view3d?.onShot(score);
       return;
     }
@@ -372,8 +375,16 @@ export class Range {
   draw(g, nowSec, showZones) {
     const W = this.width, H = this.height;
     const floorY = FLOOR * H;
-    if (this.layout === 'lot3d' || this.layout === 'office3d') {
+    if (this.layout === 'lot3d' || this.layout === 'office3d' || this.layout.startsWith('range3d')) {
       g.clearRect(0, 0, W, H); // the 3D canvas underneath shows through
+      if (this.layout.startsWith('range3d') && this.loadingText) {
+        g.fillStyle = '#1d2126';
+        g.fillRect(0, 0, W, H);
+        g.fillStyle = '#ccc';
+        g.font = '600 22px system-ui, sans-serif';
+        g.textAlign = 'center';
+        g.fillText(this.loadingText, W / 2, H / 2);
+      }
       return;
     }
     const backdrop = { scene: 'room', lot: 'lot' }[this.layout] || 'range';

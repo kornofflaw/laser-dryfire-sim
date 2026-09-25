@@ -36,6 +36,8 @@ const settings = Object.assign({
   course: 'Free Run',
   seenHelp: false,
   upTimes: {},        // per-course "time up" overrides (seconds)
+  real3d: true,       // fundamentals on the photo-realistic 3D range
+  dist3d: CONFIG.range3d.distanceYards, // yards to the 3D targets
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
 }, load(CONFIG.storage.settings, {}));
@@ -104,6 +106,40 @@ function ensure3D(type) {
   return loading3d[type];
 }
 const is3D = type => type === 'knife3d' || type === 'office3d';
+
+// The photo-realistic 3D range (fundamentals, and free practice). The drills
+// run on the normal DrillRunner; only the range and targets are 3D.
+let range3dLoading = null;
+let range3dError = '';
+function ensureRange3D() {
+  if (range3dLoading) return range3dLoading;
+  range3dLoading = (async () => {
+    const mod = await import('./range3d.js');
+    const view = new mod.Range3DView();
+    views3d['range3d-single'] = view;
+    views3d['range3d-bay'] = view;
+    view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
+    await view.init({ distanceYards: settings.dist3d });
+    view.resize(window.innerWidth, window.innerHeight);
+  })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
+  return range3dLoading;
+}
+const isRange3D = layout => typeof layout === 'string' && layout.startsWith('range3d');
+
+// Which layout a course uses: fundamentals go to the 3D range when it's on.
+function layoutFor(c) {
+  const l = c.layout ?? settings.layout;
+  if (settings.real3d && c.category === 'Fundamentals' && l === 'single') return 'range3d-single';
+  return l;
+}
+
+// Clearing the range (new run, R) also clears holes on the 3D targets.
+range.onReset = () => {
+  const v = views3d[range.layout];
+  if (!v?.ready || !v.resetTargets) return;
+  if (v.layoutName !== range.layout) v.setLayout(range.layout);
+  else v.resetTargets();
+};
 
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
@@ -240,6 +276,12 @@ function frame(now) {
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
+  if (isRange3D(range.layout)) {
+    ensureRange3D();
+    const rv = views3d[range.layout];
+    if (rv?.ready && rv.layoutName !== range.layout) rv.setLayout(range.layout);
+    range.loadingText = rv?.ready ? '' : (range3dError || `Loading 3D range… ${Math.round((rv?.progress || 0) * 100)}%`);
+  }
   const v3 = views3d[range.layout] || null;
   range.view3d = v3;
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
@@ -299,7 +341,7 @@ function selectCourse(i, announce = true) {
   courseIndex = (i + COURSES.length) % COURSES.length;
   const c = course();
   active().setCourse(withUpTime(c));
-  range.setLayout(c.layout ?? settings.layout);
+  range.setLayout(layoutFor(c));
   if (is3D(c.type)) ensure3D(c.type).catch(() => {});
   settings.course = c.name;
   persist();
@@ -313,7 +355,7 @@ const actions = {
     unlockAudio();
     const r = active();
     if (r.busy) return;
-    if (course().type === 'drill') range.setLayout(course().layout ?? settings.layout);
+    if (course().type === 'drill') range.setLayout(layoutFor(course()));
     const t = performance.now();
     r.start(t);
     if (r.busy) review.startRun(course(), t);
@@ -545,6 +587,19 @@ $('#cars3d').oninput = e => {
   views3d.lot3d?.setCarCount(settings.cars3d);
 };
 
+$('#opt-real3d').onchange = e => {
+  settings.real3d = e.target.checked;
+  persist();
+  if (!active().busy) range.setLayout(layoutFor(course()));
+  refreshSetup();
+};
+$('#dist3d').oninput = e => {
+  settings.dist3d = Number(e.target.value);
+  $('#dist3d-val').textContent = `${settings.dist3d} yd`;
+  persist();
+  views3d['range3d-single']?.setDistance(settings.dist3d);
+};
+
 $('#opt-blood').onchange = e => {
   settings.blood = e.target.checked;
   persist();
@@ -554,6 +609,10 @@ $('#opt-blood').onchange = e => {
 function refreshSetup() {
   const c = course();
   $('#opt-blood').checked = settings.blood;
+  $('#opt-real3d').checked = settings.real3d;
+  $('#dist3d').value = settings.dist3d;
+  $('#dist3d-val').textContent = `${settings.dist3d} yd`;
+  $('#range3d-row').hidden = !(c.category === 'Fundamentals' || isRange3D(range.layout));
   $('#cars3d-row').hidden = !is3D(c.type);
   $('#cars3d-only').hidden = c.type !== 'knife3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
@@ -662,7 +721,7 @@ function toast(msg) {
 // ---- Boot --------------------------------------------------------------------------------
 resize();
 active().setCourse(withUpTime(course()));
-range.setLayout(course().layout ?? settings.layout);
+range.setLayout(layoutFor(course()));
 if (is3D(course().type)) ensure3D(course().type).catch(() => {});
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;

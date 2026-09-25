@@ -49,6 +49,16 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       speech, numbers reshuffle after each hit). Also a free-practice layout (L).
 - [x] Adjustable "time up" for flip-grid flash and pop-up courses: [ / ] keys
       or Setup → Current course slider (0.3–6 s), saved per course in the browser.
+- [x] Photo-real 3D range for the Fundamentals courses (range3d.js): outdoor bay
+      lit by a real HDRI sky, PBR gravel floor and dirt berms with dry grass,
+      cardboard USPSA targets on 1x2 stakes in wooden stands, sun shadows. Holes
+      are cut through the cardboard (you see the berm through them) with a
+      bullet-wipe ring; hits jolt the target and throw paper chips, the round
+      carries on into the berm and kicks dirt. Scoring maps the 3D hit back to
+      the same USPSA shape (classifyUspsa). Setup → Current course: on/off and
+      distance (3–25 yd, default 5). Free practice: L → "3D range" layouts.
+- [ ] 3D range next: steel (plates, poppers, Texas Star) and pop-ups in 3D;
+      life-size option (camera FOV from screen width + viewing distance).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 - [ ] More steel: plate rack, poppers (need a "falls when hit" reaction).
 
@@ -170,6 +180,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Photo-real 3D range for Fundamentals (range3d.js, assets/3d/range).
 - 2026-09-25: Shot review screen (review.js).
 - 2026-09-25: 3D office active-shooter scenario (office3d.js, char3d.js).
 - 2026-09-25: 3D hit reactions, knee-buckle fall, blood (wounds/spray/mist/drops).

@@ -194,6 +194,33 @@ export const CONFIG = {
     fallTime: 0.6,          // seconds for a stopped suspect to go down
   },
 
+  // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
+  range3d: {
+    distanceYards: 5,       // default distance to the targets (user can change it in Setup)
+    targetCenterY: 1.35,    // metres: height of the target's centre on its stand
+    bayGap: 1.5,            // metres between targets in the 3-target bay
+    holeRadiusCm: 0.45,     // 9 mm bullet hole
+    exposure: 0.95,
+    envIntensity: 1.0,      // light from the HDRI sky
+    bgIntensity: 1.0,       // brightness of the sky backdrop
+    skyRotation: 0,         // radians: turns the sky (and its sun) around the range
+    sunIntensity: 2.4,
+    sunDir: [-0.85, 0.75, 0.35], // from the left and a little behind: side light gives shape
+    cardboardRelief: 0.25,  // strength of the corrugation / fibre normal map
+    hazeColor: '#c9d3dc',
+    hazeNear: 40,           // metres: haze starts
+    hazeFar: 400,           // metres: fully hazed
+    dirtTint: [0.66, 0.76, 1.2],   // linear RGB multipliers: turns the dirt photo into brown berm dirt
+    gravelTint: [0.9, 0.9, 0.92],
+    woodTint: [0.72, 0.64, 0.56],  // pine furring strips, not bleached dowels
+    weeds: { back: 900, side: 520, floor: 160, height: [0.2, 0.6], wind: 1 }, // dry grass tufts
+    brass: 45,              // spent 9 mm cases lying on the bay floor
+    gravelTile: 2.0,        // metres per gravel texture tile
+    dirtTile: 3.0,          // metres per berm texture tile
+    berm: { width: 44, depth: 9, height: 4.5, backZ: 28, lumps: 0.6, sideX: 7.5, sideLength: 34, sideStartZ: 3 },
+    maxPixelRatio: 2,
+  },
+
   // ---- Adjustable "time up" for flash courses (flip grid, pop-ups) ----------------
   // [ and ] (or the Setup slider) change it per course; saved in this browser.
   upTime: { min: 0.3, max: 6.0, step: 0.1 },
