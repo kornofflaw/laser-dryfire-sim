@@ -15,8 +15,9 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | Key | Action |
 | --- | --- |
 | Space | Start a timed run (random delay, then the beep) |
-| Tab | Next drill: Free Run, Bill Drill, Mozambique, Par String |
-| L | Target layout: bay, pop-ups, movers |
+| D | Choose a course: drills, Texas Star, Dot Torture, judgment scenarios |
+| Tab | Next course |
+| L | Targets for free practice: bay, single, pop-ups, movers, Texas Star |
 | S | Setup: camera, threshold, calibration, run log |
 | C | Calibrate the laser camera |
 | F | Fullscreen |

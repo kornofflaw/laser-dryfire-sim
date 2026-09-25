@@ -5,10 +5,12 @@
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
 
+// 'drill' holds the course name for every type (kept for older rows).
 const COLUMNS = [
-  'datetime', 'drill', 'input', 'par_s', 'complete', 'time_s', 'first_shot_s',
-  'shots', 'hits', 'accuracy_pct', 'points', 'a', 'c', 'd', 'head', 'miss',
-  'hit_factor', 'made_par', 'passed', 'early_shots', 'splits_s',
+  'datetime', 'drill', 'type', 'input', 'par_s', 'complete', 'time_s', 'first_shot_s',
+  'reaction_s', 'shots', 'hits', 'accuracy_pct', 'points', 'a', 'c', 'd', 'head',
+  'steel', 'no_shoot', 'miss', 'hit_factor', 'made_par', 'passed', 'early_shots',
+  'splits_s', 'notes',
 ];
 
 export class RunLog {
@@ -19,24 +21,29 @@ export class RunLog {
 
   add(r, input) {
     const f = (v, n = 3) => (v == null ? '' : Number(v).toFixed(n));
+    const c = r.counts || {};
     const row = {
       datetime: formatDate(r.datetime),
-      drill: r.drill,
+      drill: r.course,
+      type: r.type,
       input,
       par_s: f(r.parTime, 2),
       complete: r.complete ? 'yes' : 'no',
       time_s: f(r.time),
       first_shot_s: f(r.firstShot),
+      reaction_s: f(r.reaction),
       shots: r.shots,
       hits: r.hits,
       accuracy_pct: r.shots ? f((r.hits / r.shots) * 100, 1) : '',
       points: r.points,
-      a: r.counts.A, c: r.counts.C, d: r.counts.D, head: r.counts.Head, miss: r.counts.Miss,
-      hit_factor: f(r.hitFactor, 2),
-      made_par: r.madePar ? 'yes' : 'no',
+      a: c.A ?? '', c: c.C ?? '', d: c.D ?? '', head: c.Head ?? '',
+      steel: c.Steel ?? '', no_shoot: c.NS ?? '', miss: c.Miss ?? '',
+      hit_factor: r.hitFactor == null ? '' : f(r.hitFactor, 2),
+      made_par: r.madePar == null ? '' : r.madePar ? 'yes' : 'no',
       passed: r.passed == null ? '' : r.passed ? 'yes' : 'no',
-      early_shots: r.early,
-      splits_s: r.splits.map(s => s.toFixed(3)).join(' '),
+      early_shots: r.early || 0,
+      splits_s: (r.splits || []).map(s => s.toFixed(3)).join(' '),
+      notes: r.notes || '',
     };
     this.rows.push(row);
     save(CONFIG.storage.log, this.rows);

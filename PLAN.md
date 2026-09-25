@@ -5,7 +5,7 @@ a 4-point homography maps it to the screen, and the page scores it (USPSA
 A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot path.
 
 > 2026-09-25: Moved from Python/OpenCV + Unity (macOS) to a browser-only app.
-> The old code is in `archive/` for reference. Repo should be private.
+> The old code is in `archive/` for reference. Repo is public (fine).
 > Hosted on Vercel: https://laser-dryfire-sim.vercel.app (see "Hosting" below).
 
 ---
@@ -28,31 +28,32 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
 - [x] Drills: Free Run, Bill Drill, Mozambique, Par String; hit factor; PASS/FAIL.
 - [x] Target ID on every scored shot (`score.targetId`).
 - [x] Moving targets (Movers layout: PingPong / Crossing / SineWave) and pop-ups.
-- [ ] Dot torture (target ID is now available).
+- [x] Course picker (D) with categories; Tab cycles courses.
+- [x] More drills: Doubles, Head Box, Transitions 1-1-1 / 2-2-2 (left-to-right
+      order enforced), El Presidente (dry), Pop-ups, Movers (hits within a
+      round limit).
+- [x] Texas Star: 5-plate steel spinner with real rigid-body physics (balanced
+      until a plate falls, then swings/spins), steel ping, frame-hit sparks.
+- [x] Dot Torture (50 rounds, stage by stage, wrong dot = dropped round).
+      Sequence used: 1: 5 slow fire / 2: 5 draws x1 / 3-4: 4 draws 1+1 /
+      5: 5 strong hand / 6-7: 3 draws 2+2 / 8: 5 weak hand / 9-10: 5 draws 1+1.
+      Andrew to confirm it matches the version he shoots.
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
-- [ ] Moving-target drills with their own pass criteria.
+- [ ] More steel: plate rack, poppers (need a "falls when hit" reaction).
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
-Design chosen 2026-09-24: data-driven "scripted cutout" scenarios, not video.
-Now to be built in the web app (canvas sprites instead of Unity objects).
-- [x] Target ID on ShotScore.
-- [ ] `ScenarioActor`: flat card with swappable pose sprites (hands empty / gun /
-      phone / wallet / hands up) + a role that can change over time
-      (NonThreat → Threat at t_reveal, Threat → Surrender, etc.).
-- [ ] Scenario definitions (JSON in config or a scenarios module): list of actors +
-      a short timeline of events (appear, turn, swap sprite, move, disappear), max 10 s.
-- [ ] Randomization per run: which actor is the threat, reveal time window,
-      object shown, actor positions — so scenarios can't be memorized.
-- [ ] `ScenarioRunner` (sibling of RunController): plays the timeline, listens to
-      shots, grades each shot against the actor's role AT THAT MOMENT.
-- [ ] Grading: correct engagement + reaction time (reveal → first shot on threat);
-      no-shoot hit = penalty/fail; shot on threat before reveal = premature;
-      shot after surrender = fail; threat not engaged by timeout = fail.
-- [ ] Results panel + new log columns.
-- [ ] Starter library: ~8 templates (single reveal, 2-person pick-the-threat,
-      turn-and-reveal, surrender/stop-shooting, threat behind no-shoot, moving
-      threat, all-clear, late reveal).
-- [ ] Scenario art source: simple silhouettes vs. photo cutouts (undecided).
+Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
+- [x] People with poses: back turned / empty hands / gun / phone / wallet /
+      hands up. Only a visible gun is a threat; poses change on a timeline.
+- [x] 9 templates in scenarios.js, randomized every run: Turn and Reveal, Pick
+      the Threat, Crowd, Surrender, Bystander in Front, Moving Threat, All Clear,
+      Late Reveal, Two Threats. Plus "Random Scenario".
+- [x] ScenarioRunner grades every shot against the pose AT THAT MOMENT:
+      no-shoot hit (-10), premature, shot after surrender, threat not stopped;
+      reaction time = gun appears → first hit. 2 hits put a threat down.
+- [x] Results panel + log columns (type, reaction_s, no_shoot, notes).
+- [ ] Ideas: threat that shoots back after N seconds (time pressure), cover /
+      partial exposure, verbal-command audio cues, more rooms.
 
 ## Phase 3 — Review & analytics
 - [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
@@ -87,8 +88,7 @@ Now to be built in the web app (canvas sprites instead of Unity objects).
 3. ~~SessionLogger logs too little.~~ Fixed: new log has points, zones, splits, HF.
 4. ~~Frame jitter / two clocks.~~ Fixed: one clock.
 5. ~~Duplicate reset handling (GameHUD).~~ Gone with Unity.
-6. Target reaction destroys the target in pop-up/mover layouts; ScenarioActor
-   will need its own reaction (still open for Phase 2b).
+6. ~~Target reaction for scenario people.~~ Done: threats drop after 2 hits.
 
 ## Open questions / risks
 - Laser pulse duration vs. camera fps (gates rapid-fire detection). Browsers
@@ -114,3 +114,8 @@ Now to be built in the web app (canvas sprites instead of Unity objects).
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Courses: picker + 23 courses (drills, Texas Star, Dot Torture, 9
+  judgment scenarios). Realism pass: outdoor range bay backdrop, real USPSA
+  metric target shape on stakes with cardboard texture (scoring now uses the
+  same shape), torn bullet holes, dust strikes on misses, Dot Torture sheet on a
+  backer, shaded people with clothing/faces in an indoor room.

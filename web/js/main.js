@@ -7,10 +7,13 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz } from './audio.js';
 import { Range, LAYOUTS } from './range.js';
 import { Game } from './game.js';
-import { RunController, State } from './run.js';
+import { DrillRunner } from './run.js';
+import { DotTortureRunner } from './dots.js';
+import { ScenarioRunner } from './scenario.js';
+import { COURSES, CATEGORIES } from './courses.js';
 import { RunLog } from './log.js';
 import { LaserCamera } from './camera.js';
 import { Calibration } from './calibrate.js';
@@ -26,19 +29,29 @@ const settings = Object.assign({
   cameraOn: false,
   deviceId: '',
   threshold: CONFIG.camera.threshold,
-  drillIndex: 0,
+  course: 'Free Run',
   seenHelp: false,
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 
 const range = new Range();
 const game = new Game();
-const run = new RunController(game);
 const log = new RunLog();
 const camera = new LaserCamera();
 let lastInput = 'mouse';
 
-run.drillIndex = Math.min(settings.drillIndex, CONFIG.drills.length - 1);
+// One runner per course type; `active()` is the one for the selected course.
+const runners = {
+  drill: new DrillRunner(),
+  dots: new DotTortureRunner(range),
+  scenario: new ScenarioRunner(range),
+};
+let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
+const course = () => COURSES[courseIndex];
+const active = () => runners[course().type];
+game.on(score => active().onShot(score));
+for (const r of Object.values(runners)) r.onComplete(result => log.add(result, lastInput));
+
 camera.threshold = settings.threshold;
 
 const savedCal = load(CONFIG.storage.calibration, null);
@@ -61,20 +74,21 @@ const calibration = new Calibration(camera, H => {
 
 // ---- The single shot path ------------------------------------------------------
 function shoot(nx, ny, tMs, source) {
-  const s = range.scoreShot(nx, ny);
-  const score = { ...s, nx, ny, t: tMs, source };
+  let score = { ...range.scoreShot(nx, ny), nx, ny, t: tMs, source };
+  // A runner may re-judge a shot before it counts (Dot Torture: wrong dot = miss).
+  score = active().judge?.(score) ?? score;
   lastInput = source;
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
   shotPop();
-  if (score.zone !== 'Miss') hitDing();
+  if (score.zone === 'Steel') steelPing();
+  else if (score.zone === 'NS' || score.wrongDot) penaltyBuzz();
+  else if (['A', 'C', 'D', 'Head'].includes(score.zone)) hitDing();
 }
 
 camera.onShot = (nx, ny, t) => {
   if (settings.cameraShots && !calibration.active) shoot(nx, ny, t, 'laser');
 };
-
-run.onComplete(result => log.add(result, lastInput));
 
 // ---- Canvas ------------------------------------------------------------------
 const canvas = $('#range');
@@ -97,22 +111,6 @@ canvas.addEventListener('pointerdown', e => {
   shoot(e.clientX / window.innerWidth, e.clientY / window.innerHeight, performance.now(), 'mouse');
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-function drawBackground(W, H) {
-  const grad = g.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, getVar('--wall-top'));
-  grad.addColorStop(1, getVar('--wall-bottom'));
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, H);
-  // A faint floor line gives the range a sense of depth.
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  g.fillRect(0, H * 0.86, W, H * 0.14);
-}
-
-const cssVars = {};
-function getVar(name) {
-  return cssVars[name] ??= getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
 
 // ---- HUD -------------------------------------------------------------------------
 const hudEls = { stats: $('#stats'), timer: $('#timer'), drill: $('#drill') };
@@ -142,106 +140,59 @@ function inputLabel() {
   return parts.join(' + ') || 'none';
 }
 
-function timerHTML(now) {
-  const head = `<b class="title">SHOT TIMER</b>`;
-  const d = run.drill;
-  switch (run.state) {
-    case State.Idle:
-      return head + `Press [Space] to start\nPar: ${d.parTime.toFixed(1)}s`;
-    case State.Delay:
-      return head + `<span class="wait">STAND BY…</span>\nwait for the beep` +
-        (run.early ? `\n<span class="bad">Early shot! (${run.early})</span>` : '');
-    case State.Running:
-      return head + `<span class="go">GO!</span>\n` +
-        `Par in: ${run.parRemaining(now).toFixed(2)}s\n` +
-        `First shot: ${run.firstShot == null ? '--' : f2(run.firstShot) + 's'}\n` +
-        `Split: ${run.lastSplit == null ? '--' : f2(run.lastSplit) + 's'}\n` +
-        `Shots: ${run.shots}   Hits: ${run.hits}` +
-        (run.early ? `\n<span class="bad">Jumped the beep (${run.early})</span>` : '');
-    case State.Done: {
-      const r = run.result;
-      return head + `<b>DONE</b>\n` +
-        `First shot: ${r.firstShot == null ? '--' : f2(r.firstShot) + 's'}\n` +
-        `Shots: ${r.shots}   Hits: ${r.hits}\n` +
-        (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
-        `<span class="muted small">[Space] run again</span>`;
-    }
-  }
-  return head;
-}
-
-function drillHTML() {
-  const head = `<b class="title">DRILL</b>`;
-  const footer = `<span class="muted small">[Tab] change drill  ·  [Space] run</span>`;
-  const d = run.drill;
-  const rounds = d.requiredShots > 0 ? `${d.requiredShots} rounds` : 'any number of rounds';
-
-  if (run.state === State.Running || run.state === State.Delay) {
-    const counts = run.usesCriteria
-      ? `Body: ${run.bodyHits}   Head: ${run.counts.Head}`
-      : `Points: ${run.points}   A: ${run.counts.A}`;
-    return head + `<span class="go">${d.name}</span>\n` +
-      `Shots: ${run.shots}${d.requiredShots ? ' / ' + d.requiredShots : ''}\n` + counts;
-  }
-
-  const r = run.result;
-  if (r && r.drill === d.name) {
-    const parTag = r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>';
-    let verdict = 'done';
-    if (r.passed === true) verdict = '<span class="go">PASS</span>';
-    else if (r.passed === false) verdict = '<span class="bad">FAIL</span>';
-    const lines = [`<b>${d.name}</b> — ${verdict}`];
-    if (!r.complete) lines.push(`<span class="bad">Incomplete: ${r.shots}/${r.requiredShots} rounds</span>`);
-    lines.push(`Time: ${f2(r.time)}s` + (d.requiredShots ? `   ${parTag}` : ''));
-    if (r.hasCriteria) lines.push(`Body: ${r.bodyHits}   Head: ${r.counts.Head}   A: ${r.counts.A}`);
-    else lines.push(`Points: ${r.points}   A: ${r.counts.A}  C: ${r.counts.C}  D: ${r.counts.D}  M: ${r.counts.Miss}`);
-    lines.push(`Hit factor: ${f2(r.hitFactor)}`);
-    return head + lines.join('\n') + '\n' + footer;
-  }
-
-  return head + `${d.name}\n${rounds}  ·  par ${d.parTime.toFixed(1)}s\n` + footer;
-}
-
 // ---- Main loop ---------------------------------------------------------------------
 let lastFrame = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastFrame) / 1000);
   lastFrame = now;
 
-  run.update(now);
+  active().update(now);
+  range.autoResetStar = !active().busy;
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
-  drawBackground(W, H);
   range.draw(g, now / 1000, settings.showZones);
 
   setHUD('stats', statsHTML(now));
-  setHUD('timer', timerHTML(now));
-  setHUD('drill', drillHTML());
+  setHUD('timer', active().timerHTML(now));
+  setHUD('drill', active().panelHTML(now));
 
   if (!$('#setup').hidden) updateCameraStatus();
   requestAnimationFrame(frame);
 }
 
 // ---- Actions ---------------------------------------------------------------------------
+// Pick a course: set its runner and put up its targets.
+function selectCourse(i, announce = true) {
+  if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  courseIndex = (i + COURSES.length) % COURSES.length;
+  const c = course();
+  active().setCourse(c);
+  range.setLayout(c.layout ?? settings.layout);
+  settings.course = c.name;
+  persist();
+  renderCourseList();
+  if (announce) toast(c.name);
+}
+
 const actions = {
   start() {
     unlockAudio();
-    if (run.busy) return;
-    range.reset();
-    run.start(performance.now());
+    const r = active();
+    if (r.busy) return;
+    if (course().type === 'drill') range.setLayout(course().layout ?? settings.layout);
+    r.start(performance.now());
   },
-  drill(step = 1) {
-    run.cycleDrill(step);
-    settings.drillIndex = run.drillIndex;
-    persist();
-  },
+  drill(step = 1) { selectCourse(courseIndex + step); },
+  courses() { toggleCourses(); },
   layout() {
-    if (run.busy) return toast('Finish or cancel the run first (Esc).');
+    if (active().busy) return toast('Finish or cancel the run first (Esc).');
     const keys = Object.keys(LAYOUTS);
     settings.layout = keys[(keys.indexOf(settings.layout) + 1) % keys.length];
-    range.setLayout(settings.layout);
     persist();
+    // Changing targets means free practice.
+    if (course().layout != null) selectCourse(0, false);
+    range.setLayout(settings.layout);
     refreshSetup();
     toast(LAYOUTS[settings.layout]);
   },
@@ -251,6 +202,7 @@ const actions = {
     refreshSetup();
   },
   reset() {
+    active().cancel();
     game.reset();
     range.reset();
     toast('Session reset.');
@@ -297,6 +249,10 @@ window.addEventListener('keydown', e => {
   if ((tag === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range') || tag === 'SELECT') return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+  if (!$('#courses').hidden) {
+    if (e.key === 'Escape' || e.key.toLowerCase() === 'd') { e.preventDefault(); closeCourses(); }
+    return;
+  }
   if (!$('#help').hidden) {
     if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeHelp(); }
     return;
@@ -307,6 +263,7 @@ window.addEventListener('keydown', e => {
     ' ': () => actions.start(),
     Tab: () => actions.drill(e.shiftKey ? -1 : 1),
     l: () => actions.layout(),
+    d: () => actions.courses(),
     z: () => actions.zones(),
     r: () => actions.reset(),
     s: () => actions.setup(),
@@ -316,7 +273,7 @@ window.addEventListener('keydown', e => {
     '?': () => actions.help(),
     Escape: () => {
       if (!$('#setup').hidden) closeSetup();
-      else if (run.busy) { run.cancel(); toast('Run cancelled.'); }
+      else if (active().busy) { active().cancel(); toast('Run cancelled.'); }
     },
   };
   if (map[k]) {
@@ -341,9 +298,11 @@ function closeSetup() {
 const layoutSel = $('#opt-layout');
 for (const [key, label] of Object.entries(LAYOUTS)) layoutSel.add(new Option(label, key));
 layoutSel.onchange = () => {
+  if (active().busy) { refreshSetup(); return toast('Finish or cancel the run first (Esc).'); }
   settings.layout = layoutSel.value;
-  range.setLayout(settings.layout);
   persist();
+  if (course().layout != null) selectCourse(0, false);
+  range.setLayout(settings.layout);
 };
 $('#opt-zones').onchange = e => { settings.showZones = e.target.checked; persist(); };
 $('#opt-mouse').onchange = e => { settings.mouseShots = e.target.checked; persist(); };
@@ -460,6 +419,45 @@ function updateCameraStatus() {
   el.textContent = `${v.videoWidth}×${v.videoHeight} @ ${camera.fps.toFixed(0)} fps${dot}`;
 }
 
+// ---- Course picker ---------------------------------------------------------------------------
+function toggleCourses() { $('#courses').hidden ? openCourses() : closeCourses(); }
+function openCourses() {
+  renderCourseList();
+  $('#courses').hidden = false;
+  $('#course-list .current')?.focus();
+}
+function closeCourses() { $('#courses').hidden = true; }
+$('[data-act="close-courses"]').onclick = () => closeCourses();
+$('#courses').addEventListener('click', e => {
+  if (e.target.id === 'courses') closeCourses(); // click outside the card
+});
+
+function renderCourseList() {
+  const list = $('#course-list');
+  list.innerHTML = '';
+  for (const cat of CATEGORIES) {
+    const items = COURSES.map((c, i) => [c, i]).filter(([c]) => c.category === cat);
+    if (!items.length) continue;
+    const sec = document.createElement('section');
+    const h = document.createElement('h3');
+    h.textContent = cat;
+    sec.appendChild(h);
+    const grid = document.createElement('div');
+    grid.className = 'course-grid';
+    for (const [c, i] of items) {
+      const b = document.createElement('button');
+      b.className = 'course' + (i === courseIndex ? ' current' : '');
+      b.innerHTML = `<b></b><span></span>`;
+      b.querySelector('b').textContent = c.name;
+      b.querySelector('span').textContent = c.desc;
+      b.onclick = () => { selectCourse(i); closeCourses(); };
+      grid.appendChild(b);
+    }
+    sec.appendChild(grid);
+    list.appendChild(sec);
+  }
+}
+
 // ---- Toast -------------------------------------------------------------------------------
 let toastTimer;
 function toast(msg) {
@@ -472,9 +470,15 @@ function toast(msg) {
 
 // ---- Boot --------------------------------------------------------------------------------
 resize();
-range.setLayout(settings.layout);
+active().setCourse(course());
+range.setLayout(course().layout ?? settings.layout);
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;
 // Reopen the camera if it was on last time (works once permission was granted).
 if (settings.cameraOn && LaserCamera.supported()) startCamera(settings.deviceId);
 requestAnimationFrame(frame);
+
+// Test hook: open the page with ?debug to drive it from automated tests.
+if (new URLSearchParams(location.search).has('debug')) {
+  window.sim = { range, game, runners, active, course, selectCourse, shoot, COURSES };
+}

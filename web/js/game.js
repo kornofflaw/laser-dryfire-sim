@@ -32,7 +32,7 @@ export class Game {
   registerScoredShot(score) {
     if (this.sessionStart == null) this.sessionStart = score.t;
     this.shots++;
-    if (score.zone !== 'Miss') this.hits++;
+    if (score.zone !== 'Miss' && score.zone !== 'NS') this.hits++;
     this.score += score.points;
     if (this.lastShotT != null) this.lastSplit = (score.t - this.lastShotT) / 1000;
     this.lastShotT = score.t;

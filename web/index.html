@@ -18,7 +18,7 @@
     <section class="panel" id="drill" aria-live="polite"></section>
     <nav id="toolbar" aria-label="Controls">
       <button data-act="start" title="Start a timed run (Space)">Start <kbd>Space</kbd></button>
-      <button data-act="drill" title="Next drill (Tab)">Drill <kbd>Tab</kbd></button>
+      <button data-act="courses" title="Choose a drill, Dot Torture or a scenario (D)">Courses <kbd>D</kbd></button>
       <button data-act="layout" title="Change target layout (L)">Targets <kbd>L</kbd></button>
       <button data-act="setup" title="Camera, calibration and settings (S)">Setup <kbd>S</kbd></button>
       <button data-act="fullscreen" title="Fullscreen (F)">Fullscreen <kbd>F</kbd></button>
@@ -84,8 +84,9 @@
       <p>Click a target to shoot it, or fire an IR laser at the projected screen once the camera is set up.</p>
       <table class="keys">
         <tr><td><kbd>Space</kbd></td><td>Start a timed run (wait for the beep)</td></tr>
-        <tr><td><kbd>Tab</kbd></td><td>Next drill (<kbd>Shift</kbd>+<kbd>Tab</kbd> for previous)</td></tr>
-        <tr><td><kbd>L</kbd></td><td>Change target layout</td></tr>
+        <tr><td><kbd>D</kbd></td><td>Choose a course: drills, Texas Star, Dot Torture, scenarios</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>Next course (<kbd>Shift</kbd>+<kbd>Tab</kbd> for previous)</td></tr>
+        <tr><td><kbd>L</kbd></td><td>Change targets for free practice</td></tr>
         <tr><td><kbd>Z</kbd></td><td>Show or hide zone labels</td></tr>
         <tr><td><kbd>R</kbd></td><td>Reset session stats and clear holes</td></tr>
         <tr><td><kbd>S</kbd></td><td>Setup: camera, calibration, log</td></tr>
@@ -103,6 +104,16 @@
       </ol>
       <p class="muted">Use Chrome or Edge for the best camera timing. Scores and settings stay in this browser only.</p>
       <button data-act="close-help">Got it</button>
+    </div>
+  </div>
+
+  <div id="courses" hidden role="dialog" aria-modal="true" aria-labelledby="courses-title">
+    <div class="card">
+      <header>
+        <h2 id="courses-title">Courses</h2>
+        <button class="icon" data-act="close-courses" aria-label="Close">✕</button>
+      </header>
+      <div id="course-list"></div>
     </div>
   </div>
 

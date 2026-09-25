@@ -29,21 +29,25 @@ export const CONFIG = {
     okErrorPx: 35,
   },
 
-  // ---- Scoring (USPSA-style, same numbers as the old ScoringTarget.cs) -----
-  // Zone extents are fractions of the target's half-width / half-height,
-  // measured from the target centre. ny is POSITIVE UPWARD here (like a
-  // target face), and the code converts from screen coords.
-  zones: {
-    aHalfWidth: 0.30, aHalfHeight: 0.55,
-    cHalfWidth: 0.65, cHalfHeight: 0.90,
-    headHalfWidth: 0.28, headBottom: 0.60, headTop: 1.00,
+  // ---- USPSA target geometry (centimetres, origin = target centre, y UP) --
+  // Drawn and scored from the same shapes, so what you see is what scores.
+  // Outline = D zone; inner octagon = C; body rectangle = A (15 x 28 cm, as
+  // on the real target); the whole head box = Head.
+  uspsa: {
+    width: 46, height: 76,
+    outline: [[-7.5, 38], [7.5, 38], [7.5, 23], [15, 23], [23, 15], [23, -30], [15, -38],
+              [-15, -38], [-23, -30], [-23, 15], [-15, 23], [-7.5, 23]],
+    cZone: [[-11, 19], [11, 19], [17, 13], [17, -26], [11, -32], [-11, -32], [-17, -26], [-17, 13]],
+    aZone: { x0: -7.5, x1: 7.5, y0: -12, y1: 16 },
+    head: { x0: -7.5, x1: 7.5, y0: 23, y1: 38 },
   },
-  points: { A: 5, C: 3, D: 1, Head: 5, Miss: 0 },
+  // Steel = a Texas Star plate. Dot = a Dot Torture dot. NS = hitting a
+  // no-shoot (bystander) in a scenario: a -10 penalty, as in USPSA.
+  points: { A: 5, C: 3, D: 1, Head: 5, Steel: 5, Dot: 1, NS: -10, Miss: 0 },
 
   // ---- Targets -------------------------------------------------------------
   targets: {
     heightFrac: 0.42,       // target height as a fraction of viewport height
-    aspect: 0.60,           // width / height (USPSA-ish proportions)
     maxWidthFrac: 0.22,     // cap target width as a fraction of viewport width
     holeLifetime: 4.0,      // seconds a bullet hole stays before fading
     holeFade: 0.6,          // seconds spent fading out
@@ -63,14 +67,39 @@ export const CONFIG = {
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
   },
 
-  // ---- Drills (same set as the old DrillRunner.cs, plus Free Run) ---------
-  // requiredShots 0 = no round count; the run simply ends at the par beep.
-  drills: [
-    { name: 'Free Run',       requiredShots: 0, parTime: 5.0 },
-    { name: 'Bill Drill',     requiredShots: 6, parTime: 2.0 },
-    { name: 'Mozambique',     requiredShots: 3, parTime: 2.5, minBodyHits: 2, minHeadHits: 1 },
-    { name: 'Par String (5)', requiredShots: 5, parTime: 3.0 },
-  ],
+  // Drill, dot torture and scenario definitions live in courses.js and
+  // scenarios.js (content, not tunables).
+
+  // ---- Texas Star (steel spinner) -------------------------------------------
+  // Real-world units so the physics behaves like the real thing: a balanced
+  // 5-arm wheel stays still until a plate is shot off, then gravity on the
+  // remaining plates swings/spins it.
+  star: {
+    heightFrac: 0.70,       // whole star (plate to plate) as a fraction of viewport height
+    armLength: 0.75,        // metres, hub centre to plate centre
+    plateRadius: 0.1016,    // metres (8-inch plates)
+    plateMass: 4.0,         // kg per plate
+    hubInertia: 1.6,        // kg*m^2 of the hub and arms without plates
+    gravity: 9.81,          // m/s^2
+    damping: 0.12,          // 1/s, bearing friction (higher = settles sooner)
+    resetDelay: 2.5,        // seconds after the last plate falls before a free-practice reset
+  },
+
+  // ---- Dot Torture ---------------------------------------------------------------
+  dots: {
+    radiusFrac: 0.062,      // dot radius as a fraction of the sheet height (~1.4-inch dots on letter paper)
+  },
+
+  // ---- Judgment scenarios ----------------------------------------------------------
+  scenario: {
+    standbyMin: 1.0,        // blank screen before the scene appears (seconds)
+    standbyMax: 2.5,
+    actorHeightFrac: 0.58,  // actor height as a fraction of viewport height
+    neutralizeHits: 2,      // hits on a threat before it goes down
+    fallTime: 0.45,         // seconds for a downed actor to drop out of view
+    endGrace: 1.5,          // seconds the scene holds after the last event is resolved
+    maxDuration: 10,        // hard cap on a scenario's length (seconds)
+  },
 
   // ---- Sound (all generated in code; there are no audio files) ------------
   sound: {
@@ -79,6 +108,7 @@ export const CONFIG = {
     parBeepHz: 700,
     beepSeconds: 0.18,
     hitHz: 1568,            // ~G6 "ding"
+    steelHz: 2350,          // base pitch of the steel "ping"
   },
 
   // ---- Storage keys (browser localStorage) --------------------------------

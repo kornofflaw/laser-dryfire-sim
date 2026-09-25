@@ -65,3 +65,39 @@ export function shotPop() {
   src.connect(g).connect(ctx.destination);
   src.start();
 }
+
+// Steel "ping": a few inharmonic partials with long, uneven decays, which is
+// what makes struck plate steel sound metallic rather than like a beep.
+export function steelPing() {
+  if (!ctx) return;
+  const base = CONFIG.sound.steelHz * (0.96 + Math.random() * 0.08);
+  const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
+  const t0 = ctx.currentTime;
+  for (const [ratio, amp, decay] of partials) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = base * ratio;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(amp * 0.5 * CONFIG.sound.volume, t0 + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + decay + 0.02);
+  }
+}
+
+// Low buzz for a penalty (no-shoot hit, wrong dot).
+export function penaltyBuzz() {
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = 140;
+  g.gain.setValueAtTime(0.25 * CONFIG.sound.volume, t0);
+  g.gain.setValueAtTime(0.25 * CONFIG.sound.volume, t0 + 0.28);
+  g.gain.linearRampToValueAtTime(0, t0 + 0.32);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + 0.34);
+}
