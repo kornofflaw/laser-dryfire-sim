@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dry-Fire Controller</title>
+  <meta name="robots" content="noindex">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="controller.css">
+</head>
+<body>
+  <header>
+    <b>Dry-Fire Controller</b>
+    <span id="link" class="bad">Display not found</span>
+    <button id="open-display">Open Display window</button>
+  </header>
+
+  <main>
+    <section id="run">
+      <div id="course"><b id="course-name">—</b><span id="course-desc"></span></div>
+      <div class="row">
+        <button data-key="Tab" data-shift="1" title="Previous course">◀</button>
+        <button id="courses-btn">Courses</button>
+        <button data-key="Tab" title="Next course">▶</button>
+      </div>
+      <button id="start" class="big" data-action="startStop">Start</button>
+      <div class="row">
+        <button data-action="layout" title="Free practice: next set of targets">Targets</button>
+        <button data-action="reset" title="Reset the session">Reset</button>
+        <button data-action="zones" title="Show scoring zones">Zones</button>
+        <button data-action="hideHud" title="Hide or show the panels on the Display">Panels</button>
+      </div>
+      <div class="row">
+        <button data-key="[" title="Targets stay up for less time">Up time −</button>
+        <button data-key="]" title="Targets stay up longer">Up time +</button>
+      </div>
+      <h3>Review</h3>
+      <div class="row">
+        <button id="review-btn" data-action="review">Review last run</button>
+      </div>
+      <div class="row" id="review-nav" hidden>
+        <button data-key="ArrowLeft">◀ Shot</button>
+        <button data-key="a">All</button>
+        <button data-key="ArrowRight">Shot ▶</button>
+        <button data-key="Escape">Close</button>
+      </div>
+    </section>
+
+    <section id="mirror">
+      <div class="panel" id="timer"></div>
+      <div class="panel" id="drill"></div>
+      <div class="panel" id="stats"></div>
+    </section>
+
+    <section id="setup"></section>
+  </main>
+
+  <div id="courses" hidden>
+    <div class="card">
+      <header><b>Courses</b><button id="courses-close">Close</button></header>
+      <div id="course-list"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/controller.js"></script>
+</body>
+</html>

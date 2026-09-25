@@ -120,6 +120,8 @@ web/                    the app; deploy this folder as-is
   js/review.js          shot review: records shots + frames during a run, review screen (V)
   js/storage.js         safe localStorage helpers
   manifest.webmanifest  Add to Home Screen (iPad/tablet) app manifest; icon.svg is its icon
+  controller.html       remote Controller page (iPad screen); js/controller.js + controller.css
+  js/remote.js          Controller <-> Display messages (BroadcastChannel); index.html?display is the Display
 docs/IPAD.md            running on an iPad: what works, hardware setup, risks, other routes
 archive/                old Python + Unity code, reference only
 ```

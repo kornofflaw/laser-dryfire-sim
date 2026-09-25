@@ -3,6 +3,17 @@ import { CONFIG } from './config.js';
 
 let ctx = null;
 
+// Remote control (remote.js): a display window nobody has tapped can't start
+// audio on a tablet, so while this window's audio isn't running, sounds are
+// forwarded to the controller window, which plays them (same speakers/HDMI).
+let forwarder = null;
+export function setAudioForwarder(fn) { forwarder = fn; }
+const forwarded = (name, args) => {
+  if (!forwarder || (ctx && ctx.state === 'running')) return false;
+  forwarder(name, [...args]);
+  return true;
+};
+
 // Browsers only allow audio after a user gesture; main.js calls this on the
 // first click / key press.
 export function unlockAudio() {
@@ -36,19 +47,23 @@ function tone(freq, seconds, gain, decay = 0) {
 }
 
 export function startBeep() {
+  if (forwarded('startBeep', arguments)) return;
   tone(CONFIG.sound.startBeepHz, CONFIG.sound.beepSeconds, 1.0);
 }
 
 export function parBeep() {
+  if (forwarded('parBeep', arguments)) return;
   tone(CONFIG.sound.parBeepHz, CONFIG.sound.beepSeconds, 1.0);
 }
 
 export function hitDing() {
+  if (forwarded('hitDing', arguments)) return;
   tone(CONFIG.sound.hitHz, 0.18, 0.6, 1);
 }
 
 // Short burst of decaying noise: a percussive "pop" for every shot.
 export function shotPop() {
+  if (forwarded('shotPop', arguments)) return;
   if (!ctx) return;
   const dur = 0.09;
   const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
@@ -69,6 +84,7 @@ export function shotPop() {
 // Steel "ping": a few inharmonic partials with long, uneven decays, which is
 // what makes struck plate steel sound metallic rather than like a beep.
 export function steelPing() {
+  if (forwarded('steelPing', arguments)) return;
   if (!ctx) return;
   const base = CONFIG.sound.steelHz * (0.96 + Math.random() * 0.08);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
@@ -88,6 +104,7 @@ export function steelPing() {
 
 // Low buzz for a penalty (no-shoot hit, wrong dot).
 export function penaltyBuzz() {
+  if (forwarded('penaltyBuzz', arguments)) return;
   if (!ctx) return;
   const t0 = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -104,6 +121,7 @@ export function penaltyBuzz() {
 
 // Mechanical "clack" of a pop-up target lifter.
 export function clack() {
+  if (forwarded('clack', arguments)) return;
   if (!ctx) return;
   const n = Math.floor(ctx.sampleRate * 0.06);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
@@ -122,6 +140,7 @@ export function clack() {
 
 // A running footstep on asphalt; loudness 0..1 (closer = louder).
 export function footstep(loudness) {
+  if (forwarded('footstep', arguments)) return;
   if (!ctx) return;
   const n = Math.floor(ctx.sampleRate * 0.08);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
@@ -144,6 +163,7 @@ export function footstep(loudness) {
 // Spoken call-out (browser speech synthesis; no audio files). Silent if the
 // browser has no voices.
 export function say(text) {
+  if (forwarded('say', arguments)) return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
@@ -157,6 +177,7 @@ export function say(text) {
 
 // Radio squelch: a short burst of band-limited static.
 export function radioStatic() {
+  if (forwarded('radioStatic', arguments)) return;
   if (!ctx) return;
   const n = Math.floor(ctx.sampleRate * 0.35);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
@@ -176,6 +197,7 @@ export function radioStatic() {
 
 // A suspect's gunshot: louder and heavier than your own shot's pop.
 export function enemyShot() {
+  if (forwarded('enemyShot', arguments)) return;
   if (!ctx) return;
   const n = Math.floor(ctx.sampleRate * 0.35);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);

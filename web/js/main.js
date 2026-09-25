@@ -7,7 +7,8 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder } from './audio.js';
+import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D } from './range.js';
 import { Game } from './game.js';
 import { DrillRunner } from './run.js';
@@ -329,7 +330,8 @@ function frame(now) {
   setHUD('drill', active().panelHTML(now));
   setHUD('start', active().busy ? 'Stop <kbd>Esc</kbd>' : 'Start <kbd>Space</kbd>');
 
-  if (!$('#setup').hidden) updateCameraStatus();
+  if (!$('#setup').hidden || remote?.connected) updateCameraStatus();
+  remote?.tick(now);
   requestAnimationFrame(frame);
 }
 
@@ -771,13 +773,73 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+// ---- Remote control (remote.js) ------------------------------------------------------------
+// Opened as index.html?display, this page is the Display: it follows a
+// Controller window (controller.html, e.g. on the iPad's own screen) and
+// hides its toolbar. Only Display pages listen, so a stray tab can't react.
+const displayMode = new URLSearchParams(location.search).has('display');
+if (displayMode) document.body.classList.add('display-mode');
+const remote = displayMode && 'BroadcastChannel' in window ? {
+  ch: new BroadcastChannel(CHANNEL),
+  connected: false,
+  sent: '',
+  sentAt: 0,
+  // Send the state when it changes (checked 5x a second), and a heartbeat
+  // every 2 s so the Controller knows the Display is there.
+  tick(now) {
+    if (!this.connected || now - this.checkedAt < 200) return;
+    this.checkedAt = now;
+    const state = JSON.stringify({
+      t: 'state', courseIndex, course: course().name, busy: active().busy, layout: range.layout,
+      hud: { timer: hudCache.timer, drill: hudCache.drill, stats: hudCache.stats },
+      controls: snapshotControls(document),
+      review: { open: review.isOpen, has: review.hasRuns },
+      calibrating: calibration.active,
+    });
+    if (state === this.sent && now - this.sentAt < 2000) return;
+    this.sent = state;
+    this.sentAt = now;
+    this.ch.postMessage(JSON.parse(state));
+  },
+  checkedAt: 0,
+} : null;
+if (remote) {
+  remote.ch.onmessage = ({ data: m }) => {
+    if (m.t === 'hello') {
+      remote.connected = true;
+      remote.sent = '';
+      // Nobody taps the Display, so its audio may never start: play sounds
+      // on the Controller instead (audio.js only forwards while local audio
+      // isn't running).
+      setAudioForwarder((name, args) => remote.ch.postMessage({ t: 'sound', name, args }));
+    } else if (m.t === 'action' && REMOTE_ACTIONS.includes(m.name)) {
+      actions[m.name]();
+    } else if (m.t === 'key') {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, shiftKey: !!m.shiftKey }));
+    } else if (m.t === 'course') {
+      selectCourse(m.index);
+    } else if (m.t === 'input') {
+      const el = document.getElementById(m.id);
+      if (!el || el.disabled) return;
+      if (el.type === 'checkbox') el.checked = !!m.checked;
+      else el.value = m.value;
+      el.dispatchEvent(new Event('input'));
+      el.dispatchEvent(new Event('change'));
+    } else if (m.t === 'click') {
+      document.getElementById(m.id)?.click();
+    }
+  };
+}
+$('#open-controller').onclick = () => window.open('controller.html', 'dryfire-controller');
+$('#open-display').onclick = () => window.open('index.html?display', 'dryfire-display');
+
 // ---- Boot --------------------------------------------------------------------------------
 resize();
 active().setCourse(withUpTime(course()));
 showCourseLayout(course());
 if (is3D(course().type)) ensure3D(course().type).catch(() => {});
 refreshSetup();
-if (!settings.seenHelp) $('#help').hidden = false;
+if (!settings.seenHelp && !displayMode) $('#help').hidden = false;
 // Reopen the camera if it was on last time (works once permission was granted).
 if (settings.cameraOn && LaserCamera.supported()) startCamera(settings.deviceId);
 requestAnimationFrame(frame);

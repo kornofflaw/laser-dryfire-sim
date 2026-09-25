@@ -1,86 +1,115 @@
-# Running the simulator on an iPad (M3 or newer)
+# Running the simulator from an iPad (M3 or newer)
 
-Study done 2026-09-25. Short version: **no port is needed.** The app is already
-a web page, and an M3 iPad runs it in Safari. What an iPad adds is a few
-hardware questions (camera, projector, one USB-C port) and some touch fixes,
-which are now done. Recommended path: use it in Safari, "Add to Home Screen"
-so it opens full screen like an app. Only consider an App Store wrapper later.
+Goal (Andrew, 2026-09-25): **the iPad is the remote control** (settings,
+course, start/stop, review). **The range itself plays full screen on the
+projector or TV** the iPad is connected to.
 
-## What already works on iPad Safari (iPadOS 17 or newer)
+Short version: no rewrite is needed. The app runs in iPad Safari, and it now
+has a **Display** window (the range) and a **Controller** window (the remote),
+both on the iPad, talking to each other inside the iPad. The Display window goes
+on the external screen using Stage Manager. If Safari's windowing gets in the
+way on the real rig, the fallback is a small native wrapper app (below) that
+uses the same two pages.
 
-| Need | Status on iPad |
+## How it works
+
+```
+iPad
+ ├─ Controller window (controller.html)  → on the iPad screen: big Start/Stop,
+ │     course list, settings, review buttons, live timer/results
+ │        │  BroadcastChannel (inside the iPad; no network, no server)
+ │        ▼
+ └─ Display window (index.html?display)  → on the projector/TV via USB-C → HDMI:
+       the range, 3D scenes, laser camera, scoring, timer panels
+```
+
+- Everything is scored and timed in the Display window, exactly as before
+  (one shot path, one clock). The Controller only sends commands.
+- Sounds: an iPad won't play audio in a window nobody has tapped. The Display
+  is on the projector and never tapped, so its sounds are sent to the
+  Controller and played there. The iPad's audio goes to the HDMI output (the
+  projector/TV speakers) either way.
+- The Controller keeps the iPad awake (if the iPad locks, the Display stops).
+- Works the same on a laptop with a projector as a second screen: Display window
+  full screen on the projector, Controller on the laptop.
+
+## Setting it up on the iPad (to test)
+
+Needs: an M-series iPad on iPadOS 17 or newer, a USB-C hub with HDMI + USB-A +
+power pass-through, the projector/TV on HDMI, the laser camera on USB-A.
+
+1. Plug the hub into the iPad, then the HDMI cable and power into the hub.
+2. Turn on **Stage Manager** (Control Center → Stage Manager). With Stage
+   Manager the external screen is a second screen, not a mirror of the iPad.
+3. In Safari open **https://laser-dryfire-sim.vercel.app/controller.html**.
+4. Tap **Open Display window**. Safari opens the range in a new tab.
+5. Make that tab its own window: press and hold the tab → **Open in New Window**
+   (or drag the tab out).
+6. Move that window to the projector: tap the **•••** at the top of the window →
+   **Move to Display** (wording varies by iPadOS version). Make it as large as
+   it goes on that screen.
+7. Back on the iPad screen the Controller should say **Display connected**.
+   Tap **Courses** → Bill Drill → **Start**. The beep comes from the TV/projector.
+8. Laser camera (once): in the Controller's Setup column tap **Start camera**.
+   If Safari asks for camera permission, the prompt appears in the Display
+   window; tap it there with the window back on the iPad screen, or allow the
+   camera for the site in Settings → Apps → Safari → Camera. Then **Calibrate**
+   with the Display window where it will stay.
+
+## What to look for (open questions only the real rig can answer)
+
+- **Does the Display window keep running** when you're touching the
+  Controller? (Both windows are visible, so it should. If the range freezes,
+  tell me: that's the case for the native wrapper.)
+- **Full screen on the projector:** a Safari window may keep its tab/address
+  bar at the top. That's fine for testing (calibration only uses the page
+  area), but it wastes some screen. The wrapper removes it.
+- **Camera in the Display window:** frame rate (Setup shows fps) and whether
+  capture keeps going while the Controller is in front.
+- **Latency:** there should be none you can notice; commands are local.
+
+## Changes made for iPad and touch
+
+- Controller page + Display mode (`controller.html`, `js/controller.js`,
+  `js/remote.js`, `index.html?display`). The Display's Setup drawer also has
+  "Open Display window" / "Open Controller window" buttons (laptop use).
+- Sound forwarding to the Controller when the Display can't play audio.
+- Audio also unlocks at the end of a tap (iPad doesn't count the start of a tap).
+- The toolbar Start button becomes Stop during a run (no Esc key on a tablet).
+- Screen wake lock on both pages.
+- `manifest.webmanifest`: the site can be added to the Home Screen and opens
+  full screen (useful for single-screen use; for the two-window setup stay in
+  Safari, because a Home Screen app keeps separate storage and can't open a
+  second window).
+- The 3D range lowers its resolution by itself on slow frames and uses much
+  smaller target textures (less memory, faster hits).
+
+## What the research found
+
+| Need | iPad Safari (iPadOS 17+) |
 | --- | --- |
-| The app itself (ES modules, import map, WebGL2 for the 3D scenes) | Supported. Import maps need Safari 16.4+; WebGL2 runs on Metal. An M3 GPU is far faster than the laptops the 3D scenes were built for. |
-| USB laser camera (ELP etc.) | iPadOS 17 added USB Video Class (UVC) camera support, and Safari's `getUserMedia` can open it, so the camera path works unchanged. |
-| Frame timing for shots | `requestVideoFrameCallback` is in Safari 15.4+. If Safari doesn't give `captureTime` for a USB camera, camera.js already falls back to `expectedDisplayTime`, then to the callback time (a few ms later; still one clock). |
-| Full screen | The element Fullscreen API works on iPad (unprefixed since Safari 16.4). Better: Add to Home Screen, which opens with no browser bars (manifest added). |
-| Settings, calibration, run log (localStorage) | Works. Note a Home Screen app keeps its own storage, separate from Safari's: calibrate inside the one you use. |
-| Sounds and the spoken numbers | Works after the first tap (fixed: audio now also unlocks at the end of a tap, which is what iPad counts as a gesture). |
+| The app (ES modules, import map, WebGL2) | Supported (import maps since Safari 16.4; WebGL2 runs on Metal). An M3 GPU is much faster than what the 3D scenes need. |
+| USB laser camera | iPadOS 17 added USB Video Class (UVC) cameras, and Safari's getUserMedia can open them. |
+| Camera exposure control | Not available to Safari for USB cameras. With the IR-pass filter the dot is still the brightest thing; if it washes out, use a camera that keeps its exposure setting. |
+| Frame timing | requestVideoFrameCallback is in Safari 15.4+; camera.js falls back cleanly if captureTime is missing. |
+| External screen | Mirroring by default; a real second screen with Stage Manager on M-series iPads (wired). AirPlay only mirrors, so use HDMI. |
+| Fullscreen API | Works on iPad for any element (Safari 16.4+), but needs a tap in that window, so the Display on the projector can't enter it by itself. |
 
-## Changes made for iPad (and any touch screen)
+## If Safari's windows get in the way: native wrapper (plan B)
 
-- Audio unlocks on `pointerup`/`touchend` too (iPad ignores `pointerdown` for this).
-- The toolbar **Start** button turns into **Stop** during a run (no Esc key on a tablet).
-- The screen is kept awake while the page is open (Screen Wake Lock), so the
-  iPad doesn't dim or lock in the middle of a session.
-- `manifest.webmanifest` + Apple meta tags: Share → **Add to Home Screen**
-  gives a "Dry-Fire" icon that opens full screen, landscape.
-- The 3D range lowers its render resolution by itself if frames get slow
-  (an iPad Pro screen is ~5.6 million pixels at 2x), and uses much smaller
-  target textures than before (less memory; Safari tabs have tighter limits).
-- Tapping the target shoots, same as a mouse click (one shot path).
+A small iPad app (Capacitor or a plain Swift app with WKWebView) that:
+- shows `controller.html` on the iPad screen, and
+- when a screen is connected, opens a second, **true full-screen** window on it
+  (UIKit's external-display scene) showing `index.html?display`.
 
-## Hardware setup to try
+Same web code, same messages. It removes the Safari tab bar and the manual
+"move window" steps, and could add native camera exposure control later.
+Cost: needs a Mac with Xcode to build, an Apple Developer account ($99/yr),
+and App Store (or TestFlight) distribution. Only worth it if the Safari setup
+above has problems on the real rig.
 
-The iPad has **one USB-C port**, and the rig needs a camera in and a projector
-out. Use a **USB-C hub/dock with HDMI + a USB-A port + power pass-through**.
-
-1. Projector: HDMI from the hub. Two ways the picture can go to the projector:
-   - **Mirroring** (default): the projector shows exactly the iPad screen, at
-     the iPad's shape (4:3-ish), so a 16:9 projector shows black bars. Fine to
-     start with.
-   - **Extended display with Stage Manager** (M-series iPads, iPadOS 16.2+):
-     drag the Safari / Home Screen app window onto the projector and make it
-     full screen: fills a 16:9 image. Calibrate in whichever mode you'll shoot in.
-2. Camera: the ELP camera into the hub's USB-A port. In the app: Setup → Start
-   camera → pick it from the list → tune threshold → Calibrate.
-3. Plug the hub into power so the iPad doesn't drain during a session.
-
-## Risks / things only a real test can answer
-
-- **Camera exposure:** iPadOS gives apps (and Safari) no manual exposure
-  control for USB cameras. With the IR-pass filter the scene is dark and the
-  laser dot is bright, so the auto-exposure should be OK, but if the dot is
-  washed out, lock exposure on the camera itself (some UVC cameras remember
-  settings set once from a computer) or use a camera with a fixed exposure.
-- **Camera frame rate:** check Setup's fps readout. 60 fps is good; 30 fps
-  still works but can merge two very fast shots.
-- **Mirroring aspect ratio:** calibration must be redone if you switch between
-  mirrored and extended display (the projected area changes).
-- **Safari memory:** very long sessions switching between many 3D scenes;
-  the range now frees old targets when changing courses. Reload the page if it
-  ever becomes sluggish.
-
-## Other routes (not recommended now)
-
-| Route | What it is | Pros | Cons |
-| --- | --- | --- | --- |
-| **Web app in Safari / Home Screen (chosen)** | This site, as is | Nothing to install or approve; same code on every device; updates by pushing to main | Camera controls limited to what Safari exposes |
-| App wrapper (Capacitor / WKWebView) | The same web code inside a small native app | App Store icon, offline, could add native camera controls later | Needs a Mac with Xcode to build, an Apple Developer account ($99/yr), App Store review for every update |
-| Native rewrite (Swift, RealityKit, AVFoundation) | Start over as an iPad app | Full camera control (exposure, 120 fps where supported, exact frame times) | Months of work, iPad only, loses the Windows/Mac/projector-PC versions |
-
-A wrapper only makes sense if Safari's camera access turns out to be the
-weak point in real testing; the web code would move into it unchanged.
-
-## What to test on the iPad (in order)
-
-1. Open https://laser-dryfire-sim.vercel.app in Safari. Tap **Courses** →
-   **Bill Drill** → **Start**. Tap the target after the beep. Sounds should play.
-2. Share button → **Add to Home Screen**. Open it from the icon: no browser bars.
-3. Try a 3D course (Stages → Paper and Steel) and the 3D knife attack: smooth?
-4. Hub + projector: does the picture fill the projector (mirrored vs extended)?
-5. Hub + camera: Setup → Start camera. Does the ELP camera appear? What fps?
-   Then calibrate and shoot with the laser.
+A full native rewrite (Swift, RealityKit) is not recommended: months of work
+and it would drop the Windows/Mac/projector-PC versions.
 
 Sources:
 - [iPadOS 17 external USB camera support (MacRumors)](https://forums.macrumors.com/threads/ipados-17-adds-support-for-studio-display-webcam-and-other-external-usb-cameras.2391966/page-2)

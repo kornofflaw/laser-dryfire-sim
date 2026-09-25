@@ -140,8 +140,15 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 ## Phase 4 — Hosting / packaging
 - [x] iPad study (docs/IPAD.md): runs in Safari as is (iPadOS 17+ supports the
       USB camera via getUserMedia). Touch fixes done: audio unlock on tap end,
-      Start button doubles as Stop, screen wake lock, Add to Home Screen
-      manifest (full screen). To test on a real iPad + hub + projector.
+      Start button doubles as Stop, screen wake lock, Add to Home Screen manifest.
+- [x] iPad as remote control (Andrew's design): Controller window
+      (controller.html) on the iPad screen, Display window (index.html?display)
+      full screen on the projector/TV via Stage Manager, linked by a
+      BroadcastChannel (remote.js). Display does everything; Controller sends
+      commands, mirrors timer/results/Setup, and plays the Display's sounds.
+- [ ] Test the two-window setup on the real iPad + hub + projector (steps in
+      docs/IPAD.md). Plan B if Safari windowing is a problem: native wrapper
+      app with a true external-display window.
 - [ ] Offline support (service worker) if the range PC / iPad has no internet.
 - [x] Hosting: Vercel project `laser-dryfire-sim` (root directory `web/`, no build),
       production deploys from `main`.
@@ -202,6 +209,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: iPad remote control: Controller + Display windows (remote.js,
+  controller.html/js/css), sound forwarding to the Controller (audio.js).
 - 2026-09-25: Flip Grid Pairs is strict: a plate that spins back unhit ends
   the run as a FAIL (course field failOnMiss).
 - 2026-09-25: Stages + Mini Poppers (stage.js). Efficiency pass on the 3D

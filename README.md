@@ -29,5 +29,5 @@ Laser setup (once per room): project the page fullscreen, plug in the camera,
 **Setup → Start camera**, tune the threshold until the preview is dark with no
 laser, then **Calibrate** by shooting the 4 crosshairs and the centre.
 
-On an iPad, see **docs/IPAD.md**. See **PLAN.md** for the roadmap and **CLAUDE.md** for architecture and rules.
+iPad as a remote with the range on the projector/TV: open **/controller.html**; see **docs/IPAD.md**. See **PLAN.md** for the roadmap and **CLAUDE.md** for architecture and rules.
 The earlier Python + Unity version is in `archive/` for reference.

@@ -1,0 +1,41 @@
+/* controller.css — the remote Controller (controller.html), touch first. */
+:root { color-scheme: dark; --bg: #16191d; --card: #22272e; --line: #353c45; --text: #e6e6e6; --muted: #9aa3ad; --go: #34d058; --bad: #ff6b6b; --accent: #3a8ee6; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, sans-serif; -webkit-user-select: none; user-select: none; }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+header b { font-size: 18px; }
+#link { flex: 1; }
+main { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(260px, 1fr) minmax(280px, 1fr); gap: 14px; padding: 14px; }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+h3 { margin: 14px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+h3:first-child { margin-top: 0; }
+button { font: inherit; color: var(--text); background: #2e353e; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-height: 48px; touch-action: manipulation; }
+button:active { background: #3a434e; }
+button:disabled { opacity: 0.4; }
+.row { display: flex; gap: 8px; margin: 8px 0; }
+.row > button { flex: 1; }
+.big { display: block; width: 100%; min-height: 84px; font-size: 28px; font-weight: 700; margin: 12px 0; background: #1f6f3a; border-color: #2b8c4b; }
+.big.stop { background: #8a2626; border-color: #a83434; }
+#course b { display: block; font-size: 20px; }
+#course span { color: var(--muted); font-size: 14px; }
+.panel { white-space: pre-line; background: #1a1e23; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; min-height: 40px; font-variant-numeric: tabular-nums; }
+.panel .title { display: block; font-size: 12px; letter-spacing: 0.08em; color: var(--muted); }
+.go { color: var(--go); font-weight: 700; } .bad { color: var(--bad); } .wait { color: #ffd33d; }
+.muted { color: var(--muted); } .small { font-size: 12px; } kbd { display: none; }
+#setup label { display: block; margin: 10px 0; }
+#setup input[type=range] { width: 100%; height: 36px; }
+#setup input[type=checkbox] { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
+#setup select { width: 100%; font: inherit; padding: 10px; border-radius: 8px; background: #2e353e; color: var(--text); border: 1px solid var(--line); }
+#setup .val { float: right; color: var(--muted); }
+#setup button { width: 100%; margin: 6px 0; }
+#setup .text { color: var(--muted); font-size: 14px; margin: 8px 0; }
+#courses { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#courses[hidden] { display: none; }
+#courses .card { background: var(--card); border-radius: 14px; width: min(1000px, 100%); max-height: 100%; overflow: auto; padding: 0 16px 16px; }
+#courses header { position: sticky; top: 0; background: var(--card); padding: 12px 0; }
+#courses header b { flex: 1; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.grid button { text-align: left; }
+.grid button.current { border-color: var(--accent); background: #243447; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
