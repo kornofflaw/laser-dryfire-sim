@@ -57,22 +57,22 @@ const DRILLS = [
 const POPUPS = [
   { name: 'Pop-up Reaction', category: 'Pop-ups', type: 'popup', layout: 'popup',
     exposures: 10, together: 1, upTime: 2.5, gap: [0.8, 2.5], passPct: 80,
-    desc: '10 targets, one at a time, 2.5 s up. Hit each before it drops.' },
+    desc: '10 targets, one at a time. Hit each before it drops.' },
   { name: 'Pop-up Pairs', category: 'Pop-ups', type: 'popup', layout: 'popup',
     exposures: 6, together: 2, upTime: 3.0, gap: [1.0, 2.5], passPct: 80,
-    desc: 'Two targets at once, 3 s up. Hit both.' },
+    desc: 'Two targets at once. Hit both before they drop.' },
   { name: 'Pop-up Speed', category: 'Pop-ups', type: 'popup', layout: 'popup',
     exposures: 12, together: 1, upTime: [2.0, 0.8], gap: [0.6, 1.8], passPct: 75,
-    desc: 'Each target stays up a little less: 2.0 s down to 0.8 s.' },
+    desc: 'Each target stays up a little less than the one before.' },
 ];
 
 const FLIP = [
   { name: 'Flip Grid', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'flash',
     exposures: 15, together: 1, upTime: 1.6, gap: [0.5, 1.8], passPct: 80,
-    desc: 'Plates spin to an orange target for 1.6 s. Hit each before it spins back.' },
+    desc: 'Plates spin to an orange target for a moment. Hit each before it spins back.' },
   { name: 'Flip Grid Pairs', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'flash',
     exposures: 8, together: 2, upTime: 2.2, gap: [0.8, 2.0], passPct: 80,
-    desc: 'Two plates at a time, 2.2 s. Hit both.' },
+    desc: 'Two plates at a time. Hit both before they spin back.' },
   { name: 'Numbered Grid 1–12', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'order', parTime: 12,
     desc: 'At the beep all plates spin to numbers. Shoot 1 to 12 in order. Wrong number = penalty.' },
   { name: 'Called Numbers', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'called',

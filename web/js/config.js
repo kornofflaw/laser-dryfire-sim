@@ -133,6 +133,10 @@ export const CONFIG = {
     strideTime: 0.3,        // seconds per footstep while sprinting
   },
 
+  // ---- Adjustable "time up" for flash courses (flip grid, pop-ups) ----------------
+  // [ and ] (or the Setup slider) change it per course; saved in this browser.
+  upTime: { min: 0.3, max: 6.0, step: 0.1 },
+
   // ---- Dot Torture ---------------------------------------------------------------
   dots: {
     radiusFrac: 0.062,      // dot radius as a fraction of the sheet height (~1.4-inch dots on letter paper)

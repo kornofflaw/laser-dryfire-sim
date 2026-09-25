@@ -138,7 +138,8 @@ export class PopupRunner extends Runner {
     const c = this.course;
     const head = `<b class="title">DRILL · ${c.category.toUpperCase()}</b>`;
     const footer = `<span class="muted small">[D] courses  ·  [Tab] next  ·  [Space] run</span>`;
-    const up = Array.isArray(c.upTime) ? `${c.upTime[0]}s → ${c.upTime[1]}s up` : `${c.upTime}s up`;
+    const up = (Array.isArray(c.upTime) ? `<b>${c.upTime[0].toFixed(1)}s → ${c.upTime[1].toFixed(1)}s up</b>` : `<b>${c.upTime.toFixed(1)}s up</b>`) +
+      `  <span class="muted small">[ ] to change</span>`;
     if (this.state === State.Done) {
       const r = this.result;
       return head + `<b>${c.name}</b> — ${r.passed ? '<span class="go">PASS</span>' : '<span class="bad">FAIL</span>'}\n` +

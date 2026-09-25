@@ -39,6 +39,21 @@
     </section>
 
     <section>
+      <h3>Current course</h3>
+      <p id="course-name"></p>
+      <div id="up-time-row">
+        <label>Time targets stay up <output id="up-time-val"></output>
+          <input type="range" id="up-time">
+        </label>
+        <div class="row">
+          <button id="up-time-reset" class="quiet">Reset to default</button>
+          <span class="muted note">Shortcut: <kbd>[</kbd> shorter, <kbd>]</kbd> longer</span>
+        </div>
+      </div>
+      <p class="note" id="up-time-none">This course has no time-up setting. It applies to the flip grid and pop-up courses.</p>
+    </section>
+
+    <section>
       <h3>Targets</h3>
       <label>Layout
         <select id="opt-layout"></select>
@@ -87,6 +102,7 @@
         <tr><td><kbd>D</kbd></td><td>Choose a course: drills, Texas Star, Dot Torture, scenarios</td></tr>
         <tr><td><kbd>Tab</kbd></td><td>Next course (<kbd>Shift</kbd>+<kbd>Tab</kbd> for previous)</td></tr>
         <tr><td><kbd>L</kbd></td><td>Change targets for free practice</td></tr>
+        <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Shorter / longer time targets stay up (flip grid, pop-ups)</td></tr>
         <tr><td><kbd>Z</kbd></td><td>Show or hide zone labels</td></tr>
         <tr><td><kbd>R</kbd></td><td>Reset session stats and clear holes</td></tr>
         <tr><td><kbd>S</kbd></td><td>Setup: camera, calibration, log</td></tr>

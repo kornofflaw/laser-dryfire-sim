@@ -34,6 +34,7 @@ const settings = Object.assign({
   threshold: CONFIG.camera.threshold,
   course: 'Free Run',
   seenHelp: false,
+  upTimes: {},        // per-course "time up" overrides (seconds)
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 
@@ -171,16 +172,53 @@ function frame(now) {
 }
 
 // ---- Actions ---------------------------------------------------------------------------
+// A course with the user's saved "time up" applied (flip grid / pop-ups).
+function withUpTime(c) {
+  const base = settings.upTimes?.[c.name];
+  if (base == null || c.upTime == null) return c;
+  return { ...c, upTime: scaledUpTime(c.upTime, base) };
+}
+// Array up-times (a shrinking range) keep their shape: the first value is set,
+// the last scales with it.
+function scaledUpTime(def, base) {
+  if (!Array.isArray(def)) return base;
+  return [base, Math.round(base * (def[1] / def[0]) * 10) / 10];
+}
+function upTimeBase(c) {
+  const u = active().course?.name === c.name ? active().course.upTime : withUpTime(c).upTime;
+  return Array.isArray(u) ? u[0] : u;
+}
+
+function setUpTime(value) {
+  const c = course();
+  if (c.upTime == null) return toast('This course has no time-up setting.');
+  if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  const U = CONFIG.upTime;
+  const v = Math.round(Math.min(U.max, Math.max(U.min, value)) * 10) / 10;
+  settings.upTimes = { ...(settings.upTimes || {}), [c.name]: v };
+  persist();
+  active().setCourse(withUpTime(c));
+  refreshSetup();
+  const u = active().course.upTime;
+  toast(`Time up: ${Array.isArray(u) ? `${u[0].toFixed(1)}s → ${u[1].toFixed(1)}s` : `${u.toFixed(1)}s`}`);
+}
+
+function adjustUpTime(dir) {
+  if (course().upTime == null) return toast('[ and ] change the time up on flip grid and pop-up courses.');
+  setUpTime(upTimeBase(course()) + dir * CONFIG.upTime.step);
+}
+
 // Pick a course: set its runner and put up its targets.
 function selectCourse(i, announce = true) {
   if (active().busy) return toast('Finish or cancel the run first (Esc).');
   courseIndex = (i + COURSES.length) % COURSES.length;
   const c = course();
-  active().setCourse(c);
+  active().setCourse(withUpTime(c));
   range.setLayout(c.layout ?? settings.layout);
   settings.course = c.name;
   persist();
   renderCourseList();
+  refreshSetup();
   if (announce) toast(c.name);
 }
 
@@ -280,6 +318,8 @@ window.addEventListener('keydown', e => {
     c: () => actions.calibrate(),
     h: () => actions.hideHud(),
     '?': () => actions.help(),
+    '[': () => adjustUpTime(-1),
+    ']': () => adjustUpTime(1),
     Escape: () => {
       if (!$('#setup').hidden) closeSetup();
       else if (active().busy) { active().cancel(); toast('Run cancelled.'); }
@@ -388,7 +428,33 @@ async function refreshDevices() {
   sel.value = devices.some(d => d.deviceId === current) ? current : '';
 }
 
+$('#up-time').oninput = e => setUpTime(Number(e.target.value));
+$('#up-time-reset').onclick = () => {
+  const c = course();
+  if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  const rest = { ...(settings.upTimes || {}) };
+  delete rest[c.name];
+  settings.upTimes = rest;
+  persist();
+  active().setCourse(c);
+  refreshSetup();
+  toast('Time up reset to default.');
+};
+
 function refreshSetup() {
+  const c = course();
+  const hasUp = c.upTime != null;
+  $('#up-time-row').hidden = !hasUp;
+  $('#up-time-none').hidden = hasUp;
+  $('#course-name').textContent = c.name;
+  if (hasUp) {
+    const U = CONFIG.upTime;
+    const slider = $('#up-time');
+    slider.min = U.min; slider.max = U.max; slider.step = U.step;
+    slider.value = upTimeBase(c);
+    const u = active().course?.upTime ?? c.upTime;
+    $('#up-time-val').textContent = Array.isArray(u) ? `${u[0].toFixed(1)}s → ${u[1].toFixed(1)}s` : `${u.toFixed(1)}s`;
+  }
   layoutSel.value = settings.layout;
   $('#opt-zones').checked = settings.showZones;
   $('#opt-mouse').checked = settings.mouseShots;
@@ -479,7 +545,7 @@ function toast(msg) {
 
 // ---- Boot --------------------------------------------------------------------------------
 resize();
-active().setCourse(course());
+active().setCourse(withUpTime(course()));
 range.setLayout(course().layout ?? settings.layout);
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;

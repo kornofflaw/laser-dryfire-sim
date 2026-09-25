@@ -18,6 +18,7 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | D | Choose a course: drills, Texas Star, Dot Torture, judgment scenarios |
 | Tab | Next course |
 | L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid |
+| [ / ] | Shorter / longer time targets stay up (flip grid, pop-ups) |
 | S | Setup: camera, threshold, calibration, run log |
 | C | Calibrate the laser camera |
 | F | Fullscreen |

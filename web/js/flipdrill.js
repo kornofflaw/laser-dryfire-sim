@@ -267,6 +267,9 @@ export class FlipRunner extends Runner {
       lines.push(`Wrong plates: ${r.wrong}   Rounds: ${r.shots}`);
       return head + lines.join('\n') + '\n' + footer;
     }
-    return head + `<b>${c.name}</b>\n<span class="muted">${c.desc}</span>\n` + footer;
+    const up = c.mode === 'flash'
+      ? `${c.exposures} flashes${c.together > 1 ? ` of ${c.together}` : ''} · <b>${c.upTime.toFixed(1)}s up</b>  <span class="muted small">[ ] to change</span>\n`
+      : '';
+    return head + `<b>${c.name}</b>\n<span class="muted">${c.desc}</span>\n` + up + footer;
   }
 }

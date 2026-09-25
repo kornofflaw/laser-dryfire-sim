@@ -47,6 +47,8 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       flashes, 1.6 s), Flip Grid Pairs, Numbered Grid 1–12 (shoot in order,
       par 12 s, wrong number = fail), Called Numbers (spoken call-out via browser
       speech, numbers reshuffle after each hit). Also a free-practice layout (L).
+- [x] Adjustable "time up" for flip-grid flash and pop-up courses: [ / ] keys
+      or Setup → Current course slider (0.3–6 s), saved per course in the browser.
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 - [ ] More steel: plate rack, poppers (need a "falls when hit" reaction).
 
@@ -131,6 +133,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
 - 2026-09-25: Flip grid target + 4 flip-grid courses.
+- 2026-09-25: Adjustable time-up per course ([ ] keys, Setup slider).
 - 2026-09-25: Real pop-up targets + 3 pop-up drills; parking-lot knife attack
   scenario with perspective, sprint physics and stab fail.
 - 2026-09-25: Courses: picker + 23 courses (drills, Texas Star, Dot Torture, 9
