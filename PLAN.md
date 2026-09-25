@@ -1,111 +1,111 @@
 # PLAN.md — Laser Dry-Fire Simulator
 
-Python/OpenCV detects an IR laser dot on the projection screen → UDP (port 5005,
-`x,y[,perf_counter]`) → Unity scores it (USPSA A/C/D + head zone) and runs drills.
+A single static web app (`web/`) on any OS: the webcam finds the IR laser dot,
+a 4-point homography maps it to the screen, and the page scores it (USPSA
+A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot path.
 
-> NOTE (2026-09-25): Project moved from the claude.ai "simulator" Project into this
-> repo for Claude Code. The code here is the consolidated 2026-09-24 set
-> (7 Python + 11 Unity scripts), unchanged. From now on this repo is the source
-> of truth, not the claude.ai project files. See CLAUDE.md for working rules.
-> Stale claude.ai uploads (safe to delete there): `GameManager (1).cs`,
-> `ShotTimer (1).cs`, the older root-level `.cs`/`.py` duplicates, and
-> `GameHUD.cs` (replaced by GameUI).
+> 2026-09-25: Moved from Python/OpenCV + Unity (macOS) to a browser-only app.
+> The old code is in `archive/` for reference. Repo should be private.
+> Hosting: not deployed yet, see "Hosting" below.
 
 ---
 
-## Phase 0 — End-to-end detection  ✅ done, live-tested
+## Phase 0 — End-to-end detection  ✅ done (Python/Unity version, live-tested)
+- [ ] Re-verify on the rig with the web version (camera → calibrate → shots land
+      where aimed).
 
 ## Phase 1 — Detection robustness
-- [x] Shot timestamps end-to-end (Python perf_counter → packet → ShotReceiver →
-      GameManager/ShotTimer splits).
+- [x] Shot timestamps: now one clock (performance.now + camera frame captureTime).
 - [ ] Rapid-fire test: can the rig register a fast controlled pair? (pulse length
-      vs. camera fps)
+      vs. camera fps; the Setup panel shows the real fps)
+- [ ] Check which browsers expose `captureTime` for the ELP camera (Chrome/Edge expected).
 
-## Phase 1b — Mouse-and-keyboard mode (direction set Sept 2026)
-- [ ] Mouse click → same ShotReceiver scoring path as a UDP shot (one code path;
-      no separate scoring). Get the game solid on mouse first, then switch to the
-      IR gun.
+## Phase 1b — Mouse-and-keyboard mode  ✅ done (web)
+- [x] Mouse click → same shoot() path as laser shots.
 
 ## Phase 2 — Training value
-- [x] Zone scoring (ScoringTarget A/C/D + optional head zone; single scoring path;
-      Target.OnHit reaction-only).
-- [x] DrillRunner: Bill Drill, Mozambique, par strings; hit factor; drill HUD panel.
-- [ ] **Target ID on ShotScore**: needed for BOTH dot torture and judgment
-      scenarios. Do this first.
-- [ ] Dot torture (needs target ID).
-- [ ] Draw-to-first-shot timing wired into ShotTimer.
-- [ ] Moving-target drills using MovingTarget.cs.
+- [x] Zone scoring (A/C/D + head), single scoring path.
+- [x] Drills: Free Run, Bill Drill, Mozambique, Par String; hit factor; PASS/FAIL.
+- [x] Target ID on every scored shot (`score.targetId`).
+- [x] Moving targets (Movers layout: PingPong / Crossing / SineWave) and pop-ups.
+- [ ] Dot torture (target ID is now available).
+- [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
+- [ ] Moving-target drills with their own pass criteria.
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
-Design chosen 2026-09-24: data-driven "scripted cutout" scenarios in Unity, not video.
-- [ ] Target ID on ShotScore (shared with Phase 2).
+Design chosen 2026-09-24: data-driven "scripted cutout" scenarios, not video.
+Now to be built in the web app (canvas sprites instead of Unity objects).
+- [x] Target ID on ShotScore.
 - [ ] `ScenarioActor`: flat card with swappable pose sprites (hands empty / gun /
       phone / wallet / hands up) + a role that can change over time
       (NonThreat → Threat at t_reveal, Threat → Surrender, etc.).
-- [ ] `Scenario` ScriptableObject: list of actors + a short timeline of events
-      (appear, turn, swap sprite, move via MovingTarget, disappear), max 10 s.
+- [ ] Scenario definitions (JSON in config or a scenarios module): list of actors +
+      a short timeline of events (appear, turn, swap sprite, move, disappear), max 10 s.
 - [ ] Randomization per run: which actor is the threat, reveal time window,
       object shown, actor positions — so scenarios can't be memorized.
-- [ ] `ScenarioRunner` (sibling of DrillRunner): plays the timeline, listens to
-      ShotScored, grades each shot against the actor's role AT THAT MOMENT.
+- [ ] `ScenarioRunner` (sibling of RunController): plays the timeline, listens to
+      shots, grades each shot against the actor's role AT THAT MOMENT.
 - [ ] Grading: correct engagement + reaction time (reveal → first shot on threat);
       no-shoot hit = penalty/fail; shot on threat before reveal = premature;
       shot after surrender = fail; threat not engaged by timeout = fail.
-- [ ] Results panel in GameUI + new columns in SessionLogger (ties to audit #3).
+- [ ] Results panel + new log columns.
 - [ ] Starter library: ~8 templates (single reveal, 2-person pick-the-threat,
       turn-and-reveal, surrender/stop-shooting, threat behind no-shoot, moving
       threat, all-clear, late reveal).
-- [ ] Later / optional: filmed video branching (VideoPlayer + per-frame hit
-      regions) — much higher production cost; revisit only if cutouts feel flat.
+- [ ] Scenario art source: simple silhouettes vs. photo cutouts (undecided).
 
 ## Phase 3 — Review & analytics
-- [ ] Post-session summary from the SessionLogger CSV (splits, first shot,
-      accuracy, hits per zone, judgment results).
+- [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
+- [ ] Post-session summary screen from the log.
 - [ ] Trend view across sessions.
 
-## Phase 4 — Polish / packaging
-- [ ] Build the Unity .app; set UNITY_APP in run.py for one-command launch.
-- [ ] Check camera permission + Local Network prompt on a clean macOS user.
+## Phase 4 — Hosting / packaging
+- [ ] Pick hosting (see below) and deploy `web/` on every push to main.
+- [ ] Test on a clean machine: camera permission prompt, fullscreen on the projector.
 
 ---
 
-## Audit findings — 2026-09-24 (still open)
+## Hosting
+`web/` is plain static files, so any static host works. Constraints:
+- Repo is to stay private. GitHub Pages from a private repo needs a paid plan
+  (GitHub Pro), and the published site is still public.
+- kornofflaw's GitHub user site has the custom domain kornofflaw.com, so any
+  GitHub Pages project site under that account appears at
+  kornofflaw.com/laser-dryfire-sim, not *.github.io.
+- Camera access needs https (all the hosts below provide it).
 
-1. **Flat-points hits skip `ShotScored`.** In ShotReceiver, a target with no
-   ScoringTarget calls RegisterShot + AddScore directly, so `ShotScored` never
-   fires. DrillRunner listens to `ShotScored`, so those hits are invisible to
-   drills (round count stalls). Fix: route the flat path through
-   RegisterScoredShot with a ShotScore (zone = A or a new `Flat` zone).
-2. **Early shots are silently dropped.** ShotTimer.HandleShot ignores shots
-   during the Delay (pre-beep) state. Should be flagged as jumping the beep.
-3. **SessionLogger logs too little.** No points, zone counts, splits, or hit
-   factor. Extend the CSV into a new versioned file.
-4. **Frame jitter in first-shot time.** Interim: Stopwatch on the UDP thread.
-   Proper: clock handshake (Python heartbeat packets with perf_counter).
-5. **Duplicate reset handling.** GameHUD and GameUI both reset on R; delete GameHUD
-   from the Unity project if it's still there (it is not in this repo).
-6. **Target.OnHit destroys the object.** Wrong for scenarios; ScenarioActor
-   should override the reaction.
+---
+
+## Audit findings — 2026-09-24 (status after the web port)
+1. ~~Flat-points hits skip `ShotScored`.~~ Gone: every target uses zone scoring.
+2. ~~Early shots are silently dropped.~~ Fixed: counted and shown as
+   "Jumped the beep", and logged as `early_shots`.
+3. ~~SessionLogger logs too little.~~ Fixed: new log has points, zones, splits, HF.
+4. ~~Frame jitter / two clocks.~~ Fixed: one clock.
+5. ~~Duplicate reset handling (GameHUD).~~ Gone with Unity.
+6. Target reaction destroys the target in pop-up/mover layouts; ScenarioActor
+   will need its own reaction (still open for Phase 2b).
 
 ## Open questions / risks
-- Laser pulse duration vs. camera fps (gates rapid-fire detection).
-- Lens distortion — homography fixes perspective, not barrel distortion.
-- Reflections on a glossy screen can look like shots.
-- Cross-clock first-shot timing (see audit item 4).
-- Scenario art source: simple silhouettes vs. photo cutouts (undecided).
-- The Unity project itself (scenes/prefabs/settings) isn't in git yet — only scripts.
+- Laser pulse duration vs. camera fps (gates rapid-fire detection). Browsers
+  typically give 30–60 fps.
+- Camera auto-exposure/gain can't be locked from the browser on every OS; if the
+  dot is washed out, set exposure with the OS's camera settings tool.
+- Lens distortion: the homography fixes perspective, not barrel distortion.
+- Reflections on a glossy screen can look like shots (maxBlobArea helps).
+- Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ---
 
 ## Changelog
-- Phase 0 complete — live tests passed, shots land where aimed.
+- Phase 0 complete (Python/Unity) — live tests passed, shots land where aimed.
 - Phase 1: shot timestamps wired end-to-end.
-- Phase 2: zone scoring live end-to-end; DrillRunner + drill HUD (Bill Drill, par
-  string); head zone added → Mozambique. Dot torture pending target ID.
-- 2026-09-24: PLAN.md rebuilt in project knowledge. Audit → findings above.
-- 2026-09-24: Judgment scenarios designed (Phase 2b).
+- Phase 2: zone scoring, DrillRunner + drill HUD, head zone → Mozambique.
+- 2026-09-24: PLAN.md rebuilt. Audit → findings above. Judgment scenarios designed.
 - 2026-09-24: Complete code set consolidated (7 Python + 11 Unity scripts).
-  Applied the July timestamp edit to laser_detector.py/udp_test.py (3-field
-  packet); TargetSpawner now calls MovingTarget.Initialize with its area.
-- 2026-09-25: Moved to a git repo for Claude Code. Added CLAUDE.md, README.md,
-  .gitignore; added Phase 1b (mouse-and-keyboard first). No code changes.
+- 2026-09-25: Moved to a git repo for Claude Code. Added CLAUDE.md, README.md, .gitignore.
+- 2026-09-25: Rebuilt as a browser app in `web/` (any OS, no install): mouse +
+  webcam laser input through one shoot() path, in-browser detection with
+  threshold tuning preview, guided 4-point calibration with validation, bay /
+  pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
+  flag, CSV run log. Python + Unity code moved to `archive/`.

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dry-Fire Range</title>
+  <meta name="description" content="Laser dry-fire training simulator: USPSA-style scoring, shot timer and drills, with mouse or IR-laser input.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%23e33' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23e33'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="range" aria-label="Shooting range. Click to fire."></canvas>
+
+  <div id="hud">
+    <section class="panel" id="stats" aria-live="off"></section>
+    <section class="panel" id="timer" aria-live="polite"></section>
+    <section class="panel" id="drill" aria-live="polite"></section>
+    <nav id="toolbar" aria-label="Controls">
+      <button data-act="start" title="Start a timed run (Space)">Start <kbd>Space</kbd></button>
+      <button data-act="drill" title="Next drill (Tab)">Drill <kbd>Tab</kbd></button>
+      <button data-act="layout" title="Change target layout (L)">Targets <kbd>L</kbd></button>
+      <button data-act="setup" title="Camera, calibration and settings (S)">Setup <kbd>S</kbd></button>
+      <button data-act="fullscreen" title="Fullscreen (F)">Fullscreen <kbd>F</kbd></button>
+      <button data-act="help" title="Help (?)">?</button>
+    </nav>
+  </div>
+
+  <aside id="setup" hidden aria-label="Setup">
+    <header>
+      <h2>Setup</h2>
+      <button class="icon" data-act="close-setup" aria-label="Close setup">✕</button>
+    </header>
+
+    <section>
+      <h3>Input</h3>
+      <label class="check"><input type="checkbox" id="opt-mouse"> Mouse clicks fire shots</label>
+      <label class="check"><input type="checkbox" id="opt-camera-shots"> Laser (camera) fires shots</label>
+    </section>
+
+    <section>
+      <h3>Targets</h3>
+      <label>Layout
+        <select id="opt-layout"></select>
+      </label>
+      <label class="check"><input type="checkbox" id="opt-zones"> Show zone labels</label>
+    </section>
+
+    <section>
+      <h3>Laser camera</h3>
+      <p class="note" id="cam-support"></p>
+      <label>Camera
+        <select id="cam-device"><option value="">Default camera</option></select>
+      </label>
+      <div class="row">
+        <button id="cam-toggle">Start camera</button>
+        <span id="cam-status" class="muted">Off</span>
+      </div>
+      <label>Brightness threshold <output id="cam-thr-val"></output>
+        <input type="range" id="cam-thr" min="50" max="255" step="1">
+      </label>
+      <p class="note">Red = pixels bright enough to count as the dot. With no laser, the view should be almost all dark. Raise the threshold until it is, then fire and check the dot is circled.</p>
+      <canvas id="cam-preview" width="640" height="480" aria-label="Camera preview"></canvas>
+      <div class="row">
+        <button id="cam-calibrate">Calibrate <kbd>C</kbd></button>
+        <button id="cam-clear-cal" class="quiet">Clear calibration</button>
+      </div>
+      <p class="note" id="cal-status"></p>
+    </section>
+
+    <section>
+      <h3>Run log</h3>
+      <p class="note" id="log-status"></p>
+      <div class="row">
+        <button id="log-download">Download CSV</button>
+        <button id="log-clear" class="quiet">Clear log</button>
+      </div>
+    </section>
+  </aside>
+
+  <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="card">
+      <h2 id="help-title">Dry-Fire Range</h2>
+      <p>Click a target to shoot it, or fire an IR laser at the projected screen once the camera is set up.</p>
+      <table class="keys">
+        <tr><td><kbd>Space</kbd></td><td>Start a timed run (wait for the beep)</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>Next drill (<kbd>Shift</kbd>+<kbd>Tab</kbd> for previous)</td></tr>
+        <tr><td><kbd>L</kbd></td><td>Change target layout</td></tr>
+        <tr><td><kbd>Z</kbd></td><td>Show or hide zone labels</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Reset session stats and clear holes</td></tr>
+        <tr><td><kbd>S</kbd></td><td>Setup: camera, calibration, log</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Calibrate the laser camera</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Fullscreen (use it on the projector)</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Hide or show the panels</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Cancel a run or close a panel</td></tr>
+      </table>
+      <h3>Laser setup, once per room</h3>
+      <ol>
+        <li>Project this page and press <kbd>F</kbd> for fullscreen.</li>
+        <li>Plug in the USB camera (with the IR-pass filter) aimed at the screen.</li>
+        <li>Setup → Start camera, allow access, pick the camera, tune the threshold.</li>
+        <li>Calibrate: shoot the 4 crosshairs, then the centre to check accuracy.</li>
+      </ol>
+      <p class="muted">Use Chrome or Edge for the best camera timing. Scores and settings stay in this browser only.</p>
+      <button data-act="close-help">Got it</button>
+    </div>
+  </div>
+
+  <div id="calib" hidden>
+    <canvas></canvas>
+    <div class="calib-buttons">
+      <button data-act="save" hidden>Save <kbd>Enter</kbd></button>
+      <button data-act="test" hidden>Test again <kbd>T</kbd></button>
+      <button data-act="restart">Restart <kbd>R</kbd></button>
+      <button data-act="cancel">Cancel <kbd>Esc</kbd></button>
+    </div>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

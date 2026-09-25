@@ -1,23 +1,17 @@
-# Python
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node (only if tooling is ever added; the app itself has no dependencies)
+node_modules/
+
+# Archived Python code
 __pycache__/
 *.pyc
 .venv/
 venv/
-
-# Per-rig runtime files (each setup calibrates its own)
-python/calibration.json
-python/debug_snapshot_*.png
-
-# Unity (if the full project is added later)
-unity/[Ll]ibrary/
-unity/[Tt]emp/
-unity/[Oo]bj/
-unity/[Bb]uild/
-unity/[Bb]uilds/
-unity/[Ll]ogs/
-unity/[Uu]ser[Ss]ettings/
-unity/*.csproj
-unity/*.sln
-
-# macOS
-.DS_Store
+archive/python/calibration.json
+archive/python/debug_snapshot_*.png

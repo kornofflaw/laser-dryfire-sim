@@ -7,92 +7,91 @@ Read PLAN.md next: it holds phase status, open audit findings, and the changelog
 A laser dry-fire training simulator for practical shooting (USPSA-style scoring
 and structured drills). Long-term aim: something like VirTra, only better.
 
-Pipeline:
+It is a **static web app** in `web/` (plain HTML/CSS/JS modules, no build step,
+no dependencies). It runs in any modern browser on any OS. Chrome or Edge give
+the best camera timing.
+
+Pipeline (all in one browser page):
 ```
-IR laser (laser cartridge / SIRT pistol) -> projected screen
-  -> ELP NoIR UVC USB camera + ~760nm IR-pass filter
-  -> Python/OpenCV (python/) finds the dot, maps it through a homography
-  -> UDP 127.0.0.1:5005, packet "x,y,t"
-  -> Unity (unity/Assets/Scripts/) raycasts, scores A/C/D/Head, runs drills, shows HUD
+IR laser (laser cartridge / SIRT pistol) -> projected screen (this page, fullscreen)
+  -> USB camera (e.g. ELP NoIR UVC) + ~760nm IR-pass filter, used as a webcam
+  -> camera.js finds the dot, maps it through the calibration homography
+  -> shoot(nx, ny, t)  <- the mouse calls the same function
+  -> range.js classifies A/C/D/Head -> game.js registers it -> run.js times the drill
 ```
 
-## Owner and how to work with him
+The old Python/OpenCV detector and Unity scripts are kept in `archive/` for
+reference only. They are not used and should not be edited.
+
+## Owner and how to work with them
 - Andrew has limited programming experience. Claude is the architect and does
-  the implementing on both sides (Python and C# Unity).
-- Andrew doesn't want to push code himself. Claude commits and pushes to the
-  GitHub repo **kornofflaw/laser-dryfire-sim** (private; keep it private).
-- Platform: macOS. Unity project uses Canvas + TextMeshPro at a 1920x1080
-  reference resolution (TMP Essential Resources must be imported).
+  all the implementing.
+- Andrew doesn't want to push code. Claude commits and pushes to
+  **kornofflaw/laser-dryfire-sim** (keep the repo private).
+- No platform assumptions: don't assume macOS, Windows, or a particular machine.
 - Cadence: Andrew live-tests, confirms what passed, then names the next priority.
   Keep back-and-forth to a minimum.
-- When a file gets several edits, deliver the whole consolidated file rather than
-  layered patches.
-- Explanations stay short: what changed, why, and an explicit list of any
-  **manual Unity steps** (adding components, Inspector wiring, deleting duplicate
-  scripts). Andrew can't infer those, so always spell them out.
+- Explanations stay short: what changed, why, and exactly what to click or look
+  for when testing. Andrew can't infer steps, so spell them out.
 - **Update PLAN.md at the end of every work session** (phase status, open risks,
   changelog).
-- Current direction (Sept 2026): get it working well as a **mouse-and-keyboard
-  game first**, then plug in the IR gun as the input. A mouse-click input path
-  should feed the same ShotReceiver scoring path as UDP shots.
+- Direction (Sept 2026): get it working well with the mouse first, then use the
+  IR gun as the input. Both go through the same `shoot()` path.
 
-## Hard rules (hard-won gotchas; don't break these)
-1. **Y-flip lives in Unity only.** Python/OpenCV uses a top-left origin; Unity's
-   viewport is bottom-left. `ShotReceiver` applies `1 - y`. Never flip in Python.
-2. **Calibration uses inset crosshairs** (10% from each edge, `INSET` in
-   detector_config.py), not the literal corners. The homography maps to those inset
-   positions. It fixes perspective but NOT barrel distortion, so a low-distortion
-   lens is required (no 170-degree fisheye).
-3. **One scoring path.** Score is added only through
-   `GameManager.RegisterScoredShot`. `Target.OnHit` is reaction-only and must never
-   add score (that was a double-counting bug).
-4. **Two clocks.** Python `perf_counter()` timestamps drive shot-to-shot splits.
-   Unity's clock drives first-shot-from-beep until a clock handshake exists. Don't
-   subtract a Python timestamp from a Unity time.
-5. **`detector_config.py` is the single source of truth** for every Python tunable.
-   Never hard-code a threshold, port, etc. in another script.
-6. **Keep wiring minimal.** Prefer `FindObjectOfType` / singletons
-   (`GameManager.Instance`) over Inspector references.
-7. UDP packet parsing stays backward-compatible (2 or 3 fields).
-8. Audio is generated procedurally. There are no audio files, so don't add any.
-9. PS3 Eye does not work with `cv2.VideoCapture` on macOS, so don't suggest it.
+## Hard rules (don't break these)
+1. **One coordinate system.** Normalized screen coords, (0,0) = top-left of the
+   viewport, (1,1) = bottom-right, for the mouse, the camera homography, and
+   targets. No Y-flip anywhere.
+2. **One shot path.** Mouse and camera both call `shoot()` in main.js.
+   Never add a second path for an input type.
+3. **One scoring path.** Points are added only in `Game.registerScoredShot`.
+   `Range.scoreShot` is pure classification; `Range.onShot` is reaction-only
+   (holes, pop-ups dropping) and must never add score.
+4. **One clock.** Every timestamp is `performance.now()` milliseconds. Camera
+   shots use the frame's `captureTime` from `requestVideoFrameCallback`, which
+   is on the same clock. Never mix in `Date.now()` for timing.
+5. **`web/js/config.js` is the single source of truth** for every tunable
+   (thresholds, zone sizes, points, drills, timings, sounds). Never hard-code one
+   elsewhere.
+6. **Calibration uses inset crosshairs** (10% from each edge, `calibration.inset`),
+   not the literal corners. The homography fixes perspective but NOT barrel
+   distortion, so a low-distortion lens is required (no 170-degree fisheye).
+   Calibration is only valid while the page fills the same projected area it was
+   calibrated at (use fullscreen); setup warns when the viewport size changes.
+7. **No audio files.** All sounds are generated in audio.js with WebAudio.
+8. **No build step, no dependencies.** Plain ES modules served as static files,
+   so the site can be hosted anywhere and opened with any static server.
+9. Wrap all `localStorage` access in the helpers in storage.js (it can throw).
+   Settings, calibration and the run log live in the browser only.
 
 ## Layout
 ```
-PLAN.md                      roadmap, audit findings, changelog (keep current)
-python/                      detection side (run from here: python run.py)
-  detector_config.py         all tunables
-  camera.py                  robust macOS/ELP camera opener
-  laser_detector.py          main detector -> UDP
-  calibrate.py               guided fullscreen 4-point calibration -> calibration.json
-  detector_debug.py          live threshold/blur tuning view
-  udp_test.py                fake shots to test Unity without a camera
-  run.py                     one-command launcher (--calibrate/--detect/--debug/--test)
-unity/Assets/Scripts/        drop into the Unity project's Assets/Scripts
-  ShotReceiver.cs            UDP -> raycast -> score -> marker + sounds (on Main Camera)
-  GameManager.cs             singleton; ShotFired / ShotScored events; RegisterScoredShot
-  ScoringTarget.cs           ShotZone/ShotScore types; A/C/D + optional head zone
-  Target.cs                  shootable marker; OnHit = reaction only
-  ShotTimer.cs               random delay -> start beep -> par beep
-  DrillRunner.cs             Bill Drill, Mozambique, par strings; hit factor; PASS/FAIL
-  GameUI.cs                  code-built HUD (stats / timer / drill panels)
-  SessionLogger.cs           CSV per timed run (persistentDataPath)
-  TargetSpawner.cs           spawns targets in an area
-  MovingTarget.cs            PingPong / Crossing / SineWave movement
-  HitMarker.cs               fading bullet-hole marker
+PLAN.md                 roadmap, audit findings, changelog (keep current)
+web/                    the app; deploy this folder as-is
+  index.html            page shell: canvas, HUD panels, setup drawer, help, calibration overlay
+  style.css
+  js/config.js          ALL tunables
+  js/main.js            wiring, shoot(), HUD text, keyboard, setup drawer
+  js/range.js           targets: layouts (bay / pop-ups / movers), zones, holes, drawing
+  js/game.js            session stats + registerScoredShot (single scoring path)
+  js/run.js             shot timer (delay -> beep -> par) + drills, pass/fail, hit factor
+  js/camera.js          webcam capture, dot detection, rising-edge shots, debug preview
+  js/calibrate.js       guided 4-point calibration + centre-shot validation
+  js/homography.js      4-point perspective transform
+  js/audio.js           procedural beeps / shot / hit sounds
+  js/log.js             per-run log in localStorage, CSV export
+  js/storage.js         safe localStorage helpers
+archive/                old Python + Unity code, reference only
 ```
-Only the scripts are in git right now. The actual Unity project (scenes,
-prefabs, ProjectSettings) is on Andrew's Mac. If it gets added later, keep
-`Library/`, `Temp/`, `Logs/`, `obj/`, and `Build/` out of git (see .gitignore).
 
 ## Testing
-- Python: `cd python && python run.py --test` sends fake corner shots to Unity
-  (Unity must be in Play mode). Markers must land at the described corners.
-  If top and bottom are swapped, the Y-flip is broken.
-- There's no Unity CLI or automated test setup yet. Unity changes are verified by
-  Andrew in the Editor, so list exactly what he should click and look for.
-
-## Next up
-See PLAN.md. The top item is **adding a target ID to ShotScore**, which
-unblocks both dot torture and the Phase 2b judgment scenarios. Audit finding #1
-(flat-points hits skip `ShotScored`) is a cheap fix to do in the same pass.
+- Run locally: `cd web && python3 -m http.server 8000`, then open
+  http://localhost:8000. Any static server works. Camera access needs
+  https or localhost.
+- Mouse mode needs no hardware: click targets, Space starts a timed run.
+- Headless check: Playwright + Chromium is available in Claude Code cloud
+  sessions. Launch Chromium with `--use-fake-device-for-media-stream` and
+  `--use-fake-ui-for-media-stream` to exercise the camera path. Check
+  there are no console errors, the scores are right, and the timer and drills work.
+- Real laser testing is done by Andrew on the projector rig. List exactly what to
+  click and what should happen.
