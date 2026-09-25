@@ -28,7 +28,7 @@ import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -639,11 +639,14 @@ export class OfficeRunner extends Runner {
     this.state = State.Running;
     radioStatic();
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';
-    setTimeout(() => say('All units, shots fired at Northgate Office Center. Multiple armed suspects inside. Respond code 3.'), 450);
+    clearTimeout(this.callTimer);
+    this.callTimer = setTimeout(() => say('All units, shots fired at Northgate Office Center. Multiple armed suspects inside. Respond code 3.'), 450);
   }
 
   cancel() {
     super.cancel();
+    clearTimeout(this.callTimer);
+    hush();
     this.view.clearPeople();
     this.clearRun();
   }
@@ -785,7 +788,7 @@ export class OfficeRunner extends Runner {
       const near = v.walkZ < 2.5 && v.walkZ > -11;
       if (near && this.opt.victimVoice && nowS >= this.victimTalk) {
         const lines = ["Help me... please. I've been shot.", 'Please... help me.', 'They went in there... to the offices...', "I can't... feel my legs...", "Don't leave me..."];
-        say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9 });
+        say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9, polite: true });
         this.victimLine = 1;
         this.victimTalk = nowS + rand(4.5, 7);
       }

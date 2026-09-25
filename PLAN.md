@@ -163,7 +163,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       spin and pace) and Variable timing (each time up and pause varies).
 - [ ] More realism: post-processing (ambient occlusion, bloom), more
       environments (street, store interior), facial expressions (Rocketbox
-      avatars have face bones), drawing-a-gun motion instead of a pose blend.
+      avatars have face bones). (Done: pistol draw from the hip, 2026-09-25.)
 
 ## Phase 3 — Review & analytics
 - [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
@@ -252,6 +252,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   survive 3 hits, random positions, fleeing staff, living victim, Setup options.
 - 2026-09-25: Flip grid: nicer plates, Called Shapes & Colours course, flip
   speed and variable timing options.
+- 2026-09-25 (hourly review): 3D people draw the pistol from the hip instead
+  of snapping to aim; fixed arms staying stuck in a pose (the animation mixer
+  skips bones whose clip value didn't change, so IK leftovers stuck); the
+  lobby victim no longer talks over the dispatch call; cancelling the office
+  run stops any speech.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

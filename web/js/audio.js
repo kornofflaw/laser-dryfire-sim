@@ -163,11 +163,13 @@ export function footstep(loudness) {
 // Spoken call-out (browser speech synthesis; no audio files). Silent if the
 // browser has no voices.
 // opts: { rate, pitch, volume } (e.g. a weak, slow voice for a wounded man).
+// opts.polite: don't interrupt speech already playing (skip this line instead).
 export function say(text, opts = {}) {
   if (forwarded('say', arguments)) return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
+    if (opts.polite && synth.speaking) return;
     synth.cancel();
     const u = new SpeechSynthesisUtterance(String(text));
     u.rate = opts.rate ?? 1.15;
@@ -175,6 +177,12 @@ export function say(text, opts = {}) {
     u.volume = CONFIG.sound.volume * (opts.volume ?? 1);
     synth.speak(u);
   } catch { /* no speech available */ }
+}
+
+// Stop any speech (a run was cancelled mid-sentence).
+export function hush() {
+  if (forwarded('hush', arguments)) return;
+  try { window.speechSynthesis?.cancel(); } catch { /* no speech available */ }
 }
 
 // Radio squelch: a short burst of band-limited static.

@@ -144,7 +144,16 @@ export class Character {
   fire(now) { this.flashT = now; }
 
   update(dt, now) {
+    // A new 'aim' starts a draw from the hip holster.
+    if (this.pose === 'aim' && this.lastPose !== 'aim') this.drawT = now;
+    this.lastPose = this.pose;
+    this.now = now;
+    // Undo last frame's IK and tilts: the mixer only writes a bone whose
+    // animated value changed, so a bone held still by the clip would keep them.
+    for (const [b, q] of this.animQ || []) b.quaternion.copy(q);
     this.mixer.update(dt);
+    this.animQ ??= IK_BONES.map(n => this.bones[n]).filter(Boolean).map(b => [b, new THREE.Quaternion()]);
+    for (const [b, q] of this.animQ) q.copy(b.quaternion);
     this.obj.updateMatrixWorld(true);
 
     // Procedural pose, eased in.
@@ -193,13 +202,24 @@ export class Character {
       if (hand) {
         hand.getWorldPosition(this.gun.position);
         const target = this.pose === 'hostage' && this.hostage ? this.hostageHead() : this.aimAt;
-        this.gun.lookAt(target);
+        // Mid-draw the muzzle comes up from pointing at the ground.
+        const e = this.pose === 'aim' && this.weapon !== 'rifle' ? this.drawProgress() : 1;
+        if (e < 1) {
+          const down = this.gun.position.clone().add(new THREE.Vector3(0, -1, 0));
+          this.gun.lookAt(down.lerp(target, smooth((e - 0.3) / 0.7)));
+        } else this.gun.lookAt(target);
       }
       const ft = this.flashT != null ? now - this.flashT : 9;
       this.flash.visible = ft < 0.06;
     }
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => { if (fx.done && !fx.persistent) fx.obj.removeFromParent(); return !fx.done || fx.persistent; });
+  }
+
+  // 0 -> 1 through a pistol draw (1 = on target).
+  drawProgress() {
+    if (this.drawT == null || this.now == null) return 1;
+    return Math.min(1, Math.max(0, (this.now - this.drawT) / C().drawTime));
   }
 
   hostageHead() {
@@ -215,7 +235,7 @@ export class Character {
     const P = name => B[name].getWorldPosition(new THREE.Vector3());
     const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.obj.getWorldQuaternion(new THREE.Quaternion()));
     const up = new THREE.Vector3(0, 1, 0);
-    const right = new THREE.Vector3().crossVectors(fwd, up).normalize(); // his left in world
+    const right = new THREE.Vector3().crossVectors(fwd, up).normalize(); // his right, in world
 
     if (this.pose === 'aim' && this.weapon === 'rifle') {
       // Rifle at the shoulder: firing hand at the grip just ahead of the
@@ -229,8 +249,18 @@ export class Character {
       const sR = P('RightArm');
       const dir = this.aimAt.clone().sub(sR).normalize();
       const grip = sR.clone().addScaledVector(dir, 0.58);
-      this.solveArm('Right', grip, up.clone().multiplyScalar(-1).addScaledVector(right, 0.5), w);
-      this.solveArm('Left', grip.clone().addScaledVector(right, 0.03), up.clone().multiplyScalar(-1).addScaledVector(right, -0.5), w);
+      // Draw: hand to the holster on the right hip, then up and out to the
+      // target; the support hand meets the gun near the end.
+      const e = this.drawProgress();
+      let hand = grip, wR = w;
+      if (e < 1) {
+        const holster = P('RightUpLeg').addScaledVector(right, 0.09).addScaledVector(up, 0.03).addScaledVector(fwd, -0.02);
+        hand = e < 0.35 ? holster : holster.lerp(grip, smooth((e - 0.35) / 0.65));
+        wR = w * Math.min(1, e / 0.25);
+      }
+      this.solveArm('Right', hand, up.clone().multiplyScalar(-1).addScaledVector(right, 0.5), wR);
+      const wL = w * smooth((e - 0.55) / 0.45);
+      if (wL > 0) this.solveArm('Left', grip.clone().addScaledVector(right, 0.03), up.clone().multiplyScalar(-1).addScaledVector(right, -0.5), wL);
     } else if (this.pose === 'reach') {
       // Lying on his back, reaching up toward whoever comes in.
       const sh = P('LeftArm');
@@ -342,6 +372,11 @@ function pointBone(bone, child, dir, w = 1) {
   if (w < 1) q.slerp(new THREE.Quaternion(), 1 - w);
   rotateWorld(bone, q);
 }
+
+// Bones the procedural poses and hit reactions rotate.
+const IK_BONES = ['Spine1', 'Head', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand'];
+
+const smooth = x => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t); };
 
 // Apply a world-space rotation q to a bone (pre-multiply its world rotation).
 function rotateWorld(bone, q) {

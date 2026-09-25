@@ -220,6 +220,7 @@ export const CONFIG = {
     hostageLatest: 16,      // seconds into the room phase the hostage scene starts at the latest
     stopHits: 2,            // body hits to stop a suspect (a head hit stops him at once)
     fallTime: 0.6,          // seconds for a stopped suspect to go down
+    drawTime: 0.6,          // seconds for a person to draw a pistol from the hip to aim (all 3D people)
   },
 
   // ---- Screen-space effects for 3D interiors (post3d.js) ------------------------
