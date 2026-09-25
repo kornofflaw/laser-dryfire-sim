@@ -87,6 +87,17 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       Next if Andrew likes it: better character (casual clothes, a proper
       "charge with knife raised" animation, fall/death clip), varied car models,
       then convert other scenes.
+- [x] Active Shooter: Office Building (3D). Radio call outside a glass office
+      building, walk-in on a camera path (sliding doors, lobby with a wounded man
+      in a blood pool = no-shoot, hallway), cubicle office with private offices.
+      2-3 gunmen pop up from cubicles or step out of offices and fire after
+      1.6-2.4 s if not stopped (you're shot = fail); 1-2 office workers with
+      hands up (no-shoots); then a hostage-taker walks a hostage into the aisle,
+      pistol to the head, 7 s to make the shot. Randomized every run.
+      Characters: reusable char3d.js (retargeted clips, IK poses: aim, hands up,
+      hostage hold; reactions, falls, blood, pistol with muzzle flash).
+      Limitation: one character model (the RPM man) for every role, varied by
+      clothing colour; the Mixamo woman model didn't retarget cleanly.
 - [ ] Ideas: threat that shoots back after N seconds (time pressure), cover /
       partial exposure, verbal-command audio cues, more rooms.
 
@@ -154,6 +165,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: 3D office active-shooter scenario (office3d.js, char3d.js).
 - 2026-09-25: 3D hit reactions, knee-buckle fall, blood (wounds/spray/mist/drops).
 - 2026-09-25: First 3D scene: parking-lot knife attack in three.js (vendored),
   on-demand loading. Rules updated: asset files allowed with credits.

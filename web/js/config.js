@@ -169,6 +169,31 @@ export const CONFIG = {
     carDetailDist: 20,      // metres: cars further than this skip interior parts
   },
 
+  // ---- 3D office active-shooter scenario (office3d.js) ------------------------------
+  office3d: {
+    exposure: 1.0,
+    envIntensity: 0.55,     // image-based light from the city sky
+    hemiIntensity: 0.9,
+    sunIntensity: 2.2,      // outside
+    roomLight: 14,          // indoor point lights (candela)
+    ceilingShadowLight: 0.6, // soft top-down light that grounds people indoors
+    partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
+    callTime: 6.0,          // seconds outside while the radio call plays
+    lookAround: 0.12,       // radians of slow left-right scanning in the office
+    riseTime: 0.35,         // seconds to pop up from behind a cubicle wall
+    stepOutTime: 0.9,       // seconds to step out of an office door
+    fireDelay: [1.6, 2.4],  // seconds an armed suspect stays up before he fires
+    gunmanGap: [1.2, 3.2],  // seconds between suspects appearing
+    hostageTime: 7.0,       // seconds before the hostage-taker shoots the hostage
+    hostageAisleX: 1.0,     // metres from centre where the hostage pair stops in the aisle
+    walkSpeed: 1.3,         // m/s the hostage pair walks
+    takerOffset: 0.27,      // metres the hostage-taker stands to the side of the hostage
+    hostageSag: 0.1,        // metres the hostage sags in his grip (exposes his head a little)
+    hostageLatest: 16,      // seconds into the room phase the hostage scene starts at the latest
+    stopHits: 2,            // body hits to stop a suspect (a head hit stops him at once)
+    fallTime: 0.6,          // seconds for a stopped suspect to go down
+  },
+
   // ---- Adjustable "time up" for flash courses (flip grid, pop-ups) ----------------
   // [ and ] (or the Setup slider) change it per course; saved in this browser.
   upTime: { min: 0.3, max: 6.0, step: 0.1 },

@@ -99,6 +99,8 @@ web/                    the app; deploy this folder as-is
   js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
   js/knife3d.js         3D version: Lot3DView (three.js scene, rigged man, raycast hits, hit reactions) + Knife3DRunner
   js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
+  js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
+  js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
   assets/3d/            3D models, animations, sky (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing

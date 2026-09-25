@@ -28,7 +28,7 @@ export const LAYOUTS = {
   grid: 'Flip grid (spinning plates)',
 };
 // Layouts only used by specific courses.
-const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d'];
+const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d'];
 
 const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
@@ -239,6 +239,8 @@ export class Range {
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
 
+    if (this.layout === 'office3d') return this.view3d ? this.view3d.hitTest(nx, ny) : miss;
+
     if (this.layout === 'lot3d') {
       // The 3D view ray-casts; the man is a threat only while charging.
       const man = this.view3d?.runnerMan;
@@ -311,7 +313,7 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
-    if (this.layout === 'lot3d') {
+    if (this.layout === 'lot3d' || this.layout === 'office3d') {
       this.view3d?.onShot(score);
       return;
     }
@@ -370,7 +372,7 @@ export class Range {
   draw(g, nowSec, showZones) {
     const W = this.width, H = this.height;
     const floorY = FLOOR * H;
-    if (this.layout === 'lot3d') {
+    if (this.layout === 'lot3d' || this.layout === 'office3d') {
       g.clearRect(0, 0, W, H); // the 3D canvas underneath shows through
       return;
     }

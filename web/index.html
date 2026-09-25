@@ -56,10 +56,12 @@
         </div>
       </div>
       <div id="cars3d-row" hidden>
-        <label>Parked cars <output id="cars3d-val"></output>
-          <input type="range" id="cars3d" min="0" step="1">
-        </label>
-        <p class="note">Fewer cars = smoother on slower computers. 0 = empty lot.</p>
+        <div id="cars3d-only">
+          <label>Parked cars <output id="cars3d-val"></output>
+            <input type="range" id="cars3d" min="0" step="1">
+          </label>
+          <p class="note">Fewer cars = smoother on slower computers. 0 = empty lot.</p>
+        </div>
         <label class="check"><input type="checkbox" id="opt-blood"> Blood effects (wounds, spray)</label>
       </div>
       <p class="note" id="up-time-none">This course has no time-up setting. It applies to the flip grid and pop-up courses.</p>

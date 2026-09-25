@@ -154,3 +154,40 @@ export function say(text) {
     synth.speak(u);
   } catch { /* no speech available */ }
 }
+
+// Radio squelch: a short burst of band-limited static.
+export function radioStatic() {
+  if (!ctx) return;
+  const n = Math.floor(ctx.sampleRate * 0.35);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (i < n * 0.1 ? i / (n * 0.1) : 1) * 0.6;
+  const src = ctx.createBufferSource();
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 1800;
+  bp.Q.value = 0.8;
+  const g = ctx.createGain();
+  g.gain.value = 0.5 * CONFIG.sound.volume;
+  src.buffer = buf;
+  src.connect(bp).connect(g).connect(ctx.destination);
+  src.start();
+}
+
+// A suspect's gunshot: louder and heavier than your own shot's pop.
+export function enemyShot() {
+  if (!ctx) return;
+  const n = Math.floor(ctx.sampleRate * 0.35);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const t = i / ctx.sampleRate;
+    d[i] = ((Math.random() * 2 - 1) * Math.exp(-t * 18) + Math.sin(2 * Math.PI * 70 * t) * Math.exp(-t * 12) * 0.8);
+  }
+  const src = ctx.createBufferSource();
+  const g = ctx.createGain();
+  g.gain.value = Math.min(1, CONFIG.sound.volume * 1.4);
+  src.buffer = buf;
+  src.connect(g).connect(ctx.destination);
+  src.start();
+}

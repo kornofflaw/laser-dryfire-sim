@@ -55,40 +55,54 @@ const runners = {
   knife: new KnifeRunner(range),
   flip: new FlipRunner(range),
 };
-// 3D courses load three.js and their assets on demand (knife3d.js).
-let view3d = null;
-let loading3d = null;
+// 3D courses load three.js and their assets on demand. Each 3D layout has
+// its own view (canvas + scene); range.view3d is the one for the current layout.
+const views3d = {};
+const loading3d = {};
 class Loading3DRunner extends DrillRunner {
   panelHTML() {
-    const pct = view3d ? Math.round(view3d.progress * 100) : 0;
-    return `<b class="title">JUDGMENT · 3D</b><b>${this.course.name}</b>\nLoading 3D scene… ${pct}%` +
+    const pct = this.view ? Math.round(this.view.progress * 100) : 0;
+    return `<b class="title">3D</b><b>${this.course.name}</b>\nLoading 3D scene… ${pct}%` +
       (this.error ? `\n<span class="bad">${this.error}</span>` : '');
   }
   timerHTML() { return `<b class="title">3D</b>Loading…`; }
   start() {}
 }
 runners.knife3d = new Loading3DRunner();
+runners.office3d = new Loading3DRunner();
 
-function ensure3D() {
-  if (loading3d) return loading3d;
-  loading3d = (async () => {
-    const mod = await import('./knife3d.js');
-    view3d = new mod.Lot3DView($('#range3d'));
-    range.view3d = view3d;
+function ensure3D(type) {
+  if (loading3d[type]) return loading3d[type];
+  loading3d[type] = (async () => {
+    let view, runner;
     try {
-      await view3d.init({ cars: settings.cars3d });
-      view3d.blood = settings.blood;
+      if (type === 'knife3d') {
+        const mod = await import('./knife3d.js');
+        view = new mod.Lot3DView($('#range3d'));
+        views3d.lot3d = view;
+        runners.knife3d.view = view;
+        await view.init({ cars: settings.cars3d });
+        runner = new mod.Knife3DRunner(range, view);
+      } else {
+        const mod = await import('./office3d.js');
+        view = new mod.OfficeView();
+        views3d.office3d = view;
+        runners.office3d.view = view;
+        await view.init();
+        runner = new mod.OfficeRunner(range, view);
+      }
     } catch (e) {
-      runners.knife3d.error = `Could not load the 3D scene (${e.message}). This needs WebGL.`;
+      runners[type].error = `Could not load the 3D scene (${e.message}). This needs WebGL.`;
       throw e;
     }
-    const r = new mod.Knife3DRunner(range, view3d);
-    r.onComplete(result => log.add(result, lastInput));
-    runners.knife3d = r;
-    if (course().type === 'knife3d') r.setCourse(withUpTime(course()));
+    view.blood = settings.blood;
+    runner.onComplete(result => log.add(result, lastInput));
+    runners[type] = runner;
+    if (course().type === type) runner.setCourse(withUpTime(course()));
   })();
-  return loading3d;
+  return loading3d[type];
 }
+const is3D = type => type === 'knife3d' || type === 'office3d';
 
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
@@ -146,7 +160,11 @@ function resize() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   range.resize(W, H);
 }
-window.addEventListener('resize', () => { resize(); view3d?.resize(window.innerWidth, window.innerHeight); refreshSetup(); });
+window.addEventListener('resize', () => {
+  resize();
+  for (const v of Object.values(views3d)) v.resize(window.innerWidth, window.innerHeight);
+  refreshSetup();
+});
 
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
@@ -197,9 +215,10 @@ function frame(now) {
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
-  const show3d = range.layout === 'lot3d' && view3d?.ready;
-  view3d?.setVisible(show3d);
-  if (show3d) view3d.render(now);
+  const v3 = views3d[range.layout] || null;
+  range.view3d = v3;
+  for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
+  if (v3?.ready) v3.render(now);
   range.draw(g, now / 1000, settings.showZones);
   active().drawOverlay?.(g, W, H, now);
 
@@ -255,7 +274,7 @@ function selectCourse(i, announce = true) {
   const c = course();
   active().setCourse(withUpTime(c));
   range.setLayout(c.layout ?? settings.layout);
-  if (c.type === 'knife3d') ensure3D().catch(() => {});
+  if (is3D(c.type)) ensure3D(c.type).catch(() => {});
   settings.course = c.name;
   persist();
   renderCourseList();
@@ -486,19 +505,20 @@ $('#cars3d').oninput = e => {
   settings.cars3d = Number(e.target.value);
   $('#cars3d-val').textContent = settings.cars3d;
   persist();
-  view3d?.setCarCount(settings.cars3d);
+  views3d.lot3d?.setCarCount(settings.cars3d);
 };
 
 $('#opt-blood').onchange = e => {
   settings.blood = e.target.checked;
   persist();
-  if (view3d) view3d.blood = settings.blood;
+  for (const v of Object.values(views3d)) v.blood = settings.blood;
 };
 
 function refreshSetup() {
   const c = course();
   $('#opt-blood').checked = settings.blood;
-  $('#cars3d-row').hidden = c.type !== 'knife3d';
+  $('#cars3d-row').hidden = !is3D(c.type);
+  $('#cars3d-only').hidden = c.type !== 'knife3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;
   $('#cars3d-val').textContent = settings.cars3d;
@@ -606,7 +626,7 @@ function toast(msg) {
 resize();
 active().setCourse(withUpTime(course()));
 range.setLayout(course().layout ?? settings.layout);
-if (course().type === 'knife3d') ensure3D().catch(() => {});
+if (is3D(course().type)) ensure3D(course().type).catch(() => {});
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;
 // Reopen the camera if it was on last time (works once permission was granted).
@@ -615,5 +635,5 @@ requestAnimationFrame(frame);
 
 // Test hook: open the page with ?debug to drive it from automated tests.
 if (new URLSearchParams(location.search).has('debug')) {
-  window.sim = { range, game, runners, active, course, selectCourse, shoot, COURSES };
+  window.sim = { range, game, runners, active, course, selectCourse, shoot, COURSES, views3d };
 }

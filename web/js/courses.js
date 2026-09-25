@@ -7,6 +7,7 @@
 // type 'knife'     parking-lot knife attack (knife.js)
 // type 'flip'      flip-tile grid drills (flipdrill.js)
 // type 'knife3d'   the knife attack in real 3D (knife3d.js, loaded on demand)
+// type 'office3d'  active shooter in an office building, 3D (office3d.js, on demand)
 //
 // Drill fields (all optional except name/type/parTime):
 //   layout         range layout to use; null = whatever the user picked (L)
@@ -87,6 +88,8 @@ const DOTS = [
 ];
 
 const SCENES = [
+  { name: 'Active Shooter: Office Building (3D)', category: 'Judgment', type: 'office3d', layout: 'office3d',
+    desc: 'Radio call, walk in past a wounded man, then clear a cubicle office: gunmen pop up, then a hostage-taker.' },
   { name: 'Parking Lot: Knife Attack (3D)', category: 'Judgment', type: 'knife3d', layout: 'lot3d',
     desc: 'The knife attack in realistic 3D: a man with a knife ~30 ft away. If he charges, stop him before he reaches you.' },
   { name: 'Parking Lot: Knife Attack', category: 'Judgment', type: 'knife', layout: 'lot',

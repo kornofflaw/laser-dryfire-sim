@@ -26,7 +26,7 @@ html, body {
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-#range3d {
+#range3d, .range3d {
   position: fixed;
   inset: 0;
   width: 100vw;
