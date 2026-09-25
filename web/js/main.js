@@ -13,6 +13,8 @@ import { Game } from './game.js';
 import { DrillRunner } from './run.js';
 import { DotTortureRunner } from './dots.js';
 import { ScenarioRunner } from './scenario.js';
+import { PopupRunner } from './popdrill.js';
+import { KnifeRunner } from './knife.js';
 import { COURSES, CATEGORIES } from './courses.js';
 import { RunLog } from './log.js';
 import { LaserCamera } from './camera.js';
@@ -45,6 +47,8 @@ const runners = {
   drill: new DrillRunner(),
   dots: new DotTortureRunner(range),
   scenario: new ScenarioRunner(range),
+  popup: new PopupRunner(range),
+  knife: new KnifeRunner(range),
 };
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
@@ -148,10 +152,12 @@ function frame(now) {
 
   active().update(now);
   range.autoResetStar = !active().busy;
+  range.autoPopups = course().type !== 'popup'; // free practice pops targets itself
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
   range.draw(g, now / 1000, settings.showZones);
+  active().drawOverlay?.(g, W, H, now);
 
   setHUD('stats', statsHTML(now));
   setHUD('timer', active().timerHTML(now));

@@ -38,6 +38,10 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       Sequence used: 1: 5 slow fire / 2: 5 draws x1 / 3-4: 4 draws 1+1 /
       5: 5 strong hand / 6-7: 3 draws 2+2 / 8: 5 weak hand / 9-10: 5 draws 1+1.
       Andrew to confirm it matches the version he shoots.
+- [x] Pop-up targets: hinged cardboard targets that flip up from behind a mound,
+      stay up for a limited time, drop when hit. Drills: Pop-up Reaction (10 x 1,
+      2.5 s), Pop-up Pairs (6 x 2, 3 s), Pop-up Speed (12, 2.0 → 0.8 s). Also a
+      free-practice layout (L).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 - [ ] More steel: plate rack, poppers (need a "falls when hit" reaction).
 
@@ -52,6 +56,13 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       no-shoot hit (-10), premature, shot after surrender, threat not stopped;
       reaction time = gun appears → first hit. 2 hits put a threat down.
 - [x] Results panel + log columns (type, reaction_s, no_shoot, notes).
+- [x] Parking Lot: Knife Attack. Man with a knife 27–33 ft away; after 2.5–7 s
+      he charges (4–5 m/s² to 5.8–7 m/s; ~1.8 s to cover 27 ft). True
+      perspective, running animation, footsteps. Head hit or 2 body hits stop
+      him (momentum carries him a bit). Reaching 0.9 m = STABBED. Firing before
+      he charges = premature (fail). Logs charge→first shot and stop distance.
+      Open question for Andrew: on-screen size assumes a generic projector
+      field of view (config.knife.focalFrac); calibrate to life-size later?
 - [ ] Ideas: threat that shoots back after N seconds (time pressure), cover /
       partial exposure, verbal-command audio cues, more rooms.
 
@@ -114,6 +125,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Real pop-up targets + 3 pop-up drills; parking-lot knife attack
+  scenario with perspective, sprint physics and stab fail.
 - 2026-09-25: Courses: picker + 23 courses (drills, Texas Star, Dot Torture, 9
   judgment scenarios). Realism pass: outdoor range bay backdrop, real USPSA
   metric target shape on stakes with cardboard texture (scoring now uses the

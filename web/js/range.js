@@ -12,6 +12,7 @@
 
 import { CONFIG } from './config.js';
 import { TexasStar } from './star.js';
+import { PopupBank } from './popups.js';
 import { actorZone, drawActor } from './actors.js';
 import { drawUspsa, classifyUspsa, toCm, USPSA_ASPECT } from './uspsa.js';
 import { drawBackdrop, pattern, FLOOR } from './scenery.js';
@@ -20,12 +21,12 @@ import { drawBackdrop, pattern, FLOOR } from './scenery.js';
 export const LAYOUTS = {
   bay: 'Bay: 3 static targets',
   single: 'Single target',
-  popup: 'Pop-ups: appear, drop when hit',
+  popup: 'Pop-ups: flip up, drop when hit',
   movers: 'Movers: moving targets',
   star: 'Texas Star (steel spinner)',
 };
 // Layouts only used by specific courses.
-const COURSE_LAYOUTS = ['dots', 'scene'];
+const COURSE_LAYOUTS = ['dots', 'scene', 'lot'];
 
 const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
@@ -50,6 +51,8 @@ export class Range {
     this.holes = [];
     this.spawnTimer = 0;
     this.star = new TexasStar();
+    this.popups = new PopupBank();
+    this.autoPopups = true;     // free practice: pop-ups raise themselves
     this.highlightDot = null;   // dot number to highlight (Dot Torture)
     this.autoResetStar = true;  // free practice: rebuild the star after it's cleared
     this.width = 1;
@@ -75,6 +78,7 @@ export class Range {
     this.highlightDot = null;
     this.spawnTimer = CONFIG.targets.spawnInterval; // spawn the first one immediately
     this.star.reset();
+    this.popups.reset();
     if (this.layout === 'bay') {
       [0.25, 0.5, 0.75].forEach((cx, slot) => this.targets.push(makeUspsa(cx, 0.52, slot)));
     } else if (this.layout === 'single') {
@@ -168,8 +172,13 @@ export class Range {
     }
     this.targets = this.targets.filter(t => t.alive);
 
-    // Spawner (pop-ups and movers).
-    if (this.layout === 'popup' || this.layout === 'movers') {
+    if (this.layout === 'popup') {
+      this.popups.auto = this.autoPopups;
+      this.popups.update(dt, nowSec);
+    }
+
+    // Spawner (movers).
+    if (this.layout === 'movers') {
       this.spawnTimer += dt;
       if (this.spawnTimer >= T.spawnInterval && this.targets.length < T.maxAlive) {
         this.spawnTimer = 0;
@@ -220,6 +229,14 @@ export class Range {
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
 
+    if (this.layout === 'popup') {
+      const hit = this.popups.hitTest(px, py, W, H);
+      if (hit?.lane != null) {
+        return { zone: hit.zone, points: CONFIG.points[hit.zone], targetId: `popup-${hit.lane}`, kind: 'popup', lane: hit.lane };
+      }
+      return miss;
+    }
+
     if (this.layout === 'star') {
       const hit = this.star.hitTest(px, py, W, H);
       if (hit?.plate != null) {
@@ -248,14 +265,15 @@ export class Range {
         continue;
       }
       if (t.kind === 'actor') {
-        if (t.downAt != null) continue;
-        const u = (px - t.cx * W) / ah;
-        const v = -(py - t.cy * H) / ah;
+        if (t.downAt != null || t.stopped) continue;
+        const th = t.heightPx ?? ah;
+        const u = (px - t.cx * W) / th;
+        const v = -(py - t.cy * H) / th;
         const body = actorZone(t.pose, u, v);
         if (!body) continue;
-        // Only a visible gun makes someone a threat. Hitting anyone else is a
-        // no-shoot penalty.
-        const threat = t.pose === 'gun';
+        // Only a visible gun, or a knife coming at you, makes someone a
+        // threat. Hitting anyone else is a no-shoot penalty.
+        const threat = t.pose === 'gun' || t.pose === 'charge';
         const zone = threat ? body : 'NS';
         return { zone, points: CONFIG.points[zone], targetId: t.id, kind: 'actor', bodyZone: body, threat };
       }
@@ -268,6 +286,12 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
+    if (this.layout === 'popup') {
+      if (score.lane != null) this.popups.hit(score.lane, px, py, W, H, nowSec, score.t);
+      else this.impact(px, py, nowSec);
+      return;
+    }
+
     if (this.layout === 'star') {
       if (score.plate != null) this.star.knockOff(score.plate, px, py, W, H, nowSec);
       else if (score.frame) this.star.spark(px, py, nowSec);
@@ -276,7 +300,11 @@ export class Range {
     }
 
     const t = score.targetId != null ? this.targets.find(x => x.id === score.targetId) : null;
-    if (t && t.kind !== 'dot') {
+    if (t && t.kind === 'actor') {
+      // Stored in body units so it stays put as the person moves or grows.
+      const th = t.heightPx ?? this.actorHeightPx();
+      this.holes.push({ target: t, u: (px - t.cx * W) / th, v: (py - t.cy * H) / th, born: nowSec });
+    } else if (t && t.kind !== 'dot') {
       // Hole rides along with a moving target.
       this.holes.push({ target: t, ox: px - t.cx * W, oy: py - t.cy * H, born: nowSec, miss: false });
     } else if (t || this.layout === 'dots' && this.onPaper(px, py)) {
@@ -284,8 +312,8 @@ export class Range {
     } else {
       this.impact(px, py, nowSec);
     }
-    if (t && t.kind === 'uspsa' && (this.layout === 'popup' || this.layout === 'movers')) {
-      t.alive = false; // pop-ups and movers drop when hit
+    if (t && t.kind === 'uspsa' && this.layout === 'movers') {
+      t.alive = false; // movers drop when hit
       this.targets = this.targets.filter(x => x.alive);
     }
   }
@@ -303,19 +331,22 @@ export class Range {
   draw(g, nowSec, showZones) {
     const W = this.width, H = this.height;
     const floorY = FLOOR * H;
-    drawBackdrop(g, this.layout === 'scene' ? 'room' : 'range', W, H);
+    const backdrop = { scene: 'room', lot: 'lot' }[this.layout] || 'range';
+    drawBackdrop(g, backdrop, W, H);
 
     if (this.layout === 'star') this.star.draw(g, W, H, nowSec);
+    if (this.layout === 'popup') this.popups.draw(g, W, H);
     if (this.layout === 'dots') this.drawPaper(g);
 
     const { h } = this.targetSizePx();
     const ah = this.actorHeightPx();
-    const stakes = this.layout === 'bay' || this.layout === 'single' || this.layout === 'popup';
+    const stakes = this.layout === 'bay' || this.layout === 'single';
     for (const t of this.targets) {
       if (t.kind === 'uspsa') {
         drawUspsa(g, t.cx * W, t.cy * H, h, { showZones, stakes, floorY });
       } else if (t.kind === 'actor') {
-        drawActor(g, t, t.cx * W, t.cy * H + t.drop * ah * 0.35, ah);
+        const th = t.heightPx ?? ah;
+        drawActor(g, t, t.cx * W, t.cy * H + t.drop * th * 0.35, th);
       }
     }
 
@@ -325,8 +356,15 @@ export class Range {
       const age = nowSec - hole.born;
       const remaining = T.holeLifetime - age;
       const k = this.layout === 'dots' ? 1 : remaining < T.holeFade ? Math.max(0, remaining / T.holeFade) : 1;
-      const x = hole.target ? hole.target.cx * W + hole.ox : hole.x;
-      const y = hole.target ? hole.target.cy * H + hole.oy + (hole.target.drop || 0) * ah * 0.35 : hole.y;
+      let x = hole.x, y = hole.y;
+      if (hole.target && hole.u != null) {
+        const th = hole.target.heightPx ?? ah;
+        x = hole.target.cx * W + hole.u * th;
+        y = hole.target.cy * H + hole.v * th + (hole.target.drop || 0) * th * 0.35;
+      } else if (hole.target) {
+        x = hole.target.cx * W + hole.ox;
+        y = hole.target.cy * H + hole.oy;
+      }
       g.globalAlpha = k * (hole.target?.alpha ?? 1);
       if (hole.miss) drawStrike(g, x, y, r, age, hole.seed);
       else drawHole(g, x, y, r, hole.paper);

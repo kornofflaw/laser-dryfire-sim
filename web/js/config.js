@@ -85,6 +85,39 @@ export const CONFIG = {
     resetDelay: 2.5,        // seconds after the last plate falls before a free-practice reset
   },
 
+  // ---- Pop-up targets (hinged cardboard targets behind a dirt mound) ------------
+  popup: {
+    lanes: [0.14, 0.32, 0.5, 0.68, 0.86], // target centres across the range
+    heightFrac: 0.36,       // target height as a fraction of viewport height
+    hingeY: 0.8,            // hinge line (fraction of height), hidden behind the mound
+    moundY: 0.745,          // top of the mound in front of the targets
+    riseTime: 0.22,         // seconds to flip up
+    fallTime: 0.25,         // seconds to fall when hit or timed out
+    hittableAbove: 0.35,    // fraction raised before a target can be hit
+    // Free practice: random exposures.
+    freeExposure: [1.8, 3.2],
+    freeGap: [0.4, 1.4],
+    freeMaxUp: 2,
+  },
+
+  // ---- Parking-lot knife attack ----------------------------------------------------
+  // Real-world units. Perspective: a person d metres away is
+  // focal * heightM / d px tall, feet at horizon + focal * eyeHeight / d.
+  knife: {
+    startFeet: [27, 33],    // starting distance range
+    waitTime: [2.5, 7.0],   // seconds standing before he charges
+    accel: [4.0, 5.0],      // m/s^2 from a standstill
+    topSpeed: [5.8, 7.0],   // m/s sprint
+    reach: 0.9,             // metres: at this distance he can stab you
+    stopHits: 2,            // body hits to stop him (a head hit stops him at once)
+    stumbleDecel: 10,       // m/s^2 as he goes down
+    personHeight: 1.78,     // metres
+    eyeHeight: 1.6,         // metres, the shooter's eyes
+    focalFrac: 1.1,         // focal length as a fraction of viewport height
+    horizonY: 0.4,          // horizon as a fraction of viewport height
+    strideTime: 0.3,        // seconds per footstep while sprinting
+  },
+
   // ---- Dot Torture ---------------------------------------------------------------
   dots: {
     radiusFrac: 0.062,      // dot radius as a fraction of the sheet height (~1.4-inch dots on letter paper)

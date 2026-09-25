@@ -101,3 +101,42 @@ export function penaltyBuzz() {
   osc.start(t0);
   osc.stop(t0 + 0.34);
 }
+
+// Mechanical "clack" of a pop-up target lifter.
+export function clack() {
+  if (!ctx) return;
+  const n = Math.floor(ctx.sampleRate * 0.06);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const t = i / ctx.sampleRate;
+    d[i] = ((Math.random() * 2 - 1) * 0.5 + Math.sin(2 * Math.PI * 180 * t)) * Math.exp(-t * 70) * 0.5;
+  }
+  const src = ctx.createBufferSource();
+  const g = ctx.createGain();
+  g.gain.value = CONFIG.sound.volume;
+  src.buffer = buf;
+  src.connect(g).connect(ctx.destination);
+  src.start();
+}
+
+// A running footstep on asphalt; loudness 0..1 (closer = louder).
+export function footstep(loudness) {
+  if (!ctx) return;
+  const n = Math.floor(ctx.sampleRate * 0.08);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const t = i / ctx.sampleRate;
+    d[i] = ((Math.random() * 2 - 1) * 0.6 + Math.sin(2 * Math.PI * 90 * t)) * Math.exp(-t * 45);
+  }
+  const src = ctx.createBufferSource();
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 900;
+  const g = ctx.createGain();
+  g.gain.value = Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.volume;
+  src.buffer = buf;
+  src.connect(lp).connect(g).connect(ctx.destination);
+  src.start();
+}

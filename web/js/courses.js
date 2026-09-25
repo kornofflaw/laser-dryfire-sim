@@ -3,6 +3,8 @@
 // type 'drill'     timed by the shot timer (run.js)
 // type 'dots'      Dot Torture, untimed, stage by stage (dots.js)
 // type 'scenario'  shoot / no-shoot judgment scene (scenario.js + scenarios.js)
+// type 'popup'     pop-up reaction drill (popdrill.js)
+// type 'knife'     parking-lot knife attack (knife.js)
 //
 // Drill fields (all optional except name/type/parTime):
 //   layout         range layout to use; null = whatever the user picked (L)
@@ -17,7 +19,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Steel', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Steel', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -43,8 +45,6 @@ const DRILLS = [
     perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
 
   // Movement
-  { name: 'Pop-ups', category: 'Movement', layout: 'popup', requiredHits: 6, maxShots: 12, parTime: 6.0,
-    desc: 'Hit 6 pop-up targets. 12 rounds max.' },
   { name: 'Movers', category: 'Movement', layout: 'movers', requiredHits: 4, maxShots: 10, parTime: 8.0,
     desc: 'Hit 4 moving targets. 10 rounds max.' },
 
@@ -53,12 +53,26 @@ const DRILLS = [
     desc: 'Clear all 5 plates. It starts spinning after the first plate falls.' },
 ];
 
+const POPUPS = [
+  { name: 'Pop-up Reaction', category: 'Pop-ups', type: 'popup', layout: 'popup',
+    exposures: 10, together: 1, upTime: 2.5, gap: [0.8, 2.5], passPct: 80,
+    desc: '10 targets, one at a time, 2.5 s up. Hit each before it drops.' },
+  { name: 'Pop-up Pairs', category: 'Pop-ups', type: 'popup', layout: 'popup',
+    exposures: 6, together: 2, upTime: 3.0, gap: [1.0, 2.5], passPct: 80,
+    desc: 'Two targets at once, 3 s up. Hit both.' },
+  { name: 'Pop-up Speed', category: 'Pop-ups', type: 'popup', layout: 'popup',
+    exposures: 12, together: 1, upTime: [2.0, 0.8], gap: [0.6, 1.8], passPct: 75,
+    desc: 'Each target stays up a little less: 2.0 s down to 0.8 s.' },
+];
+
 const DOTS = [
   { name: 'Dot Torture', category: 'Precision', type: 'dots', layout: 'dots',
     desc: '50 rounds on 10 small dots, untimed. Every round must be in the right dot.' },
 ];
 
 const SCENES = [
+  { name: 'Parking Lot: Knife Attack', category: 'Judgment', type: 'knife', layout: 'lot',
+    desc: 'A man with a knife, ~30 ft away in a parking lot. If he charges, stop him before he reaches you.' },
   { name: 'Random Scenario', category: 'Judgment', type: 'scenario', layout: 'scene', template: null,
     desc: 'A random scene from the list below.' },
   ...SCENARIOS.map(s => ({ name: s.name, category: 'Judgment', type: 'scenario', layout: 'scene', template: s.id, desc: s.desc })),
@@ -66,6 +80,7 @@ const SCENES = [
 
 export const COURSES = [
   ...DRILLS.map(d => ({ type: 'drill', ...d })),
+  ...POPUPS,
   ...DOTS,
   ...SCENES,
 ];

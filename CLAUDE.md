@@ -88,11 +88,14 @@ web/                    the app; deploy this folder as-is
   js/dots.js            DotTortureRunner (50 rounds, stage by stage)
   js/scenario.js        ScenarioRunner: plays a scene, grades shoot/no-shoot
   js/scenarios.js       scenario templates (randomized each run)
+  js/popdrill.js        PopupRunner: pop-up reaction drills
+  js/popups.js          PopupBank: hinged pop-up targets behind a mound
+  js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
   js/uspsa.js           USPSA metric target shape: drawing + zone scoring
   js/star.js            Texas Star with rigid-body physics
   js/actors.js          scenario people: poses, drawing, hit zones
-  js/scenery.js         painted backdrops (range, room) and textures
+  js/scenery.js         painted backdrops (range, room, parking lot) and textures
   js/game.js            session stats + registerScoredShot (single scoring path)
   js/camera.js          webcam capture, dot detection, rising-edge shots, debug preview
   js/calibrate.js       guided 4-point calibration + centre-shot validation

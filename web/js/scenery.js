@@ -7,8 +7,13 @@
 //   'range'  outdoor bay: overcast sky, tree line, dirt berm, gravel floor
 //   'room'   indoor lobby for scenarios: wall, door, window, tiled floor
 //
+//   'lot'    parking lot at dusk, drawn in true perspective to match the
+//            knife-attack runner (horizon and focal length from config.knife)
+//
 // FLOOR (0.86 of the height) is where target stakes and people's feet meet
-// the ground in every layout.
+// the ground in the range and room layouts.
+
+import { CONFIG } from './config.js';
 
 export const FLOOR = 0.86;
 
@@ -25,7 +30,7 @@ export function drawBackdrop(g, kind, W, H) {
     cv.height = Math.round(H * dpr);
     const c = cv.getContext('2d');
     c.scale(dpr, dpr);
-    (kind === 'room' ? paintRoom : paintRange)(c, W, H);
+    ({ room: paintRoom, lot: paintLot }[kind] || paintRange)(c, W, H);
     cache.set(key, cv);
   }
   g.drawImage(cv, 0, 0, W, H);
@@ -72,6 +77,7 @@ export function pattern(g, name) {
   else if (name === 'wall') tile = noiseTile(128, [196, 186, 168], 10, 17);
   else if (name === 'wood') tile = noiseTile(128, [112, 78, 48], 16, 19, 26);
   else if (name === 'paper') tile = noiseTile(96, [246, 244, 237], 6, 23);
+  else if (name === 'asphalt') tile = noiseTile(128, [58, 59, 61], 26, 29);
   patterns[name] = g.createPattern(tile, 'repeat');
   return patterns[name];
 }
@@ -268,6 +274,171 @@ function paintRoom(c, W, H) {
 
   vignette(c, W, H, 0.4);
 }
+
+function paintLot(c, W, H) {
+  const K = CONFIG.knife;
+  const rand = rng(W * 7 + H * 13);
+  const hz = K.horizonY * H;
+  const f = K.focalFrac * H;
+  const vx = W / 2;
+  // Ground-plane helpers: a point `d` metres ahead and `x` metres to the side.
+  const gy = d => hz + (f * K.eyeHeight) / d;
+  const gx = (x, d) => vx + (f * x) / d;
+  const ppm = d => f / d; // pixels per metre at distance d
+
+  // Dusk sky.
+  const sky = c.createLinearGradient(0, 0, 0, hz);
+  sky.addColorStop(0, '#223049');
+  sky.addColorStop(0.6, '#5a5a70');
+  sky.addColorStop(1, '#c98a62');
+  c.fillStyle = sky;
+  c.fillRect(0, 0, W, hz + 2);
+
+  // Tree line behind the store.
+  c.fillStyle = '#1d2420';
+  for (let i = 0; i < 90; i++) {
+    const x = (i / 90) * W + rand() * 20;
+    const r = (0.02 + rand() * 0.035) * H;
+    c.beginPath();
+    c.ellipse(x, hz - 0.035 * H, r * 0.8, r, 0, Math.PI, 0);
+    c.fill();
+  }
+  c.fillRect(0, hz - 0.036 * H, W, 0.036 * H);
+
+  // Store front 45 m away.
+  const sd = 45;
+  const sx0 = gx(-22, sd), sx1 = gx(22, sd), base = gy(sd), top = base - ppm(sd) * 7;
+  c.fillStyle = '#b8a88e';
+  c.fillRect(sx0, top, sx1 - sx0, base - top);
+  c.fillStyle = '#8f3b2e';
+  c.fillRect(sx0, top, sx1 - sx0, ppm(sd) * 1.2);           // fascia
+  c.fillStyle = '#ffe9b0';
+  c.font = `800 ${Math.round(ppm(sd) * 0.9)}px system-ui, sans-serif`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('MARKET', vx, top + ppm(sd) * 0.6);
+  for (let i = 0; i < 9; i++) {                              // lit windows
+    const wx = sx0 + (i + 0.5) * ((sx1 - sx0) / 9);
+    const glow = c.createLinearGradient(0, base - ppm(sd) * 4, 0, base);
+    glow.addColorStop(0, '#ffe7a8');
+    glow.addColorStop(1, '#d9a95f');
+    c.fillStyle = glow;
+    c.fillRect(wx - ppm(sd) * 1.6, base - ppm(sd) * 4.2, ppm(sd) * 3.2, ppm(sd) * 3.4);
+  }
+
+  // Asphalt.
+  c.fillStyle = pattern(c, 'asphalt');
+  c.fillRect(0, hz, W, H - hz);
+  const dark = c.createLinearGradient(0, hz, 0, H);
+  dark.addColorStop(0, 'rgba(0,0,0,0.1)');
+  dark.addColorStop(1, 'rgba(0,0,0,0.35)');
+  c.fillStyle = dark;
+  c.fillRect(0, hz, W, H - hz);
+
+  // Parking stalls: two rows either side of the drive lane.
+  c.strokeStyle = 'rgba(235,232,215,0.75)';
+  for (const side of [-1, 1]) {
+    for (const [xa, xb] of [[3.2, 8.2], [8.6, 13.6]]) {
+      for (let d = 3; d < 45; d += 2.7) {
+        c.lineWidth = Math.max(1, ppm(d) * 0.1);
+        c.beginPath();
+        c.moveTo(gx(side * xa, d), gy(d));
+        c.lineTo(gx(side * xb, d), gy(d));
+        c.stroke();
+      }
+    }
+    c.lineWidth = 2;
+    c.beginPath();                                             // lane edge line
+    c.moveTo(gx(side * 3.2, 45), gy(45));
+    c.lineTo(gx(side * 3.2, 1.2), gy(1.2));
+    c.stroke();
+  }
+
+  // Parked cars (rear view), far to near so near ones overlap.
+  const cars = [];
+  for (const side of [-1, 1]) {
+    for (let d = 8; d < 42; d += 2.7 * (1 + Math.floor(rand() * 2))) {
+      if (rand() < 0.3) continue;
+      cars.push({ x: side * (5.2 + rand() * 1.2), d: d + 1.3, color: pick(rand, ['#7b1e1e', '#20344f', '#c9c9c9', '#2b2b2b', '#5b6b52', '#9a8a70', '#e8e8e8']) });
+    }
+  }
+  cars.sort((a, b) => b.d - a.d);
+  for (const car of cars) drawCar(c, gx(car.x, car.d), gy(car.d), ppm(car.d), car.color);
+
+  // Light poles.
+  for (const [x, d] of [[-3.6, 34], [3.6, 34], [-9, 22], [9, 22]]) {
+    const px = gx(x, d), py = gy(d), k = ppm(d);
+    c.fillStyle = '#3b3e42';
+    c.fillRect(px - k * 0.08, py - k * 8, k * 0.16, k * 8);
+    c.fillRect(px - (x < 0 ? 0 : k * 1.2), py - k * 8, k * 1.2, k * 0.12);
+    const lx = px + (x < 0 ? k * 1.1 : -k * 1.1), ly = py - k * 7.9;
+    const glow = c.createRadialGradient(lx, ly, 0, lx, ly, k * 1.6);
+    glow.addColorStop(0, 'rgba(255,230,170,0.9)');
+    glow.addColorStop(1, 'rgba(255,230,170,0)');
+    c.fillStyle = glow;
+    c.beginPath();
+    c.arc(lx, ly, k * 1.6, 0, Math.PI * 2);
+    c.fill();
+    // Pool of light on the ground.
+    const pool = c.createRadialGradient(lx, py, 0, lx, py, k * 5);
+    pool.addColorStop(0, 'rgba(255,225,160,0.14)');
+    pool.addColorStop(1, 'rgba(255,225,160,0)');
+    c.fillStyle = pool;
+    c.beginPath();
+    c.ellipse(lx, py, k * 5, k * 1.2, 0, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  vignette(c, W, H, 0.45);
+}
+
+// Rear view of a parked car. (x, y) = ground point under the rear bumper
+// centre; k = pixels per metre at that distance.
+function drawCar(c, x, y, k, color) {
+  const w = 1.8 * k, bodyH = 0.75 * k, cabH = 0.55 * k;
+  c.fillStyle = 'rgba(0,0,0,0.45)';
+  c.beginPath();
+  c.ellipse(x, y, w * 0.6, 0.12 * k, 0, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = '#111';
+  c.fillRect(x - w * 0.46, y - 0.35 * k, 0.24 * k, 0.35 * k);  // tyres
+  c.fillRect(x + w * 0.46 - 0.24 * k, y - 0.35 * k, 0.24 * k, 0.35 * k);
+  c.fillStyle = color;
+  const by = y - 0.25 * k - bodyH;
+  c.beginPath();
+  c.moveTo(x - w / 2, y - 0.25 * k);
+  c.lineTo(x - w / 2, by + 0.1 * k);
+  c.quadraticCurveTo(x - w / 2, by, x - w / 2 + 0.1 * k, by);
+  c.lineTo(x + w / 2 - 0.1 * k, by);
+  c.quadraticCurveTo(x + w / 2, by, x + w / 2, by + 0.1 * k);
+  c.lineTo(x + w / 2, y - 0.25 * k);
+  c.closePath();
+  c.fill();
+  c.beginPath();                                               // cabin
+  c.moveTo(x - w * 0.4, by);
+  c.lineTo(x - w * 0.33, by - cabH);
+  c.lineTo(x + w * 0.33, by - cabH);
+  c.lineTo(x + w * 0.4, by);
+  c.closePath();
+  c.fill();
+  c.fillStyle = 'rgba(20,28,38,0.85)';                         // rear window
+  c.beginPath();
+  c.moveTo(x - w * 0.36, by - 0.05 * k);
+  c.lineTo(x - w * 0.31, by - cabH + 0.07 * k);
+  c.lineTo(x + w * 0.31, by - cabH + 0.07 * k);
+  c.lineTo(x + w * 0.36, by - 0.05 * k);
+  c.closePath();
+  c.fill();
+  c.fillStyle = '#b3141b';                                     // tail lights
+  c.fillRect(x - w / 2 + 0.05 * k, by + 0.12 * k, 0.3 * k, 0.14 * k);
+  c.fillRect(x + w / 2 - 0.35 * k, by + 0.12 * k, 0.3 * k, 0.14 * k);
+  c.fillStyle = '#e8e2c8';                                     // plate
+  c.fillRect(x - 0.26 * k, by + 0.35 * k, 0.52 * k, 0.12 * k);
+  c.fillStyle = 'rgba(255,255,255,0.12)';                      // roof sheen
+  c.fillRect(x - w * 0.33, by - cabH, w * 0.66, 0.05 * k);
+}
+
+function pick(rand, arr) { return arr[Math.floor(rand() * arr.length)]; }
 
 function vignette(c, W, H, strength) {
   const v = c.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.35, W / 2, H * 0.5, Math.max(W, H) * 0.8);

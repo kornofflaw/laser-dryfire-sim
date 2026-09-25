@@ -12,9 +12,11 @@
 //   phone      facing, phone held up at chest height, screen lit
 //   wallet     facing, wallet held at the waist
 //   surrender  facing, both hands up above the head, empty
-// Only `gun` is a threat. Everything else is a no-shoot at that moment.
+//   knife      facing, knife in hand, standing
+//   charge     running at you, knife raised (a threat); uses a.stride to animate
+// `gun` and `charge` are threats. Everything else is a no-shoot at that moment.
 
-export const POSES = ['back', 'empty', 'gun', 'phone', 'wallet', 'surrender'];
+export const POSES = ['back', 'empty', 'gun', 'phone', 'wallet', 'surrender', 'knife', 'charge'];
 
 export const SHIRTS = ['#4a6fa5', '#8c3b3b', '#3f7d4f', '#6d5a8c', '#b0813a', '#5b6770', '#2f6f73', '#c8c3b5'];
 export const JACKETS = [null, null, '#2d3138', '#5a4632', '#3d4a5c', '#6b6f45'];
@@ -28,8 +30,13 @@ const A_BOX = { u0: -0.065, u1: 0.065, v0: 0.08, v1: 0.27 };
 const SHOULDERS = [[-0.125, 0.285], [0.125, 0.285]];
 
 // Elbow and hand for each arm (viewer's left arm first) per pose.
-function arms(pose) {
+function arms(pose, stride = 0) {
   switch (pose) {
+    case 'knife': return [[[-0.17, 0.14], [-0.19, 0.03]], [[0.15, 0.13], [0.145, -0.03]]];
+    case 'charge': {
+      const sw = Math.sin(stride) * 0.05; // free arm pumps with the stride
+      return [[[-0.22, 0.37], [-0.16, 0.52]], [[0.17, 0.16 + sw], [0.1, 0.12 + sw * 1.5]]];
+    }
     case 'surrender': return [[[-0.21, 0.37], [-0.18, 0.53]], [[0.21, 0.37], [0.18, 0.53]]];
     case 'gun': return [[[-0.17, 0.15], [-0.2, 0.02]], [[0.15, 0.13], [0.145, -0.03]]];
     case 'phone': return [[[-0.16, 0.12], [-0.055, 0.2]], [[0.15, 0.13], [0.145, -0.03]]];
@@ -65,8 +72,11 @@ export function drawActor(g, a, x, y, h) {
   const P = (u, v) => [x + u * h, y - v * h];
   const pose = a.pose;
   const back = pose === 'back';
-  const [armL, armR] = arms(pose);
+  const [armL, armR] = arms(pose, a.stride || 0);
   const lightX = x - 0.1 * h;
+  // Running: each leg lifts in turn (knee coming up toward you), body bobs.
+  const lift = side => (pose === 'charge' ? Math.max(0, Math.sin((a.stride || 0) + (side > 0 ? Math.PI : 0))) * 0.13 : 0);
+  if (pose === 'charge') y -= Math.abs(Math.sin(a.stride || 0)) * 0.012 * h;
   g.save();
   g.globalAlpha = a.alpha ?? 1;
 
@@ -82,11 +92,12 @@ export function drawActor(g, a, x, y, h) {
   // Legs (trousers) and shoes.
   for (const side of [-1, 1]) {
     const inner = side * 0.01, outer = side * 0.096;
+    const up = lift(side);
     g.beginPath();
     g.moveTo(...P(inner, -0.01));
     g.lineTo(...P(outer, -0.01));
-    g.lineTo(...P(side * 0.078, -0.47));
-    g.lineTo(...P(side * 0.022, -0.47));
+    g.lineTo(...P(side * (0.078 + up * 0.2), -0.47 + up));
+    g.lineTo(...P(side * (0.022 + up * 0.1), -0.47 + up));
     g.closePath();
     g.fillStyle = shade(g, a.pants, x + side * 0.05 * h, h, lightX);
     g.fill();
@@ -94,7 +105,7 @@ export function drawActor(g, a, x, y, h) {
     g.fillRect(...P(side > 0 ? 0.055 : -0.06, -0.12), 0.005 * h, 0.3 * h); // crease
     g.fillStyle = '#1a1714';
     g.beginPath();
-    g.ellipse(...P(side * 0.05 + (back ? 0 : side * 0.008), -0.485), 0.042 * h, 0.018 * h, 0, 0, Math.PI * 2);
+    g.ellipse(...P(side * (0.05 + up * 0.15) + (back ? 0 : side * 0.008), -0.485 + up), 0.042 * h, (0.018 + up * 0.12) * h, 0, 0, Math.PI * 2);
     g.fill();
   }
   // Belt.
@@ -102,7 +113,7 @@ export function drawActor(g, a, x, y, h) {
   g.fillRect(...P(-0.104, 0.01), 0.208 * h, 0.022 * h);
 
   // Arms behind the body when hanging down.
-  const armsInFront = pose === 'phone' || pose === 'wallet' || back;
+  const armsInFront = pose === 'phone' || pose === 'wallet' || pose === 'charge' || back;
   if (!armsInFront) drawArms(g, a, P, [armL, armR], h, back, lightX);
 
   // Torso.
@@ -178,6 +189,8 @@ function drawArms(g, a, P, armPair, h, back, lightX) {
       if (a.pose === 'gun') drawPistol(g, hx, hy, h);
       else if (a.pose === 'phone') drawPhone(g, hx, hy, h);
       else if (a.pose === 'wallet') drawWallet(g, hx, hy, h);
+      else if (a.pose === 'knife') drawKnife(g, hx, hy, h, -0.35);
+      else if (a.pose === 'charge') drawKnife(g, hx, hy, h, 0.5);
     }
   });
 }
@@ -276,6 +289,30 @@ function drawPistol(g, x, y, h) {
   g.stroke();
   g.fillStyle = 'rgba(255,255,255,0.18)';                      // slide highlight
   g.fillRect(-0.008 * s, -0.016 * s, 0.096 * s, 0.004 * s);
+  g.restore();
+}
+
+// Fixed-blade knife in a hammer grip, blade up; `tilt` rotates it (radians).
+function drawKnife(g, x, y, h, tilt) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(tilt);
+  g.scale(1.3, 1.3); // a bit oversized so it reads at 30 ft on a projector
+  g.fillStyle = '#1b1b1b';
+  g.fillRect(-0.009 * h, -0.005 * h, 0.018 * h, 0.045 * h);          // handle
+  g.fillStyle = '#555';
+  g.fillRect(-0.016 * h, -0.012 * h, 0.032 * h, 0.007 * h);          // guard
+  const blade = g.createLinearGradient(-0.01 * h, 0, 0.012 * h, 0);
+  blade.addColorStop(0, '#f2f4f6');
+  blade.addColorStop(1, '#9aa1a8');
+  g.fillStyle = blade;
+  g.beginPath();                                                     // blade
+  g.moveTo(-0.009 * h, -0.012 * h);
+  g.lineTo(0.009 * h, -0.012 * h);
+  g.lineTo(0.007 * h, -0.08 * h);
+  g.lineTo(-0.009 * h, -0.1 * h);
+  g.closePath();
+  g.fill();
   g.restore();
 }
 
