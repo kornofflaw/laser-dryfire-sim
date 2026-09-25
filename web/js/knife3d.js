@@ -26,22 +26,35 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { CONFIG } from './config.js';
 import { KnifeRunner } from './knife.js';
+import { addWound, addSpray, GroundDrops } from './blood3d.js';
 
 const K = () => CONFIG.knife;
 const V = () => CONFIG.knife3d;
 const ASSETS = 'assets/3d/';
 
-// Bone segments (parent -> child) used to decide which body zone a hit is.
+// Bone segments (parent -> child): scoring zone, and which hit reaction plays.
 const SEGMENTS = [
-  ['Neck', 'Head', 'Head'], ['Head', 'HeadTop_End', 'Head'],
-  ['Spine2', 'Neck', 'chest'], ['Spine1', 'Spine2', 'chest'],
-  ['Spine', 'Spine1', 'C'], ['Hips', 'Spine', 'C'],
-  ['LeftShoulder', 'LeftArm', 'C'], ['RightShoulder', 'RightArm', 'C'],
-  ['LeftArm', 'LeftForeArm', 'D'], ['LeftForeArm', 'LeftHand', 'D'],
-  ['RightArm', 'RightForeArm', 'D'], ['RightForeArm', 'RightHand', 'D'],
-  ['LeftUpLeg', 'LeftLeg', 'D'], ['LeftLeg', 'LeftFoot', 'D'],
-  ['RightUpLeg', 'RightLeg', 'D'], ['RightLeg', 'RightFoot', 'D'],
+  ['Neck', 'Head', 'Head', 'head'], ['Head', 'HeadTop_End', 'Head', 'head'],
+  ['Spine2', 'Neck', 'chest', 'chest'], ['Spine1', 'Spine2', 'chest', 'chest'],
+  ['Spine', 'Spine1', 'C', 'gut'], ['Hips', 'Spine', 'C', 'gut'],
+  ['LeftShoulder', 'LeftArm', 'C', 'armL'], ['RightShoulder', 'RightArm', 'C', 'armR'],
+  ['LeftArm', 'LeftForeArm', 'D', 'armL'], ['LeftForeArm', 'LeftHand', 'D', 'armL'],
+  ['RightArm', 'RightForeArm', 'D', 'armR'], ['RightForeArm', 'RightHand', 'D', 'armR'],
+  ['LeftUpLeg', 'LeftLeg', 'D', 'legL'], ['LeftLeg', 'LeftFoot', 'D', 'legL'],
+  ['RightUpLeg', 'RightLeg', 'D', 'legR'], ['RightLeg', 'RightFoot', 'D', 'legR'],
 ];
+
+// Hit reactions: extra bone rotations (radians) layered on the animation.
+// 'side' entries flip sign with the side of the body that was hit.
+const REACTIONS = {
+  head: [['Neck', 'x', -0.45], ['Head', 'x', -0.65]],                                  // snaps back
+  chest: [['Spine2', 'x', -0.35], ['Spine1', 'x', -0.25], ['Spine1', 'y', 0.35, 'side'], ['Head', 'x', 0.3]], // knocked back, twisted
+  gut: [['Spine', 'x', 0.5], ['Spine1', 'x', 0.35], ['Head', 'x', -0.15]],             // doubles over
+  armL: [['LeftArm', 'x', -0.9], ['LeftForeArm', 'x', -0.6], ['Spine1', 'y', 0.2]],     // arm flung back
+  armR: [['RightArm', 'x', -0.9], ['RightForeArm', 'x', -0.6], ['Spine1', 'y', -0.2]],
+  legL: [['LeftUpLeg', 'x', -0.6], ['LeftLeg', 'x', 1.2], ['Spine', 'x', 0.25], ['Spine', 'z', 0.3, 'side']], // leg buckles
+  legR: [['RightUpLeg', 'x', -0.6], ['RightLeg', 'x', 1.2], ['Spine', 'x', 0.25], ['Spine', 'z', 0.3, 'side']],
+};
 
 // ---------------------------------------------------------------------------
 // The 3D view: scene, camera, assets, man, hit testing, effects.
@@ -101,6 +114,8 @@ export class Lot3DView {
     this.buildCars(carG.scene, carShadow);
     this.setCarCount(cars);
     this.buildMan(manG, animG);
+    this.groundDrops = new GroundDrops(scene);
+    this.blood = true; // Setup can turn blood effects off
     this.resize(window.innerWidth, window.innerHeight);
     this.ready = true;
   }
@@ -384,7 +399,7 @@ export class Lot3DView {
     this.knife = knife;
 
     this.fall = null;       // { t0 } once he's going down
-    this.flinch = 0;        // brief upper-body jolt when hit
+    this.impulses = [];     // active hit reactions
   }
 
   // ---- Runner interface ---------------------------------------------------------
@@ -411,13 +426,14 @@ export class Lot3DView {
   resetMan() {
     if (!this.ready) return;
     this.fall = null;
-    this.flinch = 0;
+    this.impulses = [];
+    this.groundDrops?.clear();
     this.mixer.stopAllAction();
     this.actions.idle.reset().play();
     this.current = 'idle';
     this.man.rotation.set(0, V().facingOffset, 0);
     this.man.position.set(0, 0, -9.1);
-    this.effects.forEach(e => this.scene.remove(e.obj));
+    this.effects.forEach(e => e.obj.removeFromParent());
     this.effects = [];
   }
 
@@ -443,24 +459,40 @@ export class Lot3DView {
     this.lastT = now;
     this.mixer.update(dt);
 
-    // Hit flinch: a quick twist of the upper body, decaying.
-    if (this.flinch > 0) {
-      this.flinch = Math.max(0, this.flinch - dt * 5);
-      const s = this.bones.Spine1;
-      if (s) s.rotation.y += this.flinchDir * 0.35 * this.flinch;
+    // Hit reactions: each is a quick snap then recovery, layered on the clip.
+    const R = V().react;
+    this.impulses = this.impulses.filter(imp => now - imp.t0 < R.duration);
+    for (const imp of this.impulses) {
+      const t = now - imp.t0;
+      const k = (1 - Math.exp(-t * R.snap)) * Math.exp(-t * R.recover);
+      for (const [bone, axis, amp, side] of REACTIONS[imp.kind]) {
+        const b = this.bones[bone];
+        if (b) b.rotation[axis] += amp * k * imp.scale * (side ? imp.side : 1);
+      }
+      // A leg hit also drops his hips as the leg gives.
+      if (!this.fall && (imp.kind === 'legL' || imp.kind === 'legR')) this.man.position.y -= R.legDip * k;
     }
-    // Going down: pitch forward about the feet and slide with momentum.
+    // Going down: knees buckle, then he pitches forward toward the shooter.
     if (this.fall) {
-      const t = Math.min(1, (now - this.fall.t0) / V().fallTime);
-      const e = t * t * (3 - 2 * t);
-      // Pitch toward the shooter (world +Z) regardless of the model's yaw.
-      this.man.rotation.x = e * 1.45 * Math.cos(this.man.rotation.y - V().facingOffset);
-      this.man.position.y = -0.02 * e;
-      this.actions[this.current].timeScale = (1 - t) * 0.6;
+      const F = V().fall;
+      const t = now - this.fall.t0;
+      const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+      const kneel = ease(t / F.kneelTime);
+      const pitch = ease((t - F.kneelTime * 0.6) / F.pitchTime);
+      for (const side of ['Left', 'Right']) {
+        const up = this.bones[side + 'UpLeg'], knee = this.bones[side + 'Leg'];
+        if (up) up.rotation.x += F.thigh * kneel;
+        if (knee) knee.rotation.x += F.knee * kneel;
+      }
+      const sp = this.bones.Spine1;
+      if (sp) sp.rotation.x += F.slump * kneel;
+      this.man.position.y = -F.drop * kneel;
+      this.man.rotation.x = pitch * F.pitch;
+      this.actions[this.current].timeScale = Math.max(0, 1 - t / 0.4) * 0.6;
     }
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => {
-      if (fx.done) this.scene.remove(fx.obj);
+      if (fx.done) fx.obj.removeFromParent();
       return !fx.done;
     });
     this.renderer.render(this.scene, this.camera);
@@ -477,43 +509,61 @@ export class Lot3DView {
     let o = h.object;
     let surface = o.userData.surface;
     while (!surface && o.parent) { o = o.parent; surface = o.userData.surface; }
+    const dir = this.raycaster.ray.direction.clone();
     if (surface === 'man' && !this.fall) {
-      const body = this.zoneAt(h.point);
-      const zone = threat ? body : 'NS';
-      return { zone, points: CONFIG.points[zone], targetId: 'man', kind: 'actor', bodyZone: body, threat, point: h.point };
+      const info = this.boneAt(h.point);
+      const zone = threat ? info.zone : 'NS';
+      return { zone, points: CONFIG.points[zone], targetId: 'man', kind: 'actor', bodyZone: info.zone, threat, point: h.point, dir, hit: info };
     }
-    return { zone: 'Miss', points: 0, targetId: null, kind: null, surface, point: h.point, normal: h.face?.normal };
+    return { zone: 'Miss', points: 0, targetId: null, kind: null, surface, point: h.point, dir };
   }
 
-  // Nearest bone segment to a world point -> Head / A / C / D.
-  zoneAt(p) {
+  // Nearest bone segment to a world point: zone (Head / A / C / D), the
+  // reaction to play, the bone to attach a wound to, and the surface normal
+  // (from the bone line out to the hit point).
+  boneAt(p) {
     const a = new THREE.Vector3(), b = new THREE.Vector3(), q = new THREE.Vector3();
     let best = null, bestD = Infinity;
-    for (const [from, to, zone] of SEGMENTS) {
-      const A = this.bones[from], B = this.bones[to];
-      if (!A || !B) continue;
+    for (const seg of SEGMENTS) {
+      const A = this.bones[seg[0]], Bn = this.bones[seg[1]];
+      if (!A || !Bn) continue;
       A.getWorldPosition(a);
-      B.getWorldPosition(b);
-      const d = new THREE.Line3(a, b).closestPointToPoint(p, true, q).distanceTo(p);
-      if (d < bestD) { bestD = d; best = zone; }
+      Bn.getWorldPosition(b);
+      new THREE.Line3(a, b).closestPointToPoint(p, true, q);
+      const d = q.distanceTo(p);
+      if (d < bestD) { bestD = d; best = { seg, closest: q.clone() }; }
     }
-    if (best === 'chest') return bestD <= V().aZoneRadius ? 'A' : 'C';
-    return best || 'D';
+    if (!best) return { zone: 'D', kind: 'chest', bone: this.bones.Spine1, normal: new THREE.Vector3(0, 0, 1) };
+    const [from, , zoneKind, kind] = best.seg;
+    const zone = zoneKind === 'chest' ? (bestD <= V().aZoneRadius ? 'A' : 'C') : zoneKind;
+    const normal = p.clone().sub(best.closest);
+    if (normal.lengthSq() < 1e-8) normal.set(0, 0, 1);
+    normal.normalize();
+    // Which side of his body (his left/right) the hit was on.
+    const local = this.man.worldToLocal(p.clone());
+    return { zone, kind, bone: this.bones[from], normal, side: local.x >= 0 ? 1 : -1 };
   }
 
-  // Reaction to a shot: flinch on the man, dust on the ground, sparks on metal.
+  // Reaction to a shot: body reaction + blood on the man, dust on the ground,
+  // sparks on metal.
   onShot(score) {
     if (!this.ready || !score.point) return;
-    if (score.kind === 'actor') {
-      this.flinch = 1;
-      this.flinchDir = Math.random() < 0.5 ? -1 : 1;
-      this.effects.push(puff(this.scene, score.point, '#3a3430', 0.12, 0.25));
+    if (score.kind === 'actor' && score.hit) {
+      const h = score.hit;
+      this.impulses.push({ kind: h.kind, t0: performance.now() / 1000, side: h.side, scale: 0.8 + Math.random() * 0.4 });
+      if (this.blood) {
+        this.effects.push(addWound(h.bone, score.point, h.normal));
+        this.effects.push(addSpray(this.scene, score.point, score.dir, this.groundDrops));
+      }
     } else if (score.surface === 'car' || score.surface === 'building') {
       this.effects.push(puff(this.scene, score.point, '#ffcf8a', 0.15, 0.12, true));
     } else if (score.surface === 'ground') {
       this.effects.push(puff(this.scene, score.point, '#7d776c', 0.35, 0.6));
     }
   }
+
+  // Debug/test helper: play a reaction without a shot.
+  react(kind, side = 1) { this.impulses.push({ kind, t0: performance.now() / 1000, side, scale: 1 }); }
 
   setVisible(on) { this.canvas.style.display = on ? 'block' : 'none'; }
 }
@@ -543,6 +593,16 @@ export class Knife3DRunner extends KnifeRunner {
   start(nowMs) {
     if (!this.view.ready) return;
     super.start(nowMs);
+  }
+
+  // A hit that doesn't stop him still costs him speed (legs most of all).
+  onShot(score) {
+    const before = this.hits;
+    super.onShot(score);
+    if (this.hits > before && this.phase === 'charging') {
+      const leg = score.hit?.kind === 'legL' || score.hit?.kind === 'legR';
+      this.v *= leg ? V().legHitSlow : V().hitSlow;
+    }
   }
 
   panelHTML(now) {

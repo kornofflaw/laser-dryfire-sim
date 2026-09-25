@@ -97,7 +97,8 @@ web/                    the app; deploy this folder as-is
   js/flipdrill.js       FlipRunner: flip-grid drills (flash / numbered in order / called numbers)
   js/fliptiles.js       FlipBoard: steel frame of square plates that spin
   js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
-  js/knife3d.js         3D version: Lot3DView (three.js scene, rigged man, raycast hits) + Knife3DRunner
+  js/knife3d.js         3D version: Lot3DView (three.js scene, rigged man, raycast hits, hit reactions) + Knife3DRunner
+  js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
   assets/3d/            3D models, animations, sky (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing

@@ -36,6 +36,7 @@ const settings = Object.assign({
   seenHelp: false,
   upTimes: {},        // per-course "time up" overrides (seconds)
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
+  blood: true,        // 3D blood effects
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 
@@ -76,6 +77,7 @@ function ensure3D() {
     range.view3d = view3d;
     try {
       await view3d.init({ cars: settings.cars3d });
+      view3d.blood = settings.blood;
     } catch (e) {
       runners.knife3d.error = `Could not load the 3D scene (${e.message}). This needs WebGL.`;
       throw e;
@@ -487,8 +489,15 @@ $('#cars3d').oninput = e => {
   view3d?.setCarCount(settings.cars3d);
 };
 
+$('#opt-blood').onchange = e => {
+  settings.blood = e.target.checked;
+  persist();
+  if (view3d) view3d.blood = settings.blood;
+};
+
 function refreshSetup() {
   const c = course();
+  $('#opt-blood').checked = settings.blood;
   $('#cars3d-row').hidden = c.type !== 'knife3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;

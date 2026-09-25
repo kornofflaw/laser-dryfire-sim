@@ -79,6 +79,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       Parked cars 0-16 selectable in Setup (default 6); cars don't cast
       real-time shadows (baked contact shadows) and distant cars drop interior
       parts. ~1.1M triangles / ~370 draw calls at 6 cars, 33k with none.
+- [x] 3D hit reactions by body area (head snaps back, chest knock-back + twist,
+      gut doubles over, arm flung, leg buckles with hip drop); non-stopping hits
+      slow him (legs most). Stopped: knees buckle, then he falls forward.
+      Blood: wound stains that ride on the body, droplet spray (exit + back
+      spatter) with gravity, red mist, drops on the asphalt. Setup toggle.
       Next if Andrew likes it: better character (casual clothes, a proper
       "charge with knife raised" animation, fall/death clip), varied car models,
       then convert other scenes.
@@ -149,6 +154,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: 3D hit reactions, knee-buckle fall, blood (wounds/spray/mist/drops).
 - 2026-09-25: First 3D scene: parking-lot knife attack in three.js (vendored),
   on-demand loading. Rules updated: asset files allowed with credits.
 - 2026-09-25: Flip grid target + 4 flip-grid courses.

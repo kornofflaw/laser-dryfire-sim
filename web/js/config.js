@@ -144,7 +144,20 @@ export const CONFIG = {
     fogColor: '#6d6474',
     fogDensity: 0.011,
     runClipSpeed: 3.2,      // m/s the run animation was captured at (sets its playback rate)
-    fallTime: 0.7,          // seconds to pitch forward when stopped
+    // When stopped: knees buckle, then he pitches forward.
+    fall: { kneelTime: 0.35, pitchTime: 0.55, thigh: -1.1, knee: 1.9, slump: 0.35, drop: 0.42, pitch: 1.35 },
+    // Hit reactions: snap in fast, recover slower (1/s rates).
+    react: { snap: 35, recover: 5, duration: 1.2, legDip: 0.12 },
+    hitSlow: 0.8,           // speed multiplier after a hit that doesn't stop him
+    legHitSlow: 0.55,       // ... after a leg hit
+    blood: {
+      woundSize: 0.09,      // metres across a wound stain
+      woundSpread: 0.6,     // seconds for a stain to spread to full size
+      droplets: 110,        // droplets per hit
+      dropletSize: [0.0015, 0.005], // droplet radius range (m)
+      speed: [1.5, 5.0],    // droplet speed range (m/s)
+      backSpatter: 0.3,     // fraction spraying back toward the shooter
+    },
     aZoneRadius: 0.1,       // metres from the spine line that count as A zone on the chest
     jacketTint: '#4b4f55',  // multiplies the avatar's jacket texture (dark street jacket)
     pantsTint: '#3c4a63',   // multiplies the trousers texture (dark jeans)
