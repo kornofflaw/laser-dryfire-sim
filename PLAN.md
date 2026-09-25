@@ -146,11 +146,16 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       extinguisher, plants); ambient occlusion + bloom + SMAA (post3d.js);
       interior reflections (RoomEnvironment). Suspects now aim 3-4.5 s
       (counted from fully in view) before firing.
-- [ ] OFFICE BACKLOG (Andrew, 2026-09-25; the hourly review works through it):
-      breakable glass; more plants; randomized end positions / fleeing
-      innocents; a rifle shooter; a shooter in body armour; player survives
-      up to 3 hits; Setup options for the scenario; the wounded man in the
-      lobby alive, moving and asking for help.
+- [x] Office pass 2 (Andrew's list, 2026-09-25): breakable glass office
+      fronts (shards fall and stay; the round carries on through); more
+      plants; suspects and staff at random spots each run, some staff flee,
+      some suspects walk toward you while aiming; one suspect with a rifle,
+      one in a plate carrier (chest hits stop, flinch + thud, go for the
+      head or pelvis); suspects keep firing every 1.6-2.6 s and you survive
+      up to 3 hits ("HIT 1 OF 3" flash, red edges, "YOU'RE DOWN"); the man
+      in the lobby is alive, reaching up and calling for help (spoken); Setup
+      -> Office scenario options (gunmen, staff, time before they fire,
+      hits you can take, rifle, armour, hostage, fleeing, victim voice).
 - [ ] FLIP GRID BACKLOG (Andrew): nicer plates; a course that calls out a
       shape or colour to hit; Setup option for flip speed; option for plates
       to flip on and off at a variable rate.
@@ -241,6 +246,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
 - 2026-09-25: Office realism pass 1 (interior3d.js, post3d.js), fairer fire timing.
+- 2026-09-25: Office pass 2: breakable glass, rifle + body-armour suspects,
+  survive 3 hits, random positions, fleeing staff, living victim, Setup options.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

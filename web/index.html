@@ -71,6 +71,19 @@
         </div>
         <label class="check"><input type="checkbox" id="opt-blood"> Blood effects (wounds, spray)</label>
       </div>
+      <div id="office-row" hidden>
+        <label>Armed suspects <select id="of-gunmen"><option value="0">Random (2–3)</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label>Office workers <select id="of-innocents"><option value="-1">Random (1–2)</option><option>0</option><option>1</option><option>2</option><option>3</option></select></label>
+        <label>Time before a suspect fires <output id="of-fire-val"></output>
+          <input type="range" id="of-fire" min="1" max="8" step="0.5"></label>
+        <label>Hits you can take <output id="of-lives-val"></output>
+          <input type="range" id="of-lives" min="1" max="5" step="1"></label>
+        <label class="check"><input type="checkbox" id="of-rifle"> One suspect has a rifle</label>
+        <label class="check"><input type="checkbox" id="of-armor"> One suspect wears body armour</label>
+        <label class="check"><input type="checkbox" id="of-hostage"> Hostage scene at the end</label>
+        <label class="check"><input type="checkbox" id="of-fleeing"> Some workers run for the exit</label>
+        <label class="check"><input type="checkbox" id="of-voice"> Wounded man calls for help</label>
+      </div>
       <div id="range3d-row" hidden>
         <label class="check"><input type="checkbox" id="opt-real3d"> Photo-realistic 3D (range targets, and judgment scenes with real people)</label>
         <label id="dist3d-label">Distance to the <span id="dist3d-kind">targets</span> <output id="dist3d-val"></output>

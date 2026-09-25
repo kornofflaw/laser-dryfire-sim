@@ -185,6 +185,21 @@ export const CONFIG = {
     fireDelay: [3.0, 4.5],  // seconds a suspect aims at you (once fully in view) before he fires
     gunmanGap: [2.5, 4.5],  // seconds between suspects appearing
     hostageTime: 10.0,      // seconds before the hostage-taker shoots the hostage
+    refireDelay: [1.6, 2.6], // seconds between a suspect's shots once he's firing at you
+    fleeSpeed: 3.6,         // m/s an innocent runs for the exit
+    advanceSpeed: 0.7,      // m/s a suspect walks toward you while aiming
+    // Scenario options (Setup -> Current course overrides these, per browser).
+    options: {
+      gunmen: 0,            // 0 = random (2-3), else 1-4 (plus the hostage-taker)
+      innocents: -1,        // -1 = random (1-2), else 0-3
+      fireDelay: 3.0,       // seconds a suspect aims before firing (random up to x1.5)
+      lives: 3,             // hits you can take; at this many you're down
+      rifle: true,          // one suspect carries a rifle
+      armor: true,          // one suspect wears body armour (chest hits don't stop him)
+      hostage: true,        // the hostage scene at the end
+      fleeing: true,        // some innocents run for the exit instead of raising their hands
+      victimVoice: true,    // the wounded man in the lobby asks for help
+    },
     doorOpenAngle: 1.7,     // radians an office door swings open
     doorSpeed: 6,           // how fast doors swing (1/s)
     doorLead: 0.45,         // seconds the door opens before the suspect steps out

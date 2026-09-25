@@ -162,15 +162,17 @@ export function footstep(loudness) {
 
 // Spoken call-out (browser speech synthesis; no audio files). Silent if the
 // browser has no voices.
-export function say(text) {
+// opts: { rate, pitch, volume } (e.g. a weak, slow voice for a wounded man).
+export function say(text, opts = {}) {
   if (forwarded('say', arguments)) return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
     synth.cancel();
     const u = new SpeechSynthesisUtterance(String(text));
-    u.rate = 1.15;
-    u.volume = CONFIG.sound.volume;
+    u.rate = opts.rate ?? 1.15;
+    u.pitch = opts.pitch ?? 1;
+    u.volume = CONFIG.sound.volume * (opts.volume ?? 1);
     synth.speak(u);
   } catch { /* no speech available */ }
 }
@@ -212,4 +214,45 @@ export function enemyShot() {
   src.buffer = buf;
   src.connect(g).connect(ctx.destination);
   src.start();
+}
+
+// Glass shattering: a bright crack, then a tinkling tail of falling shards.
+export function glassBreak() {
+  if (forwarded('glassBreak', arguments)) return;
+  if (!ctx) return;
+  const n = Math.floor(ctx.sampleRate * 0.9);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const t = i / ctx.sampleRate;
+    const crack = (Math.random() * 2 - 1) * Math.exp(-t * 40);
+    const tinkle = Math.random() < 0.004 * Math.exp(-t * 3) ? (Math.random() * 2 - 1) * 0.8 : 0;
+    d[i] = crack + tinkle + (i > 0 ? d[i - 1] * 0.3 * Math.exp(-t * 6) : 0);
+  }
+  const src = ctx.createBufferSource();
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1500;
+  const g = ctx.createGain();
+  g.gain.value = 0.7 * CONFIG.sound.volume;
+  src.buffer = buf;
+  src.connect(hp).connect(g).connect(ctx.destination);
+  src.start();
+}
+
+// A round striking body armour: a dull, heavy smack.
+export function armorThud() {
+  if (forwarded('armorThud', arguments)) return;
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(180, t0);
+  o.frequency.exponentialRampToValueAtTime(70, t0 + 0.12);
+  g.gain.setValueAtTime(0.6 * CONFIG.sound.volume, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+  o.connect(g).connect(ctx.destination);
+  o.start(t0);
+  o.stop(t0 + 0.2);
 }

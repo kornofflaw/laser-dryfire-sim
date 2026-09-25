@@ -6,7 +6,10 @@
 //     IK so they work on any rig: 'aim' (two-handed pistol at a point),
 //     'handsUp', 'hostage' (arm around a hostage, pistol to their head),
 //     'lying' (on the floor, wounded), 'offer' (right hand held out, e.g.
-//     showing a wallet)
+//     showing a wallet), 'reach' (left hand reaching up, e.g. a wounded man
+//     asking for help)
+//   * a pistol or rifle prop (addGun), and a body-armour plate carrier
+//     (addVest) that follows the chest
 //   * hit reactions by body area, falls, wound stains and blood spray
 //   * an optional pistol prop that follows the right hand and points at the
 //     aim target, with a muzzle flash
@@ -101,12 +104,40 @@ export class Character {
     this.current = name;
   }
 
-  addGun() {
-    this.gun = makePistol();
+  // kind: 'pistol' | 'rifle'. The prop follows the right hand (update()).
+  addGun(kind = 'pistol') {
+    this.weapon = kind;
+    this.gun = kind === 'rifle' ? makeRifle() : makePistol();
     this.gun.traverse(o => { if (o.isMesh) { o.userData.char = this; o.castShadow = true; this.meshes.push(o); } });
     this.flash = makeMuzzleFlash();
+    if (kind === 'rifle') this.flash.position.set(0, 0.05, 0.8); // at the muzzle
     this.gun.add(this.flash);
     return this.gun;
+  }
+
+  // A plate carrier (front and back plates, shoulder straps) that follows
+  // the chest. Returns the group (add it to the scene); isArmored() tells
+  // whether a hit point lands on it.
+  addVest() {
+    const g = new THREE.Group();
+    const cloth = new THREE.MeshStandardMaterial({ color: '#3a3f33', roughness: 0.9 });
+    const strap = new THREE.MeshStandardMaterial({ color: '#2c3027', roughness: 0.9 });
+    const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
+    box(0.32, 0.34, 0.05, cloth, 0, -0.05, 0.12);     // front plate
+    box(0.32, 0.36, 0.05, cloth, 0, -0.04, -0.13);    // back plate
+    for (const s of [-1, 1]) {
+      box(0.06, 0.03, 0.27, strap, s * 0.11, 0.13, 0);  // shoulder straps
+      box(0.05, 0.22, 0.2, strap, s * 0.18, -0.1, 0);   // cummerbund sides
+    }
+    for (const x of [-0.08, 0, 0.08]) box(0.07, 0.1, 0.04, strap, x, -0.12, 0.165); // mag pouches
+    g.traverse(o => { if (o.isMesh) { o.userData.char = this; o.userData.armor = true; this.meshes.push(o); } });
+    this.vest = g;
+    return g;
+  }
+
+  // Is a world point on the armour (the plates cover chest and upper belly)?
+  isArmored(bone) {
+    return !!this.vest && ['Spine', 'Spine1', 'Spine2'].includes(bone?.name);
   }
 
   // Fire: muzzle flash for a moment.
@@ -149,6 +180,12 @@ export class Character {
     }
     this.model.position.y = -dip;
 
+    // The vest rides on the chest, turned with the body.
+    if (this.vest) {
+      this.vest.visible = this.obj.visible;
+      this.bones.Spine2?.getWorldPosition(this.vest.position);
+      this.obj.getWorldQuaternion(this.vest.quaternion);
+    }
     // Pistol follows the right hand and points at the aim target.
     if (this.gun) this.gun.visible = this.obj.visible;
     if (this.gun && this.obj.visible) {
@@ -180,12 +217,26 @@ export class Character {
     const up = new THREE.Vector3(0, 1, 0);
     const right = new THREE.Vector3().crossVectors(fwd, up).normalize(); // his left in world
 
-    if (this.pose === 'aim') {
+    if (this.pose === 'aim' && this.weapon === 'rifle') {
+      // Rifle at the shoulder: firing hand at the grip just ahead of the
+      // shoulder, support hand out on the handguard.
+      const sR = P('RightArm');
+      const dir = this.aimAt.clone().sub(sR).normalize();
+      const grip = sR.clone().addScaledVector(dir, 0.2).addScaledVector(up, -0.05).addScaledVector(right, 0.08);
+      this.solveArm('Right', grip, up.clone().multiplyScalar(-1).addScaledVector(right, -0.8), w);
+      this.solveArm('Left', grip.clone().addScaledVector(dir, 0.33).addScaledVector(up, -0.02), up.clone().multiplyScalar(-1).addScaledVector(right, 0.4), w);
+    } else if (this.pose === 'aim') {
       const sR = P('RightArm');
       const dir = this.aimAt.clone().sub(sR).normalize();
       const grip = sR.clone().addScaledVector(dir, 0.58);
       this.solveArm('Right', grip, up.clone().multiplyScalar(-1).addScaledVector(right, 0.5), w);
       this.solveArm('Left', grip.clone().addScaledVector(right, 0.03), up.clone().multiplyScalar(-1).addScaledVector(right, -0.5), w);
+    } else if (this.pose === 'reach') {
+      // Lying on his back, reaching up toward whoever comes in.
+      const sh = P('LeftArm');
+      const sway = Math.sin(performance.now() / 700) * 0.08;
+      const hand = sh.clone().add(new THREE.Vector3(sway, 0.5, 0.15));
+      this.solveArm('Left', hand, new THREE.Vector3(-1, 0, 0), w);
     } else if (this.pose === 'handsUp') {
       for (const [side, s] of [['Left', 1], ['Right', -1]]) {
         const sh = P(side + 'Arm');
@@ -299,6 +350,26 @@ function rotateWorld(bone, q) {
   const newWorld = q.clone().multiply(worldQ);
   bone.quaternion.copy(parentQ.invert().multiply(newWorld));
   bone.updateWorldMatrix(false, true);
+}
+
+// Carbine: grip at the origin, barrel along +Z (lookAt aims it), stock back
+// toward the shoulder.
+function makeRifle() {
+  const g = new THREE.Group();
+  const black = new THREE.MeshStandardMaterial({ color: '#1a1b1d', roughness: 0.5, metalness: 0.5 });
+  const poly = new THREE.MeshStandardMaterial({ color: '#232427', roughness: 0.8 });
+  const part = (w, h, d, m, x, y, z, rx = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.x = rx; g.add(b); };
+  part(0.05, 0.07, 0.36, black, 0, 0.05, 0.08);       // receiver
+  part(0.045, 0.05, 0.3, poly, 0, 0.05, 0.4);         // handguard
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.22, 8), black);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.05, 0.66);
+  g.add(barrel);
+  part(0.03, 0.1, 0.045, poly, 0, -0.03, 0.02, 0.35);  // pistol grip
+  part(0.03, 0.14, 0.06, black, 0, -0.03, 0.14, -0.15); // magazine
+  part(0.04, 0.07, 0.24, poly, 0, 0.03, -0.2);         // stock
+  part(0.02, 0.04, 0.12, black, 0, 0.1, 0.12);         // optic rail/sight
+  return g;
 }
 
 // Compact semi-auto pistol; barrel along +Z so lookAt() aims it.

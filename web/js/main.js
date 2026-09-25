@@ -42,6 +42,7 @@ const settings = Object.assign({
   yards3d: {},        // 3D range distance per kind of target (defaults: CONFIG.range3d.yards)
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
+  office: {},         // office scenario options (defaults: CONFIG.office3d.options)
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
@@ -108,6 +109,7 @@ function ensure3D(type) {
       throw e;
     }
     view.blood = settings.blood;
+    if (type === 'office3d') runner.opts = settings.office;
     runner.onComplete(runDone);
     runners[type] = runner;
     if (course().type === type) runner.setCourse(withUpTime(course()));
@@ -672,6 +674,40 @@ $('#dist3d').oninput = e => {
   views3d['range3d-single']?.setDistance(kind, yd);
 };
 
+// Office scenario options: one handler for every control in #office-row.
+const officeCtl = {
+  gunmen: ['#of-gunmen', el => Number(el.value)],
+  innocents: ['#of-innocents', el => Number(el.value)],
+  fireDelay: ['#of-fire', el => Number(el.value)],
+  lives: ['#of-lives', el => Number(el.value)],
+  rifle: ['#of-rifle', el => el.checked],
+  armor: ['#of-armor', el => el.checked],
+  hostage: ['#of-hostage', el => el.checked],
+  fleeing: ['#of-fleeing', el => el.checked],
+  victimVoice: ['#of-voice', el => el.checked],
+};
+for (const [key, [sel, read]] of Object.entries(officeCtl)) {
+  const el = $(sel);
+  el[el.tagName === 'SELECT' || el.type === 'checkbox' ? 'onchange' : 'oninput'] = () => {
+    if (active().busy) { refreshSetup(); return toast('Finish or cancel the run first (Esc).'); }
+    settings.office = { ...settings.office, [key]: read(el) };
+    persist();
+    if (runners.office3d) runners.office3d.opts = settings.office;
+    refreshSetup();
+  };
+}
+function refreshOffice() {
+  const o = { ...CONFIG.office3d.options, ...settings.office };
+  $('#of-gunmen').value = o.gunmen;
+  $('#of-innocents').value = o.innocents;
+  $('#of-fire').value = o.fireDelay;
+  $('#of-fire-val').textContent = `${o.fireDelay.toFixed(1)}–${(o.fireDelay * 1.5).toFixed(1)} s`;
+  $('#of-lives').value = o.lives;
+  $('#of-lives-val').textContent = String(o.lives);
+  for (const k of ['rifle', 'armor', 'hostage', 'fleeing']) $(officeCtl[k][0]).checked = o[k];
+  $('#of-voice').checked = o.victimVoice;
+}
+
 $('#opt-blood').onchange = e => {
   settings.blood = e.target.checked;
   persist();
@@ -697,6 +733,8 @@ function refreshSetup() {
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
   $('#opt-real3d').disabled = !TO_3D[c.layout];
   $('#cars3d-row').hidden = !(is3D(c.type) || range.layout === 'scene3d');
+  $('#office-row').hidden = c.type !== 'office3d';
+  refreshOffice();
   $('#cars3d-only').hidden = c.type !== 'knife3d' && range.layout !== 'scene3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;

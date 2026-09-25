@@ -28,7 +28,7 @@ import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, radioStatic, enemyShot, penaltyBuzz } from './audio.js';
+import { say, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -269,19 +269,22 @@ export class OfficeView {
     cp.rotation.y = Math.PI / 2;
     this.add(cp, -11.5, 0, -24.2);
     this.add(extinguisher(M), -11.85, 0.25, -35.5);
-    this.add(plant(M, 1.3), -11.3, 0, -38.8);
-    this.add(plant(M, 1.3), 11.3, 0, -23.2);
+    for (const [x, z, k] of [[-11.3, -38.8, 1.3], [11.3, -23.2, 1.3], [11.2, -35.8, 1.2], [-11.2, -22.9, 1.2], [-2.1, -25.6, 0.9], [2.1, -25.6, 0.9], [-2.1, -33.4, 0.9], [2.1, -33.4, 0.9]]) {
+      this.add(plant(M, k), x, 0, z);
+    }
     const clock = wallClock(M);
     clock.rotation.y = Math.PI;
     this.add(clock, -3, 2.45, -22.12);
 
     // Private offices along the back wall.
     this.officeDoors = new Map();
+    this.panes = [];      // breakable glass
     for (const o of OFFICES) {
       const z = -36.6;
       // Glass sidelight with a frosted privacy band, framed.
-      this.box(3.85, 2.95, 0.02, M.glass, o.x - 0.825, 1.5, z, { shadow: false, solid: false });
-      this.box(3.85, 0.25, 0.022, M.frosted, o.x - 0.825, 1.25, z, { shadow: false, solid: false });
+      const pane = this.box(3.85, 2.95, 0.02, M.glass, o.x - 0.825, 1.5, z, { shadow: false, solid: false });
+      const band = this.box(3.85, 0.25, 0.022, M.frosted, o.x - 0.825, 1.25, z, { shadow: false, solid: false });
+      this.panes.push({ mesh: pane, extra: [band], w: 3.85, h: 2.95 });
       for (const x of [o.x - 2.75, o.x - 0.8]) this.box(0.06, 3.05, 0.1, M.doorFrame, x, 1.525, z);
       this.box(3.85, 0.06, 0.1, M.doorFrame, o.x - 0.825, 0.03, z);
       // The door (hinged on the left, swings into the office) with a glass transom.
@@ -289,7 +292,7 @@ export class OfficeView {
       this.add(d, o.doorX, 0, z);
       this.solids.push(...d.userData.solids);
       this.officeDoors.set(o, d);
-      this.box(1.0, 0.8, 0.02, M.glass, o.doorX, 2.63, z, { shadow: false, solid: false });
+      this.panes.push({ mesh: this.box(1.0, 0.8, 0.02, M.glass, o.doorX, 2.63, z, { shadow: false, solid: false }), extra: [], w: 1.0, h: 0.8 });
       this.box(1.0, 0.06, 0.1, M.doorFrame, o.doorX, 3.02, z);
       // Solid strip and the side wall between offices.
       this.box(0.65, 3.05, 0.12, M.wall, o.x + 2.425, 1.525, z);
@@ -314,6 +317,7 @@ export class OfficeView {
       const ws = workstation(M, { w: 2.2, d: 0.75, seed: i + 1 });
       ws.position.set(p.x, 0, p.z - 0.8);
       this.add(ws);
+      if (i % 3 === 0) this.add(plant(M, 0.35), p.x - 0.85, 0.75, p.z - 1.0); // desk plant
     }
     const spots = [];
     for (let x = -9; x <= 9; x += 3) for (const z of [-24.4, -27.4, -30.4, -33.4]) spots.push([x, z]);
@@ -393,17 +397,20 @@ export class OfficeView {
     this.usedCast.push(id);
     const p = new Character(this.cast.rig(id), { role });
     this.scene.add(p.obj);
-    if (opts.gun) this.scene.add(p.addGun());
+    if (opts.gun) this.scene.add(p.addGun(opts.gun === true ? 'pistol' : opts.gun));
+    if (opts.vest) this.scene.add(p.addVest());
     this.people.push(p);
     return p;
   }
 
   clearPeople() {
     this.usedCast = [];
+    this.resetGlass();
     for (const d of this.officeDoors?.values() || []) { d.userData.target = d.userData.open = 0; d.userData.pivot.rotation.y = 0; }
     for (const p of this.people) {
       p.obj.removeFromParent();
       p.gun?.removeFromParent();
+      p.vest?.removeFromParent();
       p.effects.forEach(e => e.obj.removeFromParent());
     }
     this.people = [];
@@ -487,26 +494,98 @@ export class OfficeView {
     if (!this.ready) return miss;
     for (const p of this.people) for (const m of p.meshes) if (m.isSkinnedMesh) m.computeBoundingSphere();
     this.raycaster.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), this.camera);
-    const targets = [...this.people.filter(p => p.obj.visible).flatMap(p => p.meshes.filter(m => m.visible)), ...this.solids];
-    const h = this.raycaster.intersectObjects(targets, false)[0];
+    const panes = this.panes.filter(p => p.mesh.visible).map(p => p.mesh);
+    const targets = [...this.people.filter(p => p.obj.visible).flatMap(p => p.meshes.filter(m => m.visible)), ...this.solids, ...panes];
     const dir = this.raycaster.ray.direction.clone();
-    if (!h) return { ...miss, dir };
+    // Glass breaks and the round carries on to whatever is behind it.
+    const glass = [];
+    let h = null;
+    for (const x of this.raycaster.intersectObjects(targets, false)) {
+      const pane = this.panes.find(p => p.mesh === x.object);
+      if (pane) { glass.push({ pane, point: x.point.clone() }); continue; }
+      h = x;
+      break;
+    }
+    if (!h) return { ...miss, dir, glass };
     const person = h.object.userData.char;
     if (person && !person.down) {
       const info = person.boneAt(h.point);
       const threat = person.role === 'gunman' && person.live;
       const zone = threat ? info.zone : 'NS';
-      return { zone, points: CONFIG.points[zone], targetId: person.id, kind: 'actor', bodyZone: info.zone, threat, point: h.point, dir, person };
+      const armor = !!h.object.userData.armor || person.isArmored(info.bone);
+      return { zone, points: CONFIG.points[zone], targetId: person.id, kind: 'actor', bodyZone: info.zone, threat, armor, point: h.point, dir, person, glass };
     }
-    return { ...miss, point: h.point, dir, surface: 'wall' };
+    return { ...miss, point: h.point, dir, surface: 'wall', glass };
   }
 
   // Reaction (called by Range.onShot): blood/reaction on people, dust on walls.
   onShot(score) {
-    if (!this.ready || !score.point) return;
+    if (!this.ready) return;
     const now = performance.now() / 1000;
-    if (score.person) score.person.hit(score.point, score.dir, now, this.scene, this.drops, this.blood);
+    for (const g of score.glass || []) this.breakGlass(g.pane, g.point, score.dir);
+    if (!score.point) return;
+    if (score.person && score.armor) {
+      // Plates stop it: a flinch, a puff of fabric and lead, no blood.
+      score.person.impulses.push({ kind: 'chest', t0: now, side: 1, scale: 0.45 });
+      this.fx.push(dust(this.scene, score.point));
+      armorThud();
+    } else if (score.person) score.person.hit(score.point, score.dir, now, this.scene, this.drops, this.blood);
     else this.fx.push(dust(this.scene, score.point));
+  }
+
+  // A pane shatters: it's gone, shards spray out along the round and fall,
+  // and stay on the floor until the next run.
+  breakGlass(pane, point, dir) {
+    if (!pane.mesh.visible) return;
+    pane.mesh.visible = false;
+    pane.extra.forEach(e => { e.visible = false; });
+    glassBreak();
+    const n = Math.round(40 + pane.w * pane.h * 25);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.05, 0.01, 0, 0.015, 0.07, 0], 3));
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({ color: '#dfeef0', roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+    const im = new THREE.InstancedMesh(geo, mat, n);
+    const c = pane.mesh.position;
+    const parts = Array.from({ length: n }, () => {
+      const p = new THREE.Vector3(c.x + (Math.random() - 0.5) * pane.w, c.y + (Math.random() - 0.5) * pane.h, c.z);
+      const near = Math.max(0, 1 - p.distanceTo(point) / 1.2);
+      const v = dir.clone().multiplyScalar(0.5 + near * 2.5).add(new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 0.8, (Math.random() - 0.5) * 0.6));
+      const s = 0.4 + Math.random() * 1.6;
+      return { p, v, r: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6), w: (Math.random() - 0.5) * 20, s, rest: false };
+    });
+    const o = new THREE.Object3D();
+    let last = performance.now() / 1000;
+    this.scene.add(im);
+    this.shards.push(im);
+    this.fx.push({ obj: im, done: false, persistent: true, update: now => {
+      const dt = Math.min(0.05, now - last);
+      last = now;
+      let moving = false;
+      parts.forEach((q, i) => {
+        if (!q.rest) {
+          moving = true;
+          q.v.y -= 9.81 * dt;
+          q.p.addScaledVector(q.v, dt);
+          q.r.x += q.w * dt;
+          if (q.p.y <= 0.004) { q.p.y = 0.004; q.rest = true; q.r.set(Math.PI / 2, 0, Math.random() * 6); }
+        }
+        o.position.copy(q.p);
+        o.rotation.copy(q.r);
+        o.scale.setScalar(q.s);
+        o.updateMatrix();
+        im.setMatrixAt(i, o.matrix);
+      });
+      im.instanceMatrix.needsUpdate = true;
+      if (!moving) this.fx = this.fx.filter(f => f.obj !== im); // settled: stop updating, keep on the floor
+    } });
+  }
+
+  // New run: every pane whole again, shards swept up.
+  resetGlass() {
+    for (const p of this.panes || []) { p.mesh.visible = true; p.extra.forEach(e => { e.visible = true; }); }
+    for (const im of this.shards || []) im.removeFromParent();
+    this.shards = [];
   }
 
   setVisible(on) {
@@ -537,7 +616,11 @@ export class OfficeRunner extends Runner {
     this.reactions = [];
     this.shots = 0;
     this.threatHits = 0;
-    this.shotAt = null;       // when you were shot
+    this.hitsTaken = 0;       // rounds that hit you
+    this.hitAt = null;        // when you were last hit
+    this.killedAt = null;     // when you went down (hits >= lives)
+    this.armorHits = 0;
+    this.victimTalk = 0;      // next time the wounded man speaks (s), 0 = not yet
     this.hostageKilledAt = null;
     this.endAt = null;
     this.lastMs = 0;
@@ -566,43 +649,60 @@ export class OfficeRunner extends Runner {
   }
 
   // Build the cast for this run.
+  // The run's options: CONFIG.office3d.options, overridden by Setup.
+  get opt() { return { ...O().options, ...(this.opts || {}) }; }
+
   setup() {
     const v = this.view;
     const O3 = O();
-    // Wounded man in the lobby.
+    const opt = this.opt;
+    // Wounded man in the lobby: alive, moving, asking for help.
     const victim = v.addPerson('man', 'victim');
     victim.obj.position.set(1.5, 0.12, -4.6);
     victim.obj.rotation.set(-Math.PI / 2, 0, 0.5);
-    victim.actions.idle.timeScale = 0.15;
+    victim.actions.idle.timeScale = 0.35;
     victim.id = 'victim';
     v.victimPool = bloodPool(v.scene, 1.55, -4.45);
+    this.victim = victim;
 
     const spots = shuffle([...PODS, ...OFFICES]);
-    const nGunmen = Math.random() < 0.5 ? 2 : 3;
-    const nInnocent = Math.random() < 0.6 ? 1 : 2;
-    const hostageOffice = pick(OFFICES.filter(o => !spots.slice(0, nGunmen + nInnocent).includes(o)));
-    let t = rand(1.2, 2.5);
+    const nGunmen = opt.gunmen || (Math.random() < 0.5 ? 2 : 3);
+    const nInnocent = opt.innocents >= 0 ? opt.innocents : (Math.random() < 0.6 ? 1 : 2);
+    const hostageOffice = opt.hostage ? pick(OFFICES.filter(o => !spots.slice(0, nGunmen + nInnocent).includes(o))) : null;
+    // Loadouts: one suspect with a rifle, one (another if possible) in armour.
+    const rifleAt = opt.rifle ? Math.floor(Math.random() * nGunmen) : -1;
+    const armorAt = opt.armor ? (nGunmen > 1 ? (rifleAt + 1 + Math.floor(Math.random() * (nGunmen - 1))) % nGunmen : 0) : -1;
+    let t = rand(2.0, 3.5);
     for (let i = 0; i < nGunmen; i++) {
       const spot = spots.shift();
       if (spot === hostageOffice) { i--; continue; }
-      const g = v.addPerson('man', 'gunman', { gun: true });
+      const g = v.addPerson('man', 'gunman', { gun: i === rifleAt ? 'rifle' : 'pistol', vest: i === armorAt });
       this.hide(g, spot);
       g.id = 'gunman' + i;
+      // Some who step out of an office keep advancing on you.
+      g.advances = spot.type === 'office' && Math.random() < 0.45;
       this.events.push({ t, person: g, spot, kind: 'gunman' });
       this.gunmen.push(g);
       t += rand(O3.gunmanGap[0], O3.gunmanGap[1]);
     }
     for (let i = 0; i < nInnocent; i++) {
       const spot = spots.find(s => s.type === 'pod' && s !== hostageOffice);
+      if (!spot) break;
       spots.splice(spots.indexOf(spot), 1);
       const w = v.addPerson('man', 'innocent');
       this.hide(w, spot);
       w.id = 'innocent' + i;
+      // Some raise their hands, some bolt for the far exit.
+      w.flees = opt.fleeing && Math.random() < 0.5;
       this.events.push({ t: rand(0.6, t), person: w, spot, kind: 'innocent' });
+    }
+    if (!hostageOffice) {
+      this.hostagePair = { none: true, started: true, out: false, taker: null };
+      return;
     }
     // Hostage pair, hidden in their office until their cue.
     const hostage = v.addPerson('man', 'hostage');
-    const taker = v.addPerson('man', 'gunman', { gun: true });
+    const taker = v.addPerson('man', 'gunman', { gun: 'pistol' });
     taker.id = 'taker';
     hostage.id = 'hostage';
     taker.hostage = hostage;
@@ -614,7 +714,7 @@ export class OfficeRunner extends Runner {
 
   hide(p, spot) {
     p.spot = spot;
-    if (spot.type === 'pod') p.obj.position.set(spot.x + rand(-0.3, 0.3), -1.2, spot.z + 0.2);
+    if (spot.type === 'pod') p.obj.position.set(spot.x + rand(-0.6, 0.6), -1.2, spot.z + rand(0, 0.45));
     else p.obj.position.set(spot.x - 0.3, 0, -38.6);
     p.obj.visible = false;
   }
@@ -628,7 +728,7 @@ export class OfficeRunner extends Runner {
     p.from = p.obj.position.clone();
     p.to = ev.spot.type === 'pod'
       ? new THREE.Vector3(p.from.x, 0, p.from.z)
-      : new THREE.Vector3(ev.spot.doorX, 0, -35.6 + rand(-0.3, 0.4));
+      : new THREE.Vector3(ev.spot.doorX + rand(-1.4, 0.6), 0, rand(-35.6, -34.0));
     if (ev.spot.type === 'office') {
       // The door swings open first, then they step out.
       this.view.openDoor(ev.spot);
@@ -641,9 +741,15 @@ export class OfficeRunner extends Runner {
     if (p.role === 'gunman') {
       p.live = true;
       // Time to react counts from when he's fully in view with the gun up.
-      p.fireAt = p.revealT + p.moveTime + rand(...O().fireDelay);
+      const fd = this.opt.fireDelay;
+      p.fireAt = p.revealT + p.moveTime + rand(fd, fd * 1.5);
       p.aimAt.copy(this.view.camera.position);
       p.pose = 'aim';
+    } else if (p.flees) {
+      // Stands up, then runs for the far corner of the room.
+      p.pose = null;
+      const side = Math.sign(p.obj.position.x) || 1;
+      p.flee = [new THREE.Vector3(side * 2.4, 0, p.to.z), new THREE.Vector3(side * 2.4, 0, -35.2), new THREE.Vector3(side * 11.5, 0, -35.2)];
     } else {
       p.pose = 'handsUp';
     }
@@ -673,6 +779,18 @@ export class OfficeRunner extends Runner {
       this.caption = 'Clear the room. Engage only armed suspects.';
     }
 
+    // The wounded man: reaching up now and then, asking for help as you pass.
+    if (this.victim && !this.victim.down) {
+      this.victim.pose = Math.sin(t * 0.9) > 0.1 ? 'reach' : null;
+      const near = v.walkZ < 2.5 && v.walkZ > -11;
+      if (near && this.opt.victimVoice && nowS >= this.victimTalk) {
+        const lines = ["Help me... please. I've been shot.", 'Please... help me.', 'They went in there... to the offices...', "I can't... feel my legs...", "Don't leave me..."];
+        say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9 });
+        this.victimLine = 1;
+        this.victimTalk = nowS + rand(4.5, 7);
+      }
+    }
+
     // Moving people into position.
     for (const p of v.people) {
       if (p.revealT == null || !p.to) continue;
@@ -681,7 +799,30 @@ export class OfficeRunner extends Runner {
         p.obj.position.lerpVectors(p.from, p.to, THREE.MathUtils.smoothstep(k, 0, 1));
         p.obj.position.y -= p.sag || 0; // hostage sagging in the gunman's grip
       }
-      if (k >= 1 && p.current === 'walk') p.play('idle');
+      if (k >= 1 && !p.fall && p.flee?.length) {
+        // Running for the exit (then gone).
+        const target = p.flee[0];
+        const step = target.clone().sub(p.obj.position).setY(0);
+        const dist = step.length();
+        p.play('run');
+        if (dist < 0.15) { p.flee.shift(); if (!p.flee.length) p.obj.visible = false; }
+        else {
+          p.obj.position.addScaledVector(step.normalize(), Math.min(dist, O().fleeSpeed * dt));
+          p.obj.rotation.y = Math.atan2(step.x, step.z);
+        }
+        continue;
+      }
+      if (k >= 1 && !p.fall && p.advances && p.live) {
+        // Advancing on you, gun up, for a couple of metres.
+        p.advanceLeft ??= rand(1.0, 2.2);
+        if (p.advanceLeft > 0) {
+          const toCam = v.camera.position.clone().sub(p.obj.position).setY(0).normalize();
+          const d = Math.min(p.advanceLeft, O().advanceSpeed * dt);
+          p.obj.position.addScaledVector(toCam, d);
+          p.advanceLeft -= d;
+          p.play('walk');
+        } else p.play('idle');
+      } else if (k >= 1 && p.current === 'walk') p.play('idle');
       // Face the shooter.
       p.obj.rotation.y = Math.atan2(v.camera.position.x - p.obj.position.x, v.camera.position.z - p.obj.position.z);
       if (p.role === 'gunman') p.aimAt.copy(v.camera.position).add(new THREE.Vector3(0, -0.25, 0));
@@ -691,15 +832,14 @@ export class OfficeRunner extends Runner {
       const rt = nowS - this.roomT0;
       for (const ev of this.events) if (!ev.done && rt >= ev.t) { ev.done = true; this.reveal(ev, nowS); }
 
-      // Armed men who stay up fire.
+      // Armed men who stay up keep firing at you until they're stopped.
       for (const g of this.gunmen) {
-        if (!g.live || g.down || g === this.hostagePair.taker) continue;
-        if (nowS >= g.fireAt && !this.shotAt) {
+        if (!g.live || g.down || g === this.hostagePair.taker || this.killedAt) continue;
+        if (nowS >= g.fireAt) {
           g.fire(nowS);
           enemyShot();
-          this.shotAt = nowMs;
-          this.penalties.push('you were shot');
-          this.endAt = nowMs + 1500;
+          g.fireAt = nowS + rand(...O().refireDelay);
+          this.youAreHit(nowMs);
         }
       }
 
@@ -730,7 +870,7 @@ export class OfficeRunner extends Runner {
         hp.hostage.sag = O().hostageSag;
         hp.deadline = nowS + O().doorLead + walk + O().hostageTime;
       }
-      if (hp.out && !hp.taker.down && !this.hostageKilledAt && nowS >= hp.deadline && !this.shotAt) {
+      if (hp.out && !hp.taker.down && !this.hostageKilledAt && nowS >= hp.deadline && !this.killedAt) {
         hp.taker.fire(nowS);
         enemyShot();
         this.hostageKilledAt = nowMs;
@@ -746,6 +886,17 @@ export class OfficeRunner extends Runner {
     if (this.endAt && nowMs >= this.endAt) this.finish();
   }
 
+  // A suspect's round hit you. At `lives` hits you're down and the run ends.
+  youAreHit(nowMs) {
+    this.hitsTaken++;
+    this.hitAt = nowMs;
+    if (this.hitsTaken >= this.opt.lives && !this.killedAt) {
+      this.killedAt = nowMs;
+      this.penalties.push('you were killed');
+      this.endAt = nowMs + 1800;
+    }
+  }
+
   onShot(score) {
     if (this.state !== State.Running) return;
     this.shots++;
@@ -759,8 +910,9 @@ export class OfficeRunner extends Runner {
       return;
     }
     this.threatHits++;
+    if (!p.firstHit) { p.firstHit = true; this.reactions.push(nowS - p.revealT); }
+    if (score.armor) { this.armorHits++; return; } // the plates stop it
     p.hits = (p.hits || 0) + 1;
-    if (p.hits === 1) this.reactions.push(nowS - p.revealT);
     if (score.bodyZone === 'Head' || p.hits >= O().stopHits) {
       p.live = false;
       p.goDown(nowS, p.spot?.type === 'pod' ? 'drop' : 'back');
@@ -776,7 +928,7 @@ export class OfficeRunner extends Runner {
   finish() {
     const reasons = [...new Set(this.penalties)];
     const stillUp = this.gunmen.filter(g => !g.down && g.obj.visible).length;
-    if (stillUp && !reasons.includes('you were shot')) reasons.push(`suspects still up (${stillUp})`);
+    if (stillUp && !this.killedAt) reasons.push(`suspects still up (${stillUp})`);
     const reaction = this.reactions.length ? this.reactions.reduce((a, b) => a + b, 0) / this.reactions.length : null;
     this.result = {
       datetime: new Date(),
@@ -794,7 +946,8 @@ export class OfficeRunner extends Runner {
       gunmen: this.gunmen.length,
       splits: [],
       early: 0,
-      notes: reasons.join('; ') || `all ${this.gunmen.length} suspects stopped`,
+      hitsTaken: this.hitsTaken,
+      notes: (reasons.join('; ') || `all ${this.gunmen.length} suspects stopped`) + (this.hitsTaken ? `; you were hit ${this.hitsTaken}x` : ''),
     };
     this.state = State.Done;
     this.phase = 'done';
@@ -812,8 +965,27 @@ export class OfficeRunner extends Runner {
       g.textBaseline = 'middle';
       g.fillText(text, W / 2, H * 0.45);
     };
-    if (this.shotAt && this.state === State.Running) flash(this.shotAt, "YOU'VE BEEN SHOT");
+    if (this.killedAt && this.state === State.Running) flash(this.killedAt, "YOU'RE DOWN");
     else if (this.hostageKilledAt && this.state === State.Running) flash(this.hostageKilledAt, 'HOSTAGE KILLED');
+    else if (this.hitAt && this.state === State.Running && nowMs - this.hitAt < 900) {
+      // Hit but still in the fight: a quick red flash and the count.
+      const k = 1 - (nowMs - this.hitAt) / 900;
+      g.fillStyle = `rgba(170,0,0,${0.45 * k})`;
+      g.fillRect(0, 0, W, H);
+      g.fillStyle = `rgba(255,255,255,${k})`;
+      g.font = `800 ${Math.round(H * 0.06)}px system-ui, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(`HIT ${this.hitsTaken} OF ${this.opt.lives}`, W / 2, H * 0.45);
+    }
+    // Wounds: the screen edges redden with each hit taken.
+    if (this.hitsTaken && this.state === State.Running) {
+      const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.9);
+      v.addColorStop(0, 'rgba(120,0,0,0)');
+      v.addColorStop(1, `rgba(120,0,0,${Math.min(0.6, 0.18 * this.hitsTaken)})`);
+      g.fillStyle = v;
+      g.fillRect(0, 0, W, H);
+    }
   }
 
   timerHTML(now) {
@@ -822,7 +994,8 @@ export class OfficeRunner extends Runner {
     if (this.state === State.Running) {
       const label = { call: '<span class="wait">CALL</span>', approach: '<span class="wait">ENTERING</span>', room: '<span class="bad">ROOM</span>' }[this.phase] || '';
       const down = this.gunmen.filter(g => g.down).length;
-      return head + `${label}\nSuspects down: ${down}\nRounds: ${this.shots}` +
+      return head + `${label}\nSuspects down: ${down}\nRounds: ${this.shots}\n` +
+        (this.hitsTaken ? `<span class="bad">Hits taken: ${this.hitsTaken} / ${this.opt.lives}</span>` : `Hits taken: 0 / ${this.opt.lives}`) +
         (this.penalties.length ? `\n<span class="bad">Penalties: ${this.penalties.length}</span>` : '');
     }
     if (this.state === State.Done) {
@@ -847,7 +1020,7 @@ export class OfficeRunner extends Runner {
       return head + lines.join('\n') + '\n' + footer;
     }
     return head + `<b>${this.course.name}</b>\n<span class="muted">${this.course.desc}</span>\n` +
-      `Armed suspects fire if left up ~2 s. ${O().stopHits} body hits or a head hit stops them.\n` + footer;
+      `Armed suspects fire if left up ~${this.opt.fireDelay.toFixed(1)} s. ${O().stopHits} hits or a head hit stops them; body armour stops chest hits. You can take ${this.opt.lives} hit${this.opt.lives > 1 ? 's' : ''}.\n` + footer;
   }
 }
 
