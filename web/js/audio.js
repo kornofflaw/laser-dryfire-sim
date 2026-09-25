@@ -169,13 +169,14 @@ export function say(text, opts = {}) {
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
-    if (opts.polite && synth.speaking) return;
+    if (opts.polite && synth.speaking) return false;
     synth.cancel();
     const u = new SpeechSynthesisUtterance(String(text));
     u.rate = opts.rate ?? 1.15;
     u.pitch = opts.pitch ?? 1;
     u.volume = CONFIG.sound.volume * (opts.volume ?? 1);
     synth.speak(u);
+    return true;
   } catch { /* no speech available */ }
 }
 
@@ -206,7 +207,8 @@ export function radioStatic() {
 }
 
 // A suspect's gunshot: louder and heavier than your own shot's pop.
-export function enemyShot() {
+// opts.indoor: add a room echo (office).
+export function enemyShot(opts = {}) {
   if (forwarded('enemyShot', arguments)) return;
   if (!ctx) return;
   const n = Math.floor(ctx.sampleRate * 0.35);
@@ -221,7 +223,27 @@ export function enemyShot() {
   g.gain.value = Math.min(1, CONFIG.sound.volume * 1.4);
   src.buffer = buf;
   src.connect(g).connect(ctx.destination);
+  if (opts.indoor) {
+    const wet = ctx.createGain();
+    wet.gain.value = CONFIG.sound.indoorEchoMix;
+    g.connect(roomEcho()).connect(wet).connect(ctx.destination);
+  }
   src.start();
+}
+
+// A hard-walled room: a convolver with a decaying noise impulse (made once).
+let echo = null;
+function roomEcho() {
+  if (echo) return echo;
+  const n = Math.floor(ctx.sampleRate * CONFIG.sound.indoorEcho);
+  const ir = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+  }
+  echo = ctx.createConvolver();
+  echo.buffer = ir;
+  return echo;
 }
 
 // Glass shattering: a bright crack, then a tinkling tail of falling shards.

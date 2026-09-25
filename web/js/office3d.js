@@ -365,6 +365,10 @@ export class OfficeView {
       l.position.set(x, y, z);
       this.scene.add(l);
     }
+    // Muzzle flash light: off until someone fires (always in the scene, so
+    // the shaders don't recompile when it comes on).
+    this.muzzle = new THREE.PointLight('#ffc27a', 0, O().muzzleLightRange, 2);
+    this.scene.add(this.muzzle);
     // Daylight through the windows (from the right), casting soft shadows.
     const day = new THREE.DirectionalLight('#eef4ff', O().windowLight);
     day.position.set(30, 6, -30);
@@ -483,6 +487,10 @@ export class OfficeView {
     this.scene.environment = inside ? this.envInside : this.envOutside;
     this.scene.environmentIntensity = inside ? O().envInside : O().envIntensity;
     for (const p of this.people) p.update(dt, now);
+    // The latest shot lights the room around the muzzle for a moment.
+    const shooter = this.people.filter(p => p.flash?.visible).sort((a, b) => b.flashT - a.flashT)[0];
+    this.muzzle.intensity = shooter ? O().muzzleLight : 0;
+    if (shooter) shooter.flash.getWorldPosition(this.muzzle.position);
     for (const f of this.fx) f.update(now);
     this.fx = this.fx.filter(f => { if (f.done) f.obj.removeFromParent(); return !f.done; });
     this.post.render();
@@ -788,8 +796,8 @@ export class OfficeRunner extends Runner {
       const near = v.walkZ < 2.5 && v.walkZ > -11;
       if (near && this.opt.victimVoice && nowS >= this.victimTalk) {
         const lines = ["Help me... please. I've been shot.", 'Please... help me.', 'They went in there... to the offices...', "I can't... feel my legs...", "Don't leave me..."];
-        say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9, polite: true });
-        this.victimLine = 1;
+        const spoke = say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9, polite: true });
+        if (spoke !== false) this.victimLine = 1; // his first line waits until the radio is quiet
         this.victimTalk = nowS + rand(4.5, 7);
       }
     }
@@ -840,7 +848,7 @@ export class OfficeRunner extends Runner {
         if (!g.live || g.down || g === this.hostagePair.taker || this.killedAt) continue;
         if (nowS >= g.fireAt) {
           g.fire(nowS);
-          enemyShot();
+          enemyShot({ indoor: true });
           g.fireAt = nowS + rand(...O().refireDelay);
           this.youAreHit(nowMs);
         }
@@ -875,7 +883,7 @@ export class OfficeRunner extends Runner {
       }
       if (hp.out && !hp.taker.down && !this.hostageKilledAt && nowS >= hp.deadline && !this.killedAt) {
         hp.taker.fire(nowS);
-        enemyShot();
+        enemyShot({ indoor: true });
         this.hostageKilledAt = nowMs;
         hp.hostage.goDown(nowS, 'forward');
         this.penalties.push('hostage killed');

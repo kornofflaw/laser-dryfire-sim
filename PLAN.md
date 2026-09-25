@@ -257,6 +257,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   skips bones whose clip value didn't change, so IK leftovers stuck); the
   lobby victim no longer talks over the dispatch call; cancelling the office
   run stops any speech.
+- 2026-09-25 (hourly review): office gunfire is more real: a suspect's muzzle
+  flash briefly lights the room around him, and shots echo off the walls
+  (WebAudio convolver). The wounded man's first line waits for the radio.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

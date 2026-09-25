@@ -184,6 +184,8 @@ export const CONFIG = {
     hemiIntensity: 0.45,
     sunIntensity: 2.2,      // outside
     roomLight: 9,          // indoor point lights (candela)
+    muzzleLight: 5,        // a suspect's muzzle flash lights up the room this much (candela) for a moment
+    muzzleLightRange: 5,   // metres
     ceilingShadowLight: 0.6, // soft top-down light that grounds people indoors
     partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
     callTime: 6.0,          // seconds outside while the radio call plays
@@ -325,6 +327,8 @@ export const CONFIG = {
     beepSeconds: 0.18,
     hitHz: 1568,            // ~G6 "ding"
     steelHz: 2350,          // base pitch of the steel "ping"
+    indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
+    indoorEchoMix: 0.45,    // echo level relative to the shot
   },
 
   // ---- Storage keys (browser localStorage) --------------------------------
