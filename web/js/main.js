@@ -15,6 +15,7 @@ import { DotTortureRunner } from './dots.js';
 import { ScenarioRunner } from './scenario.js';
 import { PopupRunner } from './popdrill.js';
 import { KnifeRunner } from './knife.js';
+import { FlipRunner } from './flipdrill.js';
 import { COURSES, CATEGORIES } from './courses.js';
 import { RunLog } from './log.js';
 import { LaserCamera } from './camera.js';
@@ -49,6 +50,7 @@ const runners = {
   scenario: new ScenarioRunner(range),
   popup: new PopupRunner(range),
   knife: new KnifeRunner(range),
+  flip: new FlipRunner(range),
 };
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
@@ -85,8 +87,8 @@ function shoot(nx, ny, tMs, source) {
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
   shotPop();
-  if (score.zone === 'Steel') steelPing();
-  else if (score.zone === 'NS' || score.wrongDot) penaltyBuzz();
+  if (score.zone === 'Steel' || score.zone === 'Tile') steelPing();
+  else if (score.zone === 'NS' || score.wrongDot || score.wrongTile) penaltyBuzz();
   else if (['A', 'C', 'D', 'Head'].includes(score.zone)) hitDing();
 }
 
@@ -153,6 +155,7 @@ function frame(now) {
   active().update(now);
   range.autoResetStar = !active().busy;
   range.autoPopups = course().type !== 'popup'; // free practice pops targets itself
+  range.autoFlip = course().type !== 'flip';
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;

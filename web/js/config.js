@@ -41,9 +41,9 @@ export const CONFIG = {
     aZone: { x0: -7.5, x1: 7.5, y0: -12, y1: 16 },
     head: { x0: -7.5, x1: 7.5, y0: 23, y1: 38 },
   },
-  // Steel = a Texas Star plate. Dot = a Dot Torture dot. NS = hitting a
+  // Steel = a Texas Star plate. Tile = a flip-grid plate. Dot = a Dot Torture dot. NS = hitting a
   // no-shoot (bystander) in a scenario: a -10 penalty, as in USPSA.
-  points: { A: 5, C: 3, D: 1, Head: 5, Steel: 5, Dot: 1, NS: -10, Miss: 0 },
+  points: { A: 5, C: 3, D: 1, Head: 5, Steel: 5, Tile: 5, Dot: 1, NS: -10, Miss: 0 },
 
   // ---- Targets -------------------------------------------------------------
   targets: {
@@ -97,6 +97,21 @@ export const CONFIG = {
     // Free practice: random exposures.
     freeExposure: [1.8, 3.2],
     freeGap: [0.4, 1.4],
+    freeMaxUp: 2,
+  },
+
+  // ---- Flip-tile grid (steel frame of square plates that spin around) -----------
+  flip: {
+    cols: 4,
+    rows: 3,
+    boardWidthFrac: 0.62,   // frame width as a fraction of viewport width (max)
+    boardHeightFrac: 0.56,  // frame height as a fraction of viewport height (max)
+    centreY: 0.44,          // frame centre, fraction of viewport height
+    flipTime: 0.2,          // seconds for a plate to spin 180 degrees
+    hittableAbove: 0.45,    // plate must be at least this face-on to be hit
+    // Free practice: random target faces.
+    freeExposure: [1.2, 2.4],
+    freeGap: [0.3, 1.1],
     freeMaxUp: 2,
   },
 

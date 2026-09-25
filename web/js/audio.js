@@ -140,3 +140,17 @@ export function footstep(loudness) {
   src.connect(lp).connect(g).connect(ctx.destination);
   src.start();
 }
+
+// Spoken call-out (browser speech synthesis; no audio files). Silent if the
+// browser has no voices.
+export function say(text) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.rate = 1.15;
+    u.volume = CONFIG.sound.volume;
+    synth.speak(u);
+  } catch { /* no speech available */ }
+}

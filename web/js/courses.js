@@ -5,6 +5,7 @@
 // type 'scenario'  shoot / no-shoot judgment scene (scenario.js + scenarios.js)
 // type 'popup'     pop-up reaction drill (popdrill.js)
 // type 'knife'     parking-lot knife attack (knife.js)
+// type 'flip'      flip-tile grid drills (flipdrill.js)
 //
 // Drill fields (all optional except name/type/parTime):
 //   layout         range layout to use; null = whatever the user picked (L)
@@ -19,7 +20,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Steel', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -65,6 +66,20 @@ const POPUPS = [
     desc: 'Each target stays up a little less: 2.0 s down to 0.8 s.' },
 ];
 
+const FLIP = [
+  { name: 'Flip Grid', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'flash',
+    exposures: 15, together: 1, upTime: 1.6, gap: [0.5, 1.8], passPct: 80,
+    desc: 'Plates spin to an orange target for 1.6 s. Hit each before it spins back.' },
+  { name: 'Flip Grid Pairs', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'flash',
+    exposures: 8, together: 2, upTime: 2.2, gap: [0.8, 2.0], passPct: 80,
+    desc: 'Two plates at a time, 2.2 s. Hit both.' },
+  { name: 'Numbered Grid 1–12', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'order', parTime: 12,
+    desc: 'At the beep all plates spin to numbers. Shoot 1 to 12 in order. Wrong number = penalty.' },
+  { name: 'Called Numbers', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'called',
+    calls: 10, gap: [0.7, 1.8], callPar: 1.5,
+    desc: 'A voice calls a number; shoot that plate. The numbers reshuffle after every hit.' },
+];
+
 const DOTS = [
   { name: 'Dot Torture', category: 'Precision', type: 'dots', layout: 'dots',
     desc: '50 rounds on 10 small dots, untimed. Every round must be in the right dot.' },
@@ -81,6 +96,7 @@ const SCENES = [
 export const COURSES = [
   ...DRILLS.map(d => ({ type: 'drill', ...d })),
   ...POPUPS,
+  ...FLIP,
   ...DOTS,
   ...SCENES,
 ];

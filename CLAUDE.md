@@ -90,6 +90,8 @@ web/                    the app; deploy this folder as-is
   js/scenarios.js       scenario templates (randomized each run)
   js/popdrill.js        PopupRunner: pop-up reaction drills
   js/popups.js          PopupBank: hinged pop-up targets behind a mound
+  js/flipdrill.js       FlipRunner: flip-grid drills (flash / numbered in order / called numbers)
+  js/fliptiles.js       FlipBoard: steel frame of square plates that spin
   js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
   js/uspsa.js           USPSA metric target shape: drawing + zone scoring

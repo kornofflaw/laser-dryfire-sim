@@ -17,7 +17,7 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | Space | Start a timed run (random delay, then the beep) |
 | D | Choose a course: drills, Texas Star, Dot Torture, judgment scenarios |
 | Tab | Next course |
-| L | Targets for free practice: bay, single, pop-ups, movers, Texas Star |
+| L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid |
 | S | Setup: camera, threshold, calibration, run log |
 | C | Calibrate the laser camera |
 | F | Fullscreen |

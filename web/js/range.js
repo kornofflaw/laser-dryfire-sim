@@ -13,6 +13,7 @@
 import { CONFIG } from './config.js';
 import { TexasStar } from './star.js';
 import { PopupBank } from './popups.js';
+import { FlipBoard } from './fliptiles.js';
 import { actorZone, drawActor } from './actors.js';
 import { drawUspsa, classifyUspsa, toCm, USPSA_ASPECT } from './uspsa.js';
 import { drawBackdrop, pattern, FLOOR } from './scenery.js';
@@ -24,6 +25,7 @@ export const LAYOUTS = {
   popup: 'Pop-ups: flip up, drop when hit',
   movers: 'Movers: moving targets',
   star: 'Texas Star (steel spinner)',
+  grid: 'Flip grid (spinning plates)',
 };
 // Layouts only used by specific courses.
 const COURSE_LAYOUTS = ['dots', 'scene', 'lot'];
@@ -53,6 +55,8 @@ export class Range {
     this.star = new TexasStar();
     this.popups = new PopupBank();
     this.autoPopups = true;     // free practice: pop-ups raise themselves
+    this.flip = new FlipBoard();
+    this.autoFlip = true;       // free practice: plates flip to targets themselves
     this.highlightDot = null;   // dot number to highlight (Dot Torture)
     this.autoResetStar = true;  // free practice: rebuild the star after it's cleared
     this.width = 1;
@@ -79,6 +83,7 @@ export class Range {
     this.spawnTimer = CONFIG.targets.spawnInterval; // spawn the first one immediately
     this.star.reset();
     this.popups.reset();
+    this.flip.reset();
     if (this.layout === 'bay') {
       [0.25, 0.5, 0.75].forEach((cx, slot) => this.targets.push(makeUspsa(cx, 0.52, slot)));
     } else if (this.layout === 'single') {
@@ -176,6 +181,10 @@ export class Range {
       this.popups.auto = this.autoPopups;
       this.popups.update(dt, nowSec);
     }
+    if (this.layout === 'grid') {
+      this.flip.auto = this.autoFlip;
+      this.flip.update(dt, nowSec);
+    }
 
     // Spawner (movers).
     if (this.layout === 'movers') {
@@ -228,6 +237,15 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
+
+    if (this.layout === 'grid') {
+      const hit = this.flip.hitTest(px, py, W, H, performance.now() / 1000);
+      if (hit?.tile != null) {
+        const zone = hit.face === 'blank' ? 'Miss' : 'Tile';
+        return { zone, points: CONFIG.points[zone], targetId: `tile-${hit.tile}`, kind: 'tile', ...hit };
+      }
+      return miss;
+    }
 
     if (this.layout === 'popup') {
       const hit = this.popups.hitTest(px, py, W, H);
@@ -286,6 +304,15 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
+    if (this.layout === 'grid') {
+      // Courses handle plate hits themselves; free practice flips targets back.
+      if (score.tile != null && this.autoFlip && score.face === 'target') {
+        this.flip.mark(score.tile, score.u, score.v, true);
+        this.flip.autoHit(score.tile, score.t, nowSec);
+      }
+      return;
+    }
+
     if (this.layout === 'popup') {
       if (score.lane != null) this.popups.hit(score.lane, px, py, W, H, nowSec, score.t);
       else this.impact(px, py, nowSec);
@@ -336,6 +363,7 @@ export class Range {
 
     if (this.layout === 'star') this.star.draw(g, W, H, nowSec);
     if (this.layout === 'popup') this.popups.draw(g, W, H);
+    if (this.layout === 'grid') this.flip.draw(g, W, H, nowSec);
     if (this.layout === 'dots') this.drawPaper(g);
 
     const { h } = this.targetSizePx();
