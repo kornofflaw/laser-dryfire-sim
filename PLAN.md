@@ -138,6 +138,22 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - [x] Knife attacker in the 3D lot is a realistic person too (Character:
       angry idle, sprint, world-space hit reactions, falls forward when
       stopped). The old Ready Player Me / Mixamo files are removed.
+- [x] Office realism pass 1: interior kit (interior3d.js: carpet tiles,
+      acoustic ceiling + troffers, drywall, fabric cubicles, workstations with
+      live screens and task chairs, real framed doors with vision panels and
+      lever handles that swing open, glass office fronts with a frosted band,
+      windows with blinds and a city view, whiteboard, clock, copier,
+      extinguisher, plants); ambient occlusion + bloom + SMAA (post3d.js);
+      interior reflections (RoomEnvironment). Suspects now aim 3-4.5 s
+      (counted from fully in view) before firing.
+- [ ] OFFICE BACKLOG (Andrew, 2026-09-25; the hourly review works through it):
+      breakable glass; more plants; randomized end positions / fleeing
+      innocents; a rifle shooter; a shooter in body armour; player survives
+      up to 3 hits; Setup options for the scenario; the wounded man in the
+      lobby alive, moving and asking for help.
+- [ ] FLIP GRID BACKLOG (Andrew): nicer plates; a course that calls out a
+      shape or colour to hit; Setup option for flip speed; option for plates
+      to flip on and off at a variable rate.
 - [ ] More realism: post-processing (ambient occlusion, bloom), more
       environments (street, store interior), facial expressions (Rocketbox
       avatars have face bones), drawing-a-gun motion instead of a pose blend.
@@ -224,6 +240,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Office realism pass 1 (interior3d.js, post3d.js), fairer fire timing.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

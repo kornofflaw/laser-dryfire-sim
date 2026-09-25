@@ -173,18 +173,23 @@ export const CONFIG = {
   office3d: {
     exposure: 1.0,
     envIntensity: 0.55,     // image-based light from the city sky
-    hemiIntensity: 0.9,
+    hemiIntensity: 0.45,
     sunIntensity: 2.2,      // outside
-    roomLight: 14,          // indoor point lights (candela)
+    roomLight: 9,          // indoor point lights (candela)
     ceilingShadowLight: 0.6, // soft top-down light that grounds people indoors
     partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
     callTime: 6.0,          // seconds outside while the radio call plays
     lookAround: 0.12,       // radians of slow left-right scanning in the office
     riseTime: 0.35,         // seconds to pop up from behind a cubicle wall
     stepOutTime: 0.9,       // seconds to step out of an office door
-    fireDelay: [1.6, 2.4],  // seconds an armed suspect stays up before he fires
-    gunmanGap: [1.2, 3.2],  // seconds between suspects appearing
-    hostageTime: 7.0,       // seconds before the hostage-taker shoots the hostage
+    fireDelay: [3.0, 4.5],  // seconds a suspect aims at you (once fully in view) before he fires
+    gunmanGap: [2.5, 4.5],  // seconds between suspects appearing
+    hostageTime: 10.0,      // seconds before the hostage-taker shoots the hostage
+    doorOpenAngle: 1.7,     // radians an office door swings open
+    doorSpeed: 6,           // how fast doors swing (1/s)
+    doorLead: 0.45,         // seconds the door opens before the suspect steps out
+    windowLight: 0.6,       // daylight through the windows
+    envInside: 0.22,        // reflections / fill light inside the building
     hostageAisleX: 1.0,     // metres from centre where the hostage pair stops in the aisle
     walkSpeed: 1.3,         // m/s the hostage pair walks
     takerOffset: 0.27,      // metres the hostage-taker stands to the side of the hostage
@@ -192,6 +197,17 @@ export const CONFIG = {
     hostageLatest: 16,      // seconds into the room phase the hostage scene starts at the latest
     stopHits: 2,            // body hits to stop a suspect (a head hit stops him at once)
     fallTime: 0.6,          // seconds for a stopped suspect to go down
+  },
+
+  // ---- Screen-space effects for 3D interiors (post3d.js) ------------------------
+  post: {
+    enabled: true,
+    aoRadius: 0.6,          // metres: how far ambient occlusion reaches
+    aoIntensity: 1.0,       // 0..1 blend
+    bloomStrength: 0.18,    // glow around bright lights
+    bloomThreshold: 2.0,    // only light sources (troffers, windows) glow
+    checkFrames: 90,        // frames averaged before dropping effects
+    slowMs: 30,             // average frame time above this drops AO, then bloom
   },
 
   // ---- Judgment scenarios in 3D (judge3d.js) ------------------------------------

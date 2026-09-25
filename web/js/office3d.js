@@ -21,6 +21,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { People } from './people3d.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { Post } from './post3d.js';
+import { makeMaterials, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView } from './interior3d.js';
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
@@ -92,12 +95,17 @@ export class OfficeView {
       new HDRLoader(manager).loadAsync(ASSETS + 'city.hdr'),
       this.cast.load([...new Set(Object.values(ROLE_CAST).flat())]),
     ]);
+    // Reflections and fill light: the city sky outside, a neutral lit room
+    // inside (render() switches when you walk in).
     const pmrem = new THREE.PMREMGenerator(renderer);
     sky.mapping = THREE.EquirectangularReflectionMapping;
-    this.scene.environment = pmrem.fromEquirectangular(sky).texture;
+    this.envOutside = pmrem.fromEquirectangular(sky).texture;
+    this.envInside = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environment = this.envOutside;
     this.scene.environmentIntensity = O().envIntensity;
     sky.dispose();
     pmrem.dispose();
+    this.M = makeMaterials();
 
     this.usedCast = [];
 
@@ -108,6 +116,7 @@ export class OfficeView {
     this.buildOffice();
     this.buildLights();
     this.drops = new GroundDrops(this.scene);
+    this.post = new Post(renderer, this.scene, this.camera);
     this.resize(window.innerWidth, window.innerHeight);
     this.placeCamera(0, 0);
     this.ready = true;
@@ -170,108 +179,169 @@ export class OfficeView {
     }
   }
 
+  // Lobby: polished stone tiles, reception desk, seating, plants.
   buildLobby() {
-    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#d9d4c9', '#bdb6a8', 8), 6), roughness: 0.22, metalness: 0 });
-    const wall = new THREE.MeshStandardMaterial({ color: '#e4e0d8', roughness: 0.85 });
-    const ceil = ceilingMat(4);
+    const M = this.M;
+    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#d9d4c9', '#c9c2b4', 8), 6), roughness: 0.18, metalness: 0 });
     const f = this.box(12, 0.02, 10, floor, 0, 0, -5, { shadow: false });
     f.receiveShadow = true;
-    this.box(12, 0.1, 10, ceil, 0, 3.3, -5, { shadow: false });
-    this.box(0.2, 3.3, 10, wall, -6, 1.65, -5);
-    this.box(0.2, 3.3, 10, wall, 6, 1.65, -5);
-    this.box(4.8, 3.3, 0.2, wall, -3.6, 1.65, -10);
-    this.box(4.8, 3.3, 0.2, wall, 3.6, 1.65, -10);
-    this.box(2.4, 0.6, 0.2, wall, 0, 3.0, -10);
-    // Reception desk and a couch.
-    const wood = new THREE.MeshStandardMaterial({ map: tex(woodTex(), 1), roughness: 0.5 });
-    this.box(3.2, 1.1, 0.8, wood, -3.4, 0.55, -6.2);
-    this.box(3.4, 0.05, 1.0, new THREE.MeshStandardMaterial({ color: '#2b2b2b', roughness: 0.3 }), -3.4, 1.12, -6.2);
-    const fabric = new THREE.MeshStandardMaterial({ color: '#46505c', roughness: 0.95 });
+    this.box(12, 0.1, 10, tiled(M.ceiling, 12, 10, 0.6), 0, 3.35, -5, { shadow: false });
+    this.box(0.2, 3.3, 10, M.wall, -6, 1.65, -5);
+    this.box(0.2, 3.3, 10, M.accentWall, 6, 1.65, -5);
+    this.box(4.8, 3.3, 0.2, M.wall, -3.6, 1.65, -10);
+    this.box(4.8, 3.3, 0.2, M.wall, 3.6, 1.65, -10);
+    this.box(2.4, 0.6, 0.2, M.wall, 0, 3.0, -10);
+    this.baseboards([[-6, -5, 'z', 10], [6, -5, 'z', 10], [-3.6, -10, 'x', 4.8], [3.6, -10, 'x', 4.8]], 0.11);
+    // Reception desk: veneer front, stone top, a monitor for the receptionist.
+    this.box(3.2, 1.1, 0.7, M.veneer, -3.4, 0.55, -6.2);
+    this.box(3.4, 0.04, 0.95, new THREE.MeshStandardMaterial({ color: '#2d2d2f', roughness: 0.2 }), -3.4, 1.12, -6.1);
+    const desk = workstation(M, { w: 1.6, d: 0.6, seed: 90, chair: true });
+    desk.position.set(-3.4, 0, -6.95);
+    desk.rotation.y = Math.PI;
+    this.add(desk);
+    // Seating and plants.
+    const fabric = new THREE.MeshStandardMaterial({ color: '#46505c', roughness: 0.95, normalMap: M.fabric.normalMap });
     this.box(2.2, 0.45, 0.9, fabric, 4.6, 0.25, -7.2);
     this.box(2.2, 0.5, 0.2, fabric, 4.6, 0.7, -7.6);
-    // Lobby ceiling lights.
-    this.lightPanels([[-3, -3], [3, -3], [-3, -7.5], [3, -7.5]], 3.24);
+    for (const [x, z, s] of [[-5.3, -1.2, 1.2], [5.3, -1.2, 1.2], [5.3, -9.2, 1], [-5.3, -9.2, 1]]) this.add(plant(M, s), x, 0, z);
+    const clock = wallClock(M);
+    clock.rotation.y = -Math.PI / 2;
+    this.add(clock, 5.88, 2.4, -5);
+    this.troffers([[-3, -3], [3, -3], [-3, -7.5], [3, -7.5]], 3.3);
   }
 
+  // Hallway to the office: closed office doors on both sides, exit sign.
   buildHall() {
-    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#b9b4ab', '#a39d92', 4), 2), roughness: 0.35 });
-    const wall = new THREE.MeshStandardMaterial({ color: '#d8d3c9', roughness: 0.85 });
-    const door = new THREE.MeshStandardMaterial({ map: tex(woodTex(), 1), roughness: 0.55 });
+    const M = this.M;
+    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#b9b4ab', '#aaa498', 4), 2), roughness: 0.3 });
     this.box(2.4, 0.02, 12, floor, 0, 0, -16, { shadow: false });
-    this.box(2.4, 0.1, 12, ceilingMat(1), 0, 2.85, -16, { shadow: false });
-    this.box(0.15, 2.8, 12, wall, -1.2, 1.4, -16);
-    this.box(0.15, 2.8, 12, wall, 1.2, 1.4, -16);
-    for (const z of [-13, -18]) {
-      this.box(0.06, 2.1, 0.95, door, -1.12, 1.05, z, { solid: false });
-      this.box(0.06, 2.1, 0.95, door, 1.12, 1.05, z - 1.5, { solid: false });
+    this.box(2.4, 0.1, 12, tiled(M.ceiling, 2.4, 12, 0.6), 0, 2.9, -16, { shadow: false });
+    this.box(0.15, 2.85, 12, M.wall, -1.2, 1.425, -16);
+    this.box(0.15, 2.85, 12, M.wall, 1.2, 1.425, -16);
+    this.baseboards([[-1.2, -16, 'z', 12], [1.2, -16, 'z', 12]], 0.085);
+    for (const [x, z] of [[-1, -13], [-1, -18.2], [1, -14.6], [1, -19.8]]) {
+      const d = door(M, { wall: 0.06, hinge: x < 0 ? 'left' : 'right' });
+      d.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2;
+      this.add(d, x * 1.1, 0, z);
+      this.solids.push(...d.userData.solids);
     }
-    this.lightPanels([[0, -12.5], [0, -16], [0, -19.5]], 2.79, 0.6);
+    const ex = exitSign(M);
+    this.add(ex, 0, 2.62, -10.3);
+    this.add(extinguisher(M), 1.05, 0.25, -21.2);
+    this.troffers([[0, -12.5], [0, -16], [0, -19.5]], 2.84, 0.6);
   }
 
+  // The open office: carpet tiles, acoustic ceiling with troffers, cubicle
+  // pods with real workstations, private offices with glass fronts and
+  // doors along the back, windows with blinds on the right.
   buildOffice() {
-    const carpet = new THREE.MeshStandardMaterial({ map: tex(carpetTex(), 10), roughness: 1 });
-    const wall = new THREE.MeshStandardMaterial({ color: '#dcd8cf', roughness: 0.85 });
-    const f = this.box(24, 0.02, 18, carpet, 0, 0, -31, { shadow: false });
+    const M = this.M;
+    const f = this.box(24, 0.02, 18, tiled(M.carpet, 24, 18, 1), 0, 0, -31, { shadow: false });
     f.receiveShadow = true;
-    this.box(24, 0.1, 18, ceilingMat(8), 0, 3.05, -31, { shadow: false });
-    this.box(10.8, 3.0, 0.2, wall, -6.6, 1.5, -22);
-    this.box(10.8, 3.0, 0.2, wall, 6.6, 1.5, -22);
-    this.box(0.2, 3.0, 18, wall, -12, 1.5, -31);
-    this.box(24, 3.0, 0.2, wall, 0, 1.5, -40);
-    // Right wall: windows (bright daylight panels) above a sill.
-    this.box(0.2, 0.9, 18, wall, 12, 0.45, -31);
-    this.box(0.2, 0.3, 18, wall, 12, 2.85, -31);
-    const win = new THREE.Mesh(new THREE.PlaneGeometry(18, 1.8), new THREE.MeshBasicMaterial({ color: '#dbe8f2' }));
-    win.position.set(11.88, 1.8, -31);
-    win.rotation.y = -Math.PI / 2;
-    this.scene.add(win);
+    this.box(24, 0.1, 18, tiled(M.ceiling, 24, 18, 0.6), 0, 3.1, -31, { shadow: false });
+    this.box(10.8, 3.05, 0.2, M.wall, -6.6, 1.525, -22);
+    this.box(10.8, 3.05, 0.2, M.wall, 6.6, 1.525, -22);
+    this.box(0.2, 3.05, 18, M.accentWall, -12, 1.525, -31);
+    this.box(24, 3.05, 0.2, M.wall, 0, 1.525, -40);
+    this.baseboards([[-6.6, -22.1, 'x', 10.8], [6.6, -22.1, 'x', 10.8], [-11.9, -31, 'z', 18]], 0.11);
 
-    // Private offices along the back wall: glass fronts with door openings.
-    const glass = new THREE.MeshPhysicalMaterial({ color: '#b8c6cc', roughness: 0.05, transmission: 0.6, transparent: true, opacity: 0.35, metalness: 0 });
-    const frame = new THREE.MeshStandardMaterial({ color: '#555b61', metalness: 0.6, roughness: 0.4 });
+    // Right wall: window bays with mullions, blinds, and the city outside.
+    this.box(0.2, 0.9, 18, M.wall, 12, 0.45, -31);
+    this.box(0.2, 0.35, 18, M.wall, 12, 2.875, -31);
+    const mull = M.doorFrame;
+    for (let z = -22; z >= -40; z -= 1.5) this.box(0.12, 1.8, 0.06, mull, 11.95, 1.8, z, { solid: false });
+    this.box(0.14, 0.06, 18, mull, 11.95, 0.93, -31, { solid: false });
+    this.box(0.14, 0.06, 18, mull, 11.95, 2.68, -31, { solid: false });
+    for (let z = -22.75, i = 0; z > -40; z -= 1.5, i++) {
+      const bl = blinds(M, 1.42, 1.8, [0.35, 0.6, 0.45, 0.8, 0.3][i % 5]);
+      bl.rotation.y = -Math.PI / 2;
+      this.add(bl, 11.8, 1.8, z);
+    }
+    const out = outsideView(M, 60, 20);
+    out.rotation.y = -Math.PI / 2;
+    this.add(out, 30, 4, -31);
+
+    // Left wall: whiteboard, copier, extinguisher, plant; clock over the entry.
+    const wb = whiteboard(M);
+    wb.rotation.y = Math.PI / 2;
+    this.add(wb, -11.88, 1.55, -30);
+    const cp = copier(M);
+    cp.rotation.y = Math.PI / 2;
+    this.add(cp, -11.5, 0, -24.2);
+    this.add(extinguisher(M), -11.85, 0.25, -35.5);
+    this.add(plant(M, 1.3), -11.3, 0, -38.8);
+    this.add(plant(M, 1.3), 11.3, 0, -23.2);
+    const clock = wallClock(M);
+    clock.rotation.y = Math.PI;
+    this.add(clock, -3, 2.45, -22.12);
+
+    // Private offices along the back wall.
+    this.officeDoors = new Map();
     for (const o of OFFICES) {
-      // Front: glass from office left edge to the door, solid strip after it.
-      this.box(3.9, 2.6, 0.06, glass, o.x - 0.8, 1.3, -36.6, { shadow: false });
-      this.box(0.08, 3.0, 0.1, frame, o.x - 2.75, 1.5, -36.6);
-      this.box(0.08, 3.0, 0.1, frame, o.x + 1.1, 1.5, -36.6);
-      this.box(0.08, 3.0, 0.1, frame, o.x + 2.1, 1.5, -36.6);
-      this.box(1.0, 0.4, 0.1, frame, o.x + 1.6, 2.8, -36.6);
-      this.box(0.12, 3.0, 3.4, wall, o.x + 2.75, 1.5, -38.3);
-      // Desk and a lamp glow inside.
-      this.box(1.6, 0.75, 0.7, new THREE.MeshStandardMaterial({ map: tex(woodTex(), 1), roughness: 0.5 }), o.x - 1, 0.375, -39.2);
+      const z = -36.6;
+      // Glass sidelight with a frosted privacy band, framed.
+      this.box(3.85, 2.95, 0.02, M.glass, o.x - 0.825, 1.5, z, { shadow: false, solid: false });
+      this.box(3.85, 0.25, 0.022, M.frosted, o.x - 0.825, 1.25, z, { shadow: false, solid: false });
+      for (const x of [o.x - 2.75, o.x - 0.8]) this.box(0.06, 3.05, 0.1, M.doorFrame, x, 1.525, z);
+      this.box(3.85, 0.06, 0.1, M.doorFrame, o.x - 0.825, 0.03, z);
+      // The door (hinged on the left, swings into the office) with a glass transom.
+      const d = door(M, { width: 0.92, wall: 0.1, hinge: 'left' });
+      this.add(d, o.doorX, 0, z);
+      this.solids.push(...d.userData.solids);
+      this.officeDoors.set(o, d);
+      this.box(1.0, 0.8, 0.02, M.glass, o.doorX, 2.63, z, { shadow: false, solid: false });
+      this.box(1.0, 0.06, 0.1, M.doorFrame, o.doorX, 3.02, z);
+      // Solid strip and the side wall between offices.
+      this.box(0.65, 3.05, 0.12, M.wall, o.x + 2.425, 1.525, z);
+      this.box(0.12, 3.05, 3.4, M.wall, o.x + 2.75, 1.525, -38.3);
+      // Inside: executive desk, workstation, a plant.
+      const ws = workstation(M, { w: 1.8, d: 0.8, seed: Math.round(o.x * 10) + 50 });
+      ws.position.set(o.x - 1, 0, -39.1);
+      this.add(ws);
+      this.add(plant(M, 1.1), o.x - 2.3, 0, -39.4);
     }
 
-    // Cubicle pods: fabric partitions, desks, monitors, chairs.
-    const part = new THREE.MeshStandardMaterial({ map: tex(fabricTex(), 2), roughness: 1 });
-    const trim = new THREE.MeshStandardMaterial({ color: '#8d9197', metalness: 0.5, roughness: 0.4 });
-    const desk = new THREE.MeshStandardMaterial({ color: '#cfc6b4', roughness: 0.6 });
-    const screen = new THREE.MeshStandardMaterial({ color: '#111', emissive: '#223b55', emissiveIntensity: 0.6, roughness: 0.3 });
-    const chairMat = new THREE.MeshStandardMaterial({ color: '#222629', roughness: 0.7 });
+    // Cubicle pods: fabric panels with aluminium caps, a workstation each.
     const PH = O().partitionHeight;
-    for (const p of PODS) {
+    for (const [i, p] of PODS.entries()) {
       const hw = 1.3;
-      this.box(2.6, PH, 0.06, part, p.x, PH / 2, p.z + hw);           // front, toward you
-      this.box(2.6, 0.04, 0.08, trim, p.x, PH, p.z + hw, { solid: false });
-      this.box(2.6, PH, 0.06, part, p.x, PH / 2, p.z - hw);
-      this.box(0.06, PH, 2.6, part, p.x + (p.x > 0 ? hw : -hw), PH / 2, p.z);
-      this.box(2.4, 0.04, 0.75, desk, p.x, 0.74, p.z - 0.85);
-      this.box(0.55, 0.35, 0.03, screen, p.x - 0.4, 1.0, p.z - 1.05);
-      this.box(0.55, 0.35, 0.03, screen, p.x + 0.3, 1.0, p.z - 1.05);
-      const chair = this.box(0.5, 0.08, 0.5, chairMat, p.x + 0.2, 0.48, p.z - 0.1);
-      chair.rotation.y = rand(-0.5, 0.5);
-      this.box(0.5, 0.55, 0.06, chairMat, p.x + 0.2, 0.8, p.z + 0.15, { solid: false });
+      this.box(2.6, PH, 0.06, M.fabric, p.x, PH / 2, p.z + hw);
+      this.box(2.6, PH, 0.06, M.fabric, p.x, PH / 2, p.z - hw);
+      this.box(0.06, PH, 2.6, M.fabric, p.x + (p.x > 0 ? hw : -hw), PH / 2, p.z);
+      for (const [w, d, x, z] of [[2.62, 0.08, p.x, p.z + hw], [2.62, 0.08, p.x, p.z - hw], [0.08, 2.62, p.x + (p.x > 0 ? hw : -hw), p.z]]) {
+        this.box(w, 0.03, d, M.panelTrim, x, PH + 0.015, z, { solid: false });
+      }
+      const ws = workstation(M, { w: 2.2, d: 0.75, seed: i + 1 });
+      ws.position.set(p.x, 0, p.z - 0.8);
+      this.add(ws);
     }
-    const lights = [];
-    for (let x = -9; x <= 9; x += 4.5) for (const z of [-25, -29.5, -34]) lights.push([x, z]);
-    this.lightPanels(lights, 2.99);
+    const spots = [];
+    for (let x = -9; x <= 9; x += 3) for (const z of [-24.4, -27.4, -30.4, -33.4]) spots.push([x, z]);
+    this.troffers(spots, 3.05);
   }
 
-  lightPanels(spots, y, size = 1.2) {
-    const mat = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#fff8ea', emissiveIntensity: 2.2 });
+  // Add a group (or mesh) to the scene at a position; its solids stop rounds.
+  add(obj, x, y, z) {
+    if (x !== undefined) obj.position.set(x, y, z);
+    obj.traverse(o => { if (o.isMesh && o.castShadow === undefined) o.castShadow = true; });
+    this.scene.add(obj);
+    if (obj.userData?.solids) this.solids.push(...obj.userData.solids);
+    return obj;
+  }
+
+  // Dark rubber baseboards: [x, z, along 'x'|'z', length].
+  baseboards(list, t) {
+    for (const [x, z, axis, len] of list) {
+      if (axis === 'x') this.box(len, 0.1, 0.012, this.M.baseboard, x, 0.05, z + (z > -22.05 ? -t : t), { solid: false, shadow: false });
+      else this.box(0.012, 0.1, len, this.M.baseboard, x + (x > 0 ? -t : t), 0.05, z, { solid: false, shadow: false });
+    }
+  }
+
+  troffers(spots, y, size = 1) {
     for (const [x, z] of spots) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(size, 0.02, size * 0.5), mat);
-      p.position.set(x, y, z);
-      this.scene.add(p);
+      const t = troffer(this.M);
+      t.scale.setScalar(size);
+      this.add(t, x, y, z);
     }
   }
 
@@ -285,12 +355,17 @@ export class OfficeView {
     Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 30, bottom: -30, near: 5, far: 90 });
     sun.shadow.bias = -0.0005;
     this.scene.add(sun, sun.target);
-    // Indoor light: a few soft point lights under the ceiling panels.
-    for (const [x, y, z, i] of [[0, 3.0, -5, 1], [0, 2.7, -16, 0.7], [-6, 2.9, -28, 1], [6, 2.9, -28, 1], [-6, 2.9, -35, 1], [6, 2.9, -35, 1]]) {
+    // Indoor light: soft point lights under the troffers.
+    for (const [x, y, z, i] of [[0, 3.0, -5, 1], [0, 2.7, -16, 0.7], [-6, 2.9, -26, 1], [6, 2.9, -26, 1], [-6, 2.9, -32, 1], [6, 2.9, -32, 1], [0, 2.9, -38, 0.8]]) {
       const l = new THREE.PointLight('#fff5e6', O().roomLight * i, 16, 1.6);
       l.position.set(x, y, z);
       this.scene.add(l);
     }
+    // Daylight through the windows (from the right), casting soft shadows.
+    const day = new THREE.DirectionalLight('#eef4ff', O().windowLight);
+    day.position.set(30, 6, -30);
+    day.target.position.set(0, 0, -31);
+    this.scene.add(day, day.target);
     // Interior shadow caster straight down, so people are grounded indoors.
     const top = new THREE.DirectionalLight('#ffffff', O().ceilingShadowLight);
     top.position.set(0.5, 20, -28);
@@ -299,7 +374,14 @@ export class OfficeView {
     top.shadow.mapSize.set(2048, 2048);
     Object.assign(top.shadow.camera, { left: -13, right: 13, top: 20, bottom: -20, near: 5, far: 30 });
     top.shadow.bias = -0.0005;
+    top.shadow.radius = 4;
     this.scene.add(top, top.target);
+  }
+
+  // Swing an office door open (or shut); render() eases it.
+  openDoor(office, open = true) {
+    const d = this.officeDoors?.get(office);
+    if (d) d.userData.target = open ? O().doorOpenAngle : 0;
   }
 
   // ---- people ----------------------------------------------------------------------
@@ -318,6 +400,7 @@ export class OfficeView {
 
   clearPeople() {
     this.usedCast = [];
+    for (const d of this.officeDoors?.values() || []) { d.userData.target = d.userData.open = 0; d.userData.pivot.rotation.y = 0; }
     for (const p of this.people) {
       p.obj.removeFromParent();
       p.gun?.removeFromParent();
@@ -338,6 +421,7 @@ export class OfficeView {
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
     this.camera.updateProjectionMatrix();
+    this.post?.setSize(W, H);
   }
 
   // Position the camera `t` seconds along the path, plus look-around yaw.
@@ -382,10 +466,19 @@ export class OfficeView {
     const open = THREE.MathUtils.clamp((5 - this.walkZ) / 2.5, 0, 1);
     this.doors[0].position.x = -0.8 - open * 1.5;
     this.doors[1].position.x = 0.8 + open * 1.5;
+    // Office doors swing toward their target angle.
+    for (const d of this.officeDoors?.values() || []) {
+      const u = d.userData;
+      u.open += (u.target - u.open) * Math.min(1, dt * O().doorSpeed);
+      u.pivot.rotation.y = u.open;
+    }
+    const inside = this.walkZ < -1;
+    this.scene.environment = inside ? this.envInside : this.envOutside;
+    this.scene.environmentIntensity = inside ? O().envInside : O().envIntensity;
     for (const p of this.people) p.update(dt, now);
     for (const f of this.fx) f.update(now);
     this.fx = this.fx.filter(f => { if (f.done) f.obj.removeFromParent(); return !f.done; });
-    this.renderer.render(this.scene, this.camera);
+    this.post.render();
   }
 
   // Ray-cast a shot. Returns a score object for Range/Game.
@@ -536,11 +629,19 @@ export class OfficeRunner extends Runner {
     p.to = ev.spot.type === 'pod'
       ? new THREE.Vector3(p.from.x, 0, p.from.z)
       : new THREE.Vector3(ev.spot.doorX, 0, -35.6 + rand(-0.3, 0.4));
-    if (ev.spot.type === 'office') { p.obj.position.set(ev.spot.doorX, 0, -38.2); p.from = p.obj.position.clone(); p.play('walk'); }
+    if (ev.spot.type === 'office') {
+      // The door swings open first, then they step out.
+      this.view.openDoor(ev.spot);
+      p.obj.position.set(ev.spot.doorX, 0, -38.2);
+      p.from = p.obj.position.clone();
+      p.play('walk');
+      p.revealT = nowS + O().doorLead;
+    }
     p.moveTime = ev.spot.type === 'pod' ? O().riseTime : O().stepOutTime;
     if (p.role === 'gunman') {
       p.live = true;
-      p.fireAt = nowS + rand(...O().fireDelay);
+      // Time to react counts from when he's fully in view with the gun up.
+      p.fireAt = p.revealT + p.moveTime + rand(...O().fireDelay);
       p.aimAt.copy(this.view.camera.position);
       p.pose = 'aim';
     } else {
@@ -616,9 +717,10 @@ export class OfficeRunner extends Runner {
         // gunman is behind and a little to the side, so about half his head shows.
         const aisleX = Math.sign(hp.office.x) * O().hostageAisleX;
         const walk = Math.hypot(hp.office.doorX - aisleX, 38.0 - 34.0) / O().walkSpeed;
+        v.openDoor(hp.office);
         for (const [p, dx, dz] of [[hp.hostage, 0, 0], [hp.taker, O().takerOffset, -0.32]]) {
           p.obj.visible = true;
-          p.revealT = nowS;
+          p.revealT = nowS + O().doorLead;
           p.from = new THREE.Vector3(hp.office.doorX + dx, 0, -38.0 + dz);
           p.to = new THREE.Vector3(aisleX + dx, 0, -34.0 + dz);
           p.moveTime = walk;
@@ -626,7 +728,7 @@ export class OfficeRunner extends Runner {
         }
         hp.taker.live = true;
         hp.hostage.sag = O().hostageSag;
-        hp.deadline = nowS + walk + O().hostageTime;
+        hp.deadline = nowS + O().doorLead + walk + O().hostageTime;
       }
       if (hp.out && !hp.taker.down && !this.hostageKilledAt && nowS >= hp.deadline && !this.shotAt) {
         hp.taker.fire(nowS);
@@ -826,14 +928,6 @@ function noise(g, size, alpha, n = 4000) {
 const concrete = () => canvasOf(256, (g, s) => { g.fillStyle = '#a7a39b'; g.fillRect(0, 0, s, s); noise(g, s, 0.12, 9000); g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 2; g.strokeRect(0, 0, s, s); });
 const tiles = (a, b, n) => canvasOf(256, (g, s) => { const k = s / n * 2; for (let y = 0; y < s; y += k) for (let x = 0; x < s; x += k) { g.fillStyle = (x + y) / k % 2 ? a : b; g.fillRect(x, y, k, k); } noise(g, s, 0.05); g.strokeStyle = 'rgba(0,0,0,0.18)'; for (let i = 0; i <= s; i += k) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, s); g.moveTo(0, i); g.lineTo(s, i); g.stroke(); } });
 // Acoustic ceiling tiles; a little emissive stands in for light bouncing off the floor.
-function ceilingMat(repeat) {
-  const map = tex(ceilingTiles(), repeat);
-  return new THREE.MeshStandardMaterial({ map, roughness: 0.9, emissive: '#ffffff', emissiveMap: map, emissiveIntensity: 0.35 });
-}
-const ceilingTiles = () => canvasOf(128, (g, s) => { g.fillStyle = '#ecebe6'; g.fillRect(0, 0, s, s); noise(g, s, 0.05, 1500); g.strokeStyle = '#b9b7b0'; g.lineWidth = 3; g.strokeRect(0, 0, s, s); });
-const carpetTex = () => canvasOf(256, (g, s) => { g.fillStyle = '#4b5057'; g.fillRect(0, 0, s, s); noise(g, s, 0.18, 16000); for (let y = 0; y < s; y += 32) { g.fillStyle = 'rgba(0,0,0,0.06)'; g.fillRect(0, y, s, 16); } });
-const fabricTex = () => canvasOf(128, (g, s) => { g.fillStyle = '#7d828a'; g.fillRect(0, 0, s, s); noise(g, s, 0.15, 5000); });
-const woodTex = () => canvasOf(256, (g, s) => { g.fillStyle = '#8a6242'; g.fillRect(0, 0, s, s); for (let y = 0; y < s; y += 3) { g.fillStyle = `rgba(60,35,20,${Math.random() * 0.25})`; g.fillRect(0, y, s, 2); } });
 function signTexture(text) {
   const c = document.createElement('canvas');
   c.width = 1024; c.height = 144;

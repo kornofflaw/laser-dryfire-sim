@@ -101,6 +101,8 @@ web/                    the app; deploy this folder as-is
   js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
   js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
+  js/interior3d.js      realistic interior kit: canvas materials, doors, workstations, chairs, blinds, fixtures
+  js/post3d.js          screen-space effects (ambient occlusion, bloom, SMAA) with a slow-frame fallback
   js/judge3d.js         judgment scenarios (scenarios.js scripts) in 3D with realistic people, in the parking lot
   js/people3d.js        realistic people: Rocketbox avatars (MIT) + motion-capture clips, as char3d.js rigs
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
