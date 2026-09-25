@@ -164,9 +164,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 3D assets are from the three.js examples (Ready Player Me avatar, Mixamo
   clips, CC BY car, CC0 sky); see web/assets/3d/CREDITS.md. Fine for a
   personal trainer; revisit licences before any commercial use.
-- 3D performance on the projector machine / iPad: needs a real-device check
-  (headless software rendering is not representative: the 3D range runs about
-  1-2 s/frame here, roughly twice the knife scene, on a slow shared CPU).
+- 3D performance: Andrew's live test (2026-09-25) of the 3D range, pop-ups and
+  steel ran smoothly. Headless software rendering is not representative (the
+  3D range runs about 1-2 s/frame there). Still to check: iPad.
 - Laser pulse duration vs. camera fps (gates rapid-fire detection). Browsers
   typically give 30–60 fps.
 - Camera auto-exposure/gain can't be locked from the browser on every OS; if the
@@ -190,6 +190,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Live test passed: 3D pop-ups and steel all work, performance fine.
 - 2026-09-25: 3D pop-ups, 3D Texas Star, Plate Rack and Poppers (steel3d.js);
   Transitions use the 3D bay; per-target-kind distances.
 - 2026-09-25: Photo-real 3D range for Fundamentals (range3d.js, assets/3d/range).
