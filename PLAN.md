@@ -6,7 +6,7 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
 
 > 2026-09-25: Moved from Python/OpenCV + Unity (macOS) to a browser-only app.
 > The old code is in `archive/` for reference. Repo should be private.
-> Hosting: not deployed yet, see "Hosting" below.
+> Hosted on Vercel: https://laser-dryfire-sim.vercel.app (see "Hosting" below).
 
 ---
 
@@ -60,19 +60,23 @@ Now to be built in the web app (canvas sprites instead of Unity objects).
 - [ ] Trend view across sessions.
 
 ## Phase 4 — Hosting / packaging
-- [ ] Pick hosting (see below) and deploy `web/` on every push to main.
+- [x] Hosting: Vercel project `laser-dryfire-sim` (root directory `web/`, no build),
+      production deploys from `main`.
 - [ ] Test on a clean machine: camera permission prompt, fullscreen on the projector.
 
 ---
 
 ## Hosting
-`web/` is plain static files, so any static host works. Constraints:
-- Repo is to stay private. GitHub Pages from a private repo needs a paid plan
-  (GitHub Pro), and the published site is still public.
-- kornofflaw's GitHub user site has the custom domain kornofflaw.com, so any
-  GitHub Pages project site under that account appears at
-  kornofflaw.com/laser-dryfire-sim, not *.github.io.
-- Camera access needs https (all the hosts below provide it).
+- **Vercel**, project `laser-dryfire-sim` (Hobby plan, account kornofflaw), linked to
+  this GitHub repo. Root directory `web/`, no framework, no build command.
+- Production URL: https://laser-dryfire-sim.vercel.app. Pushing to `main`
+  deploys production; other branches get preview URLs.
+- Vercel Authentication is ON (the default): only people logged in to the
+  kornofflaw Vercel account can open the site. To share it with anyone else,
+  turn it off in Vercel → project → Settings → Deployment Protection.
+- Why not GitHub Pages: the repo stays private (Pages would need GitHub Pro), and
+  the account's user site has the custom domain kornofflaw.com, so Pages would
+  put the simulator at kornofflaw.com/laser-dryfire-sim.
 
 ---
 
@@ -109,3 +113,4 @@ Now to be built in the web app (canvas sprites instead of Unity objects).
   threshold tuning preview, guided 4-point calibration with validation, bay /
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
+- 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.

@@ -6,7 +6,8 @@ scores the shot USPSA-style and runs timed drills. Everything runs in one web
 page on any OS. Clicking with the mouse works too, with no hardware needed.
 
 ## Run it
-- **Hosted:** open the site URL (see PLAN.md for where it's deployed).
+- **Hosted:** https://laser-dryfire-sim.vercel.app (sign in to Vercel first;
+  it's protected). Every push to `main` redeploys it.
 - **Locally:** `cd web && python3 -m http.server 8000`, then open
   http://localhost:8000 in Chrome or Edge.
 
