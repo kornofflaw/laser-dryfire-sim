@@ -5,7 +5,8 @@
 //   * procedural poses layered on the clip, solved with a small two-bone arm
 //     IK so they work on any rig: 'aim' (two-handed pistol at a point),
 //     'handsUp', 'hostage' (arm around a hostage, pistol to their head),
-//     'lying' (on the floor, wounded)
+//     'lying' (on the floor, wounded), 'offer' (right hand held out, e.g.
+//     showing a wallet)
 //   * hit reactions by body area, falls, wound stains and blood spray
 //   * an optional pistol prop that follows the right hand and points at the
 //     aim target, with a muzzle flash
@@ -221,6 +222,10 @@ export class Character {
         const hand = sh.clone().addScaledVector(up, 0.42).addScaledVector(right, s * 0.28).addScaledVector(fwd, 0.08);
         this.solveArm(side, hand, right.clone().multiplyScalar(s).addScaledVector(up, -0.5), w);
       }
+    } else if (this.pose === 'offer') {
+      const sh = P('RightArm');
+      const hand = sh.clone().addScaledVector(fwd, 0.42).addScaledVector(up, -0.22).addScaledVector(right, 0.1);
+      this.solveArm('Right', hand, up.clone().multiplyScalar(-1).addScaledVector(right, -0.6), w);
     } else if (this.pose === 'hostage' && this.hostage) {
       const head = this.hostageHead();
       // Gun hand just beside the hostage's head.

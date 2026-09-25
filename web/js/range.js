@@ -41,9 +41,11 @@ export const RANGE3D_KIND = {
   'range3d-stage': 'stage', // items at their own distances (range.stageDef, courses.js)
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
-export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star' };
+export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', scene: 'scene3d' };
+// Layouts drawn by a 3D view (the 2D canvas only overlays them).
+export const is3DLayout = l => l === 'lot3d' || l === 'office3d' || l === 'scene3d' || l.startsWith('range3d');
 // Layouts only used by specific courses.
-const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d', 'range3d-stage'];
+const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d', 'range3d-stage', 'scene3d'];
 
 const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
@@ -256,7 +258,7 @@ export class Range {
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
 
-    if (this.layout === 'office3d' || this.layout.startsWith('range3d')) return this.view3d ? this.view3d.hitTest(nx, ny) : miss;
+    if (this.layout === 'office3d' || this.layout === 'scene3d' || this.layout.startsWith('range3d')) return this.view3d ? this.view3d.hitTest(nx, ny) : miss;
 
     if (this.layout === 'lot3d') {
       // The 3D view ray-casts; the man is a threat only while charging.
@@ -330,7 +332,7 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
-    if (this.layout === 'lot3d' || this.layout === 'office3d' || this.layout.startsWith('range3d')) {
+    if (is3DLayout(this.layout)) {
       // 3D pop-ups and the 3D star share their state with the 2D ones.
       if (score.lane != null && this.layout === 'range3d-popup') this.popups.hit(score.lane, px, py, W, H, nowSec, score.t);
       if (score.plate != null && this.layout === 'range3d-star') this.star.knockOff(score.plate, px, py, W, H, nowSec);
@@ -392,9 +394,9 @@ export class Range {
   draw(g, nowSec, showZones) {
     const W = this.width, H = this.height;
     const floorY = FLOOR * H;
-    if (this.layout === 'lot3d' || this.layout === 'office3d' || this.layout.startsWith('range3d')) {
+    if (is3DLayout(this.layout)) {
       g.clearRect(0, 0, W, H); // the 3D canvas underneath shows through
-      if (this.layout.startsWith('range3d') && this.loadingText) {
+      if (this.loadingText) {
         g.fillStyle = '#1d2126';
         g.fillRect(0, 0, W, H);
         g.fillStyle = '#ccc';

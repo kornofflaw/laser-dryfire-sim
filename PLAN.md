@@ -127,6 +127,20 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - [ ] Ideas: threat that shoots back after N seconds (time pressure), cover /
       partial exposure, verbal-command audio cues, more rooms.
 
+- [x] Realistic people (2026-09-25): Microsoft Rocketbox avatars (MIT) with
+      motion-captured clips, converted with Blender by tools/rocketbox_to_glb.py
+      (people3d.js). Judgment scenarios in 3D (judge3d.js): with the 3D option
+      on, every 2D scenario script (Turn and Reveal, Crowd, Surrender, ...) is
+      played by real-looking people in the 3D parking lot (turned away, phone
+      call, wallet held out, pistol aimed, hands up, walking; hit reactions,
+      blood, falls). Same scripts and grading as 2D. The office scenario uses
+      the same people (gunmen in street clothes, office staff, hostage).
+- [ ] Knife attacker in the 3D lot: move to Character + a Rocketbox person
+      (its reactions/fall are tuned to the old rig's bone axes).
+- [ ] More realism: post-processing (ambient occlusion, bloom), more
+      environments (street, store interior), facial expressions (Rocketbox
+      avatars have face bones), drawing-a-gun motion instead of a pose blend.
+
 ## Phase 3 — Review & analytics
 - [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
 - [x] Shot review (V) after any course: all shots numbered on the final frame,
@@ -209,6 +223,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
+  (judge3d.js, people3d.js) and the office scenario; Blender asset tool.
 - 2026-09-25: iPad remote control: Controller + Display windows (remote.js,
   controller.html/js/css), sound forwarding to the Controller (audio.js).
 - 2026-09-25: Flip Grid Pairs is strict: a plate that spins back unhit ends

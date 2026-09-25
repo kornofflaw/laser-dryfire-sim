@@ -200,6 +200,16 @@ export const CONFIG = {
     fallTime: 0.6,          // seconds for a stopped suspect to go down
   },
 
+  // ---- Judgment scenarios in 3D (judge3d.js) ------------------------------------
+  // The 2D scenario scripts played by realistic people in the 3D parking lot.
+  judge3d: {
+    distance: 7,            // metres from the shooter to where people stand (~23 ft)
+    spread: 11,             // metres across the scene for the scripts' x = 0..1
+    frontStep: 0.9,         // metres a person standing in front of another is closer
+    turnRate: 8,            // rad/s people turn (turning around ~0.4 s)
+    aimJitter: 0.3,         // metres: where each armed person aims around the shooter
+  },
+
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the

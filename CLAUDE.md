@@ -101,6 +101,8 @@ web/                    the app; deploy this folder as-is
   js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
   js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
+  js/judge3d.js         judgment scenarios (scenarios.js scripts) in 3D with realistic people, in the parking lot
+  js/people3d.js        realistic people: Rocketbox avatars (MIT) + motion-capture clips, as char3d.js rigs
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
   js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, Texas Star (rotation from star.js)
   js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor
@@ -123,6 +125,7 @@ web/                    the app; deploy this folder as-is
   controller.html       remote Controller page (iPad screen); js/controller.js + controller.css
   js/remote.js          Controller <-> Display messages (BroadcastChannel); index.html?display is the Display
 docs/IPAD.md            running on an iPad: what works, hardware setup, risks, other routes
+tools/rocketbox_to_glb.py  Blender (pip bpy) script that converts Rocketbox avatars/animations to web GLBs
 archive/                old Python + Unity code, reference only
 ```
 

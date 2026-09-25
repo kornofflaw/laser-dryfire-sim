@@ -67,7 +67,8 @@ export class Lot3DView {
     this.effects = [];
   }
 
-  async init({ cars = V().defaultCars, onProgress = () => {} } = {}) {
+  // man: false builds the lot without the knife man (judge3d.js adds its own people).
+  async init({ cars = V().defaultCars, onProgress = () => {}, man = true } = {}) {
     const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, V().maxPixelRatio));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -90,9 +91,10 @@ export class Lot3DView {
     const draco = new DRACOLoader(manager);
     draco.setDecoderPath('vendor/three/addons/libs/draco/gltf/'); // the car is Draco-compressed
     gltf.setDRACOLoader(draco);
+    this.gltf = gltf;
     const [manG, animG, carG, sky, carShadow] = await Promise.all([
-      gltf.loadAsync(ASSETS + 'man.glb'),
-      gltf.loadAsync(ASSETS + 'anims.glb'),
+      man ? gltf.loadAsync(ASSETS + 'man.glb') : null,
+      man ? gltf.loadAsync(ASSETS + 'anims.glb') : null,
       gltf.loadAsync(ASSETS + 'car.glb'),
       new HDRLoader(manager).loadAsync(ASSETS + 'sky.hdr'),
       new THREE.TextureLoader(manager).loadAsync(ASSETS + 'car_shadow.png'),
@@ -113,7 +115,7 @@ export class Lot3DView {
     this.buildPoles();
     this.buildCars(carG.scene, carShadow);
     this.setCarCount(cars);
-    this.buildMan(manG, animG);
+    if (man) this.buildMan(manG, animG);
     this.groundDrops = new GroundDrops(scene);
     this.blood = true; // Setup can turn blood effects off
     this.resize(window.innerWidth, window.innerHeight);

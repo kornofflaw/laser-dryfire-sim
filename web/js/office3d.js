@@ -18,15 +18,25 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { People } from './people3d.js';
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
-import { Character, buildClips } from './char3d.js';
+import { Character } from './char3d.js';
 import { GroundDrops } from './blood3d.js';
 import { say, radioStatic, enemyShot, penaltyBuzz } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
+// Realistic people (people3d.js) by role: casual clothes for the gunmen,
+// office clothes for the staff, the hostage and the wounded man.
+const ROLE_CAST = {
+  gunman: ['m04', 'm05', 'm06', 'm09', 'm12', 'm17', 'm18'],
+  victim: ['bm02', 'm05', 'm12'],
+  innocent: ['bm02', 'bf01', 'f04', 'f07', 'f13'],
+  hostage: ['bm02', 'bf01', 'f07', 'f13'],
+};
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -74,10 +84,13 @@ export class OfficeView {
     const manager = new THREE.LoadingManager();
     manager.onProgress = (u, l, t) => { this.progress = l / t; onProgress(this.progress); };
     const gltf = new GLTFLoader(manager);
-    const [manG, animG, sky] = await Promise.all([
-      gltf.loadAsync(ASSETS + 'man.glb'),
-      gltf.loadAsync(ASSETS + 'anims.glb'),
+    const draco = new DRACOLoader(manager);
+    draco.setDecoderPath('vendor/three/addons/libs/draco/gltf/'); // the people are Draco-compressed
+    gltf.setDRACOLoader(draco);
+    this.cast = new People(gltf);
+    const [sky] = await Promise.all([
       new HDRLoader(manager).loadAsync(ASSETS + 'city.hdr'),
+      this.cast.load([...new Set(Object.values(ROLE_CAST).flat())]),
     ]);
     const pmrem = new THREE.PMREMGenerator(renderer);
     sky.mapping = THREE.EquirectangularReflectionMapping;
@@ -86,11 +99,7 @@ export class OfficeView {
     sky.dispose();
     pmrem.dispose();
 
-    // One rigged model for everyone for now; roles differ by clothing colour.
-    this.rigs = {
-      man: { scene: manG.scene, clips: buildClips(manG.scene, animG), facing: CONFIG.knife3d.facingOffset,
-             hide: ['Wolf3D_Headwear'] },
-    };
+    this.usedCast = [];
 
     this.solids = [];
     this.buildOutside();
@@ -294,9 +303,13 @@ export class OfficeView {
   }
 
   // ---- people ----------------------------------------------------------------------
+  // A realistic person for the role; nobody appears twice in a run.
   addPerson(rigName, role, opts = {}) {
-    const rig = this.rigs[rigName];
-    const p = new Character(rig, { role, hide: rig.hide, tints: opts.tints || {} });
+    const pool = ROLE_CAST[role] || ROLE_CAST.innocent;
+    const free = pool.filter(id => !this.usedCast.includes(id));
+    const id = pick(free.length ? free : pool);
+    this.usedCast.push(id);
+    const p = new Character(this.cast.rig(id), { role });
     this.scene.add(p.obj);
     if (opts.gun) this.scene.add(p.addGun());
     this.people.push(p);
@@ -304,6 +317,7 @@ export class OfficeView {
   }
 
   clearPeople() {
+    this.usedCast = [];
     for (const p of this.people) {
       p.obj.removeFromParent();
       p.gun?.removeFromParent();
@@ -463,7 +477,7 @@ export class OfficeRunner extends Runner {
     const v = this.view;
     const O3 = O();
     // Wounded man in the lobby.
-    const victim = v.addPerson('man', 'victim', { tints: { Wolf3D_Outfit_Top: '#b8c7d9', Wolf3D_Outfit_Bottom: '#4a5160' } });
+    const victim = v.addPerson('man', 'victim');
     victim.obj.position.set(1.5, 0.12, -4.6);
     victim.obj.rotation.set(-Math.PI / 2, 0, 0.5);
     victim.actions.idle.timeScale = 0.15;
@@ -475,12 +489,10 @@ export class OfficeRunner extends Runner {
     const nInnocent = Math.random() < 0.6 ? 1 : 2;
     const hostageOffice = pick(OFFICES.filter(o => !spots.slice(0, nGunmen + nInnocent).includes(o)));
     let t = rand(1.2, 2.5);
-    const gunTints = [['#1e2126', '#23272e'], ['#3a3027', '#2a2f38'], ['#262b35', '#1f2227']];
     for (let i = 0; i < nGunmen; i++) {
       const spot = spots.shift();
       if (spot === hostageOffice) { i--; continue; }
-      const [top, bottom] = gunTints[i % gunTints.length];
-      const g = v.addPerson('man', 'gunman', { gun: true, tints: { Wolf3D_Outfit_Top: top, Wolf3D_Outfit_Bottom: bottom } });
+      const g = v.addPerson('man', 'gunman', { gun: true });
       this.hide(g, spot);
       g.id = 'gunman' + i;
       this.events.push({ t, person: g, spot, kind: 'gunman' });
@@ -490,14 +502,14 @@ export class OfficeRunner extends Runner {
     for (let i = 0; i < nInnocent; i++) {
       const spot = spots.find(s => s.type === 'pod' && s !== hostageOffice);
       spots.splice(spots.indexOf(spot), 1);
-      const w = v.addPerson('man', 'innocent', { tints: { Wolf3D_Outfit_Top: pick(['#c9d3dc', '#d8cfc0', '#b9c9b5']), Wolf3D_Outfit_Bottom: '#5b6270' } });
+      const w = v.addPerson('man', 'innocent');
       this.hide(w, spot);
       w.id = 'innocent' + i;
       this.events.push({ t: rand(0.6, t), person: w, spot, kind: 'innocent' });
     }
     // Hostage pair, hidden in their office until their cue.
-    const hostage = v.addPerson('man', 'hostage', { tints: { Wolf3D_Outfit_Top: '#e3e6ea', Wolf3D_Outfit_Bottom: '#6a6f78' } });
-    const taker = v.addPerson('man', 'gunman', { gun: true, tints: { Wolf3D_Outfit_Top: '#1a1c20', Wolf3D_Outfit_Bottom: '#202329' } });
+    const hostage = v.addPerson('man', 'hostage');
+    const taker = v.addPerson('man', 'gunman', { gun: true });
     taker.id = 'taker';
     hostage.id = 'hostage';
     taker.hostage = hostage;

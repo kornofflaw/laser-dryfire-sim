@@ -136,6 +136,22 @@ function ensureRange3D() {
 }
 const isRange3D = layout => typeof layout === 'string' && layout.startsWith('range3d');
 
+// The judgment scenarios in 3D: the same scripts and grading (ScenarioRunner),
+// realistic people in the 3D parking lot (judge3d.js).
+let judge3dLoading = null;
+let judge3dError = '';
+function ensureJudge3D() {
+  judge3dLoading ??= (async () => {
+    const mod = await import('./judge3d.js');
+    const view = new mod.Judge3DView(range);
+    views3d.scene3d = view;
+    await view.init({ cars: settings.cars3d });
+    view.blood = settings.blood;
+    view.resize(window.innerWidth, window.innerHeight);
+  })().catch(e => { judge3dError = `Could not load the 3D scene (${e.message}). Turn the 3D range off in Setup.`; console.error(e); });
+  return judge3dLoading;
+}
+
 // Which layout a course uses: its own (the 3D range version when that's on
 // and exists), or for free practice the one picked with L.
 function layoutFor(c) {
@@ -310,11 +326,16 @@ function frame(now) {
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
+  range.loadingText = '';
   if (isRange3D(range.layout)) {
     ensureRange3D();
     const rv = views3d[range.layout];
     if (rv?.ready) rv.setLayout(range.layout); // no-op unless the layout or stage changed
     range.loadingText = rv?.ready ? '' : (range3dError || `Loading 3D range… ${Math.round((rv?.progress || 0) * 100)}%`);
+  } else if (range.layout === 'scene3d') {
+    ensureJudge3D();
+    const jv = views3d.scene3d;
+    range.loadingText = jv?.ready ? '' : (judge3dError || `Loading 3D scene and people… ${Math.round((jv?.progress || 0) * 100)}%`);
   }
   const v3 = views3d[range.layout] || null;
   range.view3d = v3;
@@ -626,6 +647,7 @@ $('#cars3d').oninput = e => {
   $('#cars3d-val').textContent = settings.cars3d;
   persist();
   views3d.lot3d?.setCarCount(settings.cars3d);
+  views3d.scene3d?.setCarCount(settings.cars3d);
 };
 
 $('#opt-real3d').onchange = e => {
@@ -668,8 +690,8 @@ function refreshSetup() {
   }
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
   $('#opt-real3d').disabled = !TO_3D[c.layout];
-  $('#cars3d-row').hidden = !is3D(c.type);
-  $('#cars3d-only').hidden = c.type !== 'knife3d';
+  $('#cars3d-row').hidden = !(is3D(c.type) || range.layout === 'scene3d');
+  $('#cars3d-only').hidden = c.type !== 'knife3d' && range.layout !== 'scene3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;
   $('#cars3d-val').textContent = settings.cars3d;
