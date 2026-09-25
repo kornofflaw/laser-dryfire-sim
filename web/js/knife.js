@@ -56,7 +56,7 @@ export class KnifeRunner extends Runner {
     this.accel = rand(k.accel);
     this.top = rand(k.topSpeed);
     this.chargeAt = nowMs + rand(k.waitTime) * 1000;
-    this.man = this.range.addActor(dressActor({ x: 0.5, pose: 'knife' }));
+    this.man = this.makeMan();
     this.man.stride = 0;
     this.phase = 'standing';
     this.lastMs = nowMs;
@@ -68,6 +68,12 @@ export class KnifeRunner extends Runner {
     super.cancel();
     this.range.reset();
     this.clearRun();
+  }
+
+  // The man. The 2D version is a drawn actor on the range; knife3d.js
+  // overrides this and place() to drive a 3D character instead.
+  makeMan() {
+    return this.range.addActor(dressActor({ x: 0.5, pose: 'knife' }));
   }
 
   // Perspective: size and position from distance.

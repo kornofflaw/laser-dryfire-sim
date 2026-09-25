@@ -28,7 +28,7 @@ export const LAYOUTS = {
   grid: 'Flip grid (spinning plates)',
 };
 // Layouts only used by specific courses.
-const COURSE_LAYOUTS = ['dots', 'scene', 'lot'];
+const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d'];
 
 const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
@@ -56,6 +56,7 @@ export class Range {
     this.popups = new PopupBank();
     this.autoPopups = true;     // free practice: pop-ups raise themselves
     this.flip = new FlipBoard();
+    this.view3d = null;         // 3D view (knife3d.js) for the 'lot3d' layout, loaded on demand
     this.autoFlip = true;       // free practice: plates flip to targets themselves
     this.highlightDot = null;   // dot number to highlight (Dot Torture)
     this.autoResetStar = true;  // free practice: rebuild the star after it's cleared
@@ -238,6 +239,12 @@ export class Range {
     const px = nx * W, py = ny * H;
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
 
+    if (this.layout === 'lot3d') {
+      // The 3D view ray-casts; the man is a threat only while charging.
+      const man = this.view3d?.runnerMan;
+      return this.view3d ? this.view3d.hitTest(nx, ny, man?.pose === 'charge' && !man.stopped) : miss;
+    }
+
     if (this.layout === 'grid') {
       const hit = this.flip.hitTest(px, py, W, H, performance.now() / 1000);
       if (hit?.tile != null) {
@@ -304,6 +311,11 @@ export class Range {
     const W = this.width, H = this.height;
     const px = nx * W, py = ny * H;
 
+    if (this.layout === 'lot3d') {
+      this.view3d?.onShot(score);
+      return;
+    }
+
     if (this.layout === 'grid') {
       // Courses handle plate hits themselves; free practice flips targets back.
       if (score.tile != null && this.autoFlip && score.face === 'target') {
@@ -358,6 +370,10 @@ export class Range {
   draw(g, nowSec, showZones) {
     const W = this.width, H = this.height;
     const floorY = FLOOR * H;
+    if (this.layout === 'lot3d') {
+      g.clearRect(0, 0, W, H); // the 3D canvas underneath shows through
+      return;
+    }
     const backdrop = { scene: 'room', lot: 'lot' }[this.layout] || 'range';
     drawBackdrop(g, backdrop, W, H);
 

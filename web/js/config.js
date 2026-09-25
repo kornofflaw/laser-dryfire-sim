@@ -133,6 +133,29 @@ export const CONFIG = {
     strideTime: 0.3,        // seconds per footstep while sprinting
   },
 
+  // ---- 3D parking lot (knife3d.js) -------------------------------------------------
+  knife3d: {
+    maxPixelRatio: 2,       // cap render resolution on high-DPI screens (performance)
+    exposure: 0.95,         // tone-mapping exposure
+    envIntensity: 0.45,     // image-based light from the dusk sky
+    hemiIntensity: 0.6,     // sky/ground fill light
+    sunIntensity: 1.3,      // low sun behind the store (casts the long shadows)
+    lampIntensity: 60,      // parking-lot lamp spotlights (candela)
+    fogColor: '#6d6474',
+    fogDensity: 0.011,
+    runClipSpeed: 3.2,      // m/s the run animation was captured at (sets its playback rate)
+    fallTime: 0.7,          // seconds to pitch forward when stopped
+    aZoneRadius: 0.1,       // metres from the spine line that count as A zone on the chest
+    jacketTint: '#4b4f55',  // multiplies the avatar's jacket texture (dark street jacket)
+    pantsTint: '#3c4a63',   // multiplies the trousers texture (dark jeans)
+    facingOffset: Math.PI,  // radians: turns the retargeted rig to face the shooter
+    defaultCars: 6,         // parked cars (user can pick 0-maxCars in Setup; fewer = faster)
+    maxCars: 16,
+    carDetailDist: 20,      // metres: cars further than this skip interior parts
+    maxCars: 14,            // parked cars (the car model is detailed; more = slower)
+    carDetailDist: 20,      // metres: cars further than this skip interior parts
+  },
+
   // ---- Adjustable "time up" for flash courses (flip grid, pop-ups) ----------------
   // [ and ] (or the Setup slider) change it per course; saved in this browser.
   upTime: { min: 0.3, max: 6.0, step: 0.1 },

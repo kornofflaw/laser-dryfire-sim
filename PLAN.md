@@ -70,6 +70,18 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       he charges = premature (fail). Logs charge→first shot and stop distance.
       Open question for Andrew: on-screen size assumes a generic projector
       field of view (config.knife.focalFrac); calibrate to life-size later?
+- [x] 3D version (first realistic-3D test, three.js): "Parking Lot: Knife
+      Attack (3D)". Lit dusk parking lot (photographic sky lighting, textured
+      asphalt with worn paint, lamp spotlights, store front, parked cars with
+      real reflections and shadows) and a rigged human with retargeted Mixamo
+      idle/run animation holding a knife. Same rules as the 2D version. Hits are
+      ray-cast against the animated body; zone from the nearest bone.
+      Parked cars 0-16 selectable in Setup (default 6); cars don't cast
+      real-time shadows (baked contact shadows) and distant cars drop interior
+      parts. ~1.1M triangles / ~370 draw calls at 6 cars, 33k with none.
+      Next if Andrew likes it: better character (casual clothes, a proper
+      "charge with knife raised" animation, fall/death clip), varied car models,
+      then convert other scenes.
 - [ ] Ideas: threat that shoots back after N seconds (time pressure), cover /
       partial exposure, verbal-command audio cues, more rooms.
 
@@ -109,6 +121,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 6. ~~Target reaction for scenario people.~~ Done: threats drop after 2 hits.
 
 ## Open questions / risks
+- 3D assets are from the three.js examples (Ready Player Me avatar, Mixamo
+  clips, CC BY car, CC0 sky); see web/assets/3d/CREDITS.md. Fine for a
+  personal trainer; revisit licences before any commercial use.
+- 3D performance on the projector machine / iPad: needs a real-device check
+  (headless software rendering here runs ~20-70 ms/frame).
 - Laser pulse duration vs. camera fps (gates rapid-fire detection). Browsers
   typically give 30–60 fps.
 - Camera auto-exposure/gain can't be locked from the browser on every OS; if the
@@ -132,6 +149,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: First 3D scene: parking-lot knife attack in three.js (vendored),
+  on-demand loading. Rules updated: asset files allowed with credits.
 - 2026-09-25: Flip grid target + 4 flip-grid courses.
 - 2026-09-25: Adjustable time-up per course ([ ] keys, Setup slider).
 - 2026-09-25: Real pop-up targets + 3 pop-up drills; parking-lot knife attack

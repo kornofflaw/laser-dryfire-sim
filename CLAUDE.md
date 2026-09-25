@@ -7,9 +7,10 @@ Read PLAN.md next: it holds phase status, open audit findings, and the changelog
 A laser dry-fire training simulator for practical shooting (USPSA-style scoring
 and structured drills). Long-term aim: something like VirTra, only better.
 
-It is a **static web app** in `web/` (plain HTML/CSS/JS modules, no build step,
-no dependencies). It runs in any modern browser on any OS. Chrome or Edge give
-the best camera timing.
+It is a **static web app** in `web/` (plain HTML/CSS/JS modules, no build step).
+It runs in any modern browser on any OS, including Safari on an iPad. Chrome or
+Edge give the best camera timing. Most scenes are 2D canvas; realistic scenes
+are moving to 3D with three.js (first: the 3D parking-lot knife attack).
 
 Pipeline (all in one browser page):
 ```
@@ -38,9 +39,9 @@ reference only. They are not used and should not be edited.
   changelog).
 - Direction (Sept 2026): get it working well with the mouse first, then use the
   IR gun as the input. Both go through the same `shoot()` path.
-- Visual goal: realistic (outdoor range bay, cardboard USPSA targets on stakes,
-  steel that behaves like steel, lifelike people in scenarios). All art is drawn
-  in code; no image files.
+- Visual goal: realistic. Decision (Sept 2026): stay in the browser (not a
+  native iPad app) and go 3D with three.js plus real assets, one scene at a
+  time, starting with the parking-lot knife attack.
 - Target screen is a desktop/laptop browser or a projector. Don't spend time on
   phone-sized layouts.
 
@@ -68,10 +69,13 @@ reference only. They are not used and should not be edited.
    distortion, so a low-distortion lens is required (no 170-degree fisheye).
    Calibration is only valid while the page fills the same projected area it was
    calibrated at (use fullscreen); setup warns when the viewport size changes.
-7. **No audio or image files.** Sounds are generated in audio.js (WebAudio);
-   backdrops, textures, targets and people are drawn in code.
-8. **No build step, no dependencies.** Plain ES modules served as static files,
-   so the site can be hosted anywhere and opened with any static server.
+7. **No audio files.** Sounds are generated in audio.js (WebAudio). 2D scenes
+   are drawn in code. 3D scenes may use asset files in `web/assets/3d/`; every
+   asset must be listed with its source and licence in `web/assets/3d/CREDITS.md`.
+8. **No build step.** Plain ES modules served as static files. The one library
+   is three.js, vendored (copied) into `web/vendor/three/` and mapped with the
+   import map in index.html; never load it from a CDN at runtime. 3D modules are
+   imported on demand so 2D courses don't pay for them.
 9. Wrap all `localStorage` access in the helpers in storage.js (it can throw).
    Settings, calibration and the run log live in the browser only.
 
@@ -93,6 +97,9 @@ web/                    the app; deploy this folder as-is
   js/flipdrill.js       FlipRunner: flip-grid drills (flash / numbered in order / called numbers)
   js/fliptiles.js       FlipBoard: steel frame of square plates that spin
   js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
+  js/knife3d.js         3D version: Lot3DView (three.js scene, rigged man, raycast hits) + Knife3DRunner
+  assets/3d/            3D models, animations, sky (see CREDITS.md)
+  vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
   js/uspsa.js           USPSA metric target shape: drawing + zone scoring
   js/star.js            Texas Star with rigid-body physics
@@ -115,7 +122,9 @@ archive/                old Python + Unity code, reference only
 - Mouse mode needs no hardware: click targets, Space starts a timed run.
 - Headless check: Playwright + Chromium is available in Claude Code cloud
   sessions. Open the page with `?debug` to get `window.sim` (range, game,
-  runners, selectCourse, shoot) for driving courses from tests. Launch Chromium with `--use-fake-device-for-media-stream` and
+  runners, selectCourse, shoot) for driving courses from tests. For 3D, launch
+  Chromium with `--use-angle=swiftshader --enable-unsafe-swiftshader`; it is
+  slow (~70 ms/frame), so give screenshots long timeouts and use ~960x540. Launch Chromium with `--use-fake-device-for-media-stream` and
   `--use-fake-ui-for-media-stream` to exercise the camera path. Check
   there are no console errors, the scores are right, and the timer and drills work.
 - Real laser testing is done by Andrew on the projector rig. List exactly what to

@@ -35,6 +35,7 @@ const settings = Object.assign({
   course: 'Free Run',
   seenHelp: false,
   upTimes: {},        // per-course "time up" overrides (seconds)
+  cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 
@@ -53,6 +54,40 @@ const runners = {
   knife: new KnifeRunner(range),
   flip: new FlipRunner(range),
 };
+// 3D courses load three.js and their assets on demand (knife3d.js).
+let view3d = null;
+let loading3d = null;
+class Loading3DRunner extends DrillRunner {
+  panelHTML() {
+    const pct = view3d ? Math.round(view3d.progress * 100) : 0;
+    return `<b class="title">JUDGMENT · 3D</b><b>${this.course.name}</b>\nLoading 3D scene… ${pct}%` +
+      (this.error ? `\n<span class="bad">${this.error}</span>` : '');
+  }
+  timerHTML() { return `<b class="title">3D</b>Loading…`; }
+  start() {}
+}
+runners.knife3d = new Loading3DRunner();
+
+function ensure3D() {
+  if (loading3d) return loading3d;
+  loading3d = (async () => {
+    const mod = await import('./knife3d.js');
+    view3d = new mod.Lot3DView($('#range3d'));
+    range.view3d = view3d;
+    try {
+      await view3d.init({ cars: settings.cars3d });
+    } catch (e) {
+      runners.knife3d.error = `Could not load the 3D scene (${e.message}). This needs WebGL.`;
+      throw e;
+    }
+    const r = new mod.Knife3DRunner(range, view3d);
+    r.onComplete(result => log.add(result, lastInput));
+    runners.knife3d = r;
+    if (course().type === 'knife3d') r.setCourse(withUpTime(course()));
+  })();
+  return loading3d;
+}
+
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
 const active = () => runners[course().type];
@@ -109,7 +144,7 @@ function resize() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   range.resize(W, H);
 }
-window.addEventListener('resize', () => { resize(); refreshSetup(); });
+window.addEventListener('resize', () => { resize(); view3d?.resize(window.innerWidth, window.innerHeight); refreshSetup(); });
 
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
@@ -160,6 +195,9 @@ function frame(now) {
   range.update(dt, now / 1000);
 
   const W = window.innerWidth, H = window.innerHeight;
+  const show3d = range.layout === 'lot3d' && view3d?.ready;
+  view3d?.setVisible(show3d);
+  if (show3d) view3d.render(now);
   range.draw(g, now / 1000, settings.showZones);
   active().drawOverlay?.(g, W, H, now);
 
@@ -215,6 +253,7 @@ function selectCourse(i, announce = true) {
   const c = course();
   active().setCourse(withUpTime(c));
   range.setLayout(c.layout ?? settings.layout);
+  if (c.type === 'knife3d') ensure3D().catch(() => {});
   settings.course = c.name;
   persist();
   renderCourseList();
@@ -441,8 +480,19 @@ $('#up-time-reset').onclick = () => {
   toast('Time up reset to default.');
 };
 
+$('#cars3d').oninput = e => {
+  settings.cars3d = Number(e.target.value);
+  $('#cars3d-val').textContent = settings.cars3d;
+  persist();
+  view3d?.setCarCount(settings.cars3d);
+};
+
 function refreshSetup() {
   const c = course();
+  $('#cars3d-row').hidden = c.type !== 'knife3d';
+  $('#cars3d').max = CONFIG.knife3d.maxCars;
+  $('#cars3d').value = settings.cars3d;
+  $('#cars3d-val').textContent = settings.cars3d;
   const hasUp = c.upTime != null;
   $('#up-time-row').hidden = !hasUp;
   $('#up-time-none').hidden = hasUp;
@@ -547,6 +597,7 @@ function toast(msg) {
 resize();
 active().setCourse(withUpTime(course()));
 range.setLayout(course().layout ?? settings.layout);
+if (course().type === 'knife3d') ensure3D().catch(() => {});
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;
 // Reopen the camera if it was on last time (works once permission was granted).

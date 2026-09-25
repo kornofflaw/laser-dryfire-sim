@@ -6,6 +6,7 @@
 // type 'popup'     pop-up reaction drill (popdrill.js)
 // type 'knife'     parking-lot knife attack (knife.js)
 // type 'flip'      flip-tile grid drills (flipdrill.js)
+// type 'knife3d'   the knife attack in real 3D (knife3d.js, loaded on demand)
 //
 // Drill fields (all optional except name/type/parTime):
 //   layout         range layout to use; null = whatever the user picked (L)
@@ -86,6 +87,8 @@ const DOTS = [
 ];
 
 const SCENES = [
+  { name: 'Parking Lot: Knife Attack (3D)', category: 'Judgment', type: 'knife3d', layout: 'lot3d',
+    desc: 'The knife attack in realistic 3D: a man with a knife ~30 ft away. If he charges, stop him before he reaches you.' },
   { name: 'Parking Lot: Knife Attack', category: 'Judgment', type: 'knife', layout: 'lot',
     desc: 'A man with a knife, ~30 ft away in a parking lot. If he charges, stop him before he reaches you.' },
   { name: 'Random Scenario', category: 'Judgment', type: 'scenario', layout: 'scene', template: null,
