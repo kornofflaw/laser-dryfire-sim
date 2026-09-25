@@ -9,7 +9,7 @@ import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
 import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
-import { Range, LAYOUTS, RANGE3D_KIND, TO_3D } from './range.js';
+import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
 import { DrillRunner } from './run.js';
 import { DotTortureRunner } from './dots.js';
@@ -414,6 +414,12 @@ const actions = {
     const r = active();
     if (r.busy) return;
     if (course().type === 'drill' || course().type === 'stage') showCourseLayout(course());
+    // Not while a 3D range/scene is still loading: its targets or people
+    // wouldn't be there yet (every shot a miss, or a scenario played unseen).
+    // The knife and office scenarios have their own loading runner.
+    if (is3DLayout(range.layout) && !is3D(course().type) && !views3d[range.layout]?.ready) {
+      return toast('The 3D scene is still loading. Start again in a moment.');
+    }
     const t = performance.now();
     r.start(t);
     if (r.busy) review.startRun(course(), t);

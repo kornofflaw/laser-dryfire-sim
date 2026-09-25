@@ -224,6 +224,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
+  loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
   (judge3d.js, people3d.js), the knife attack and the office scenario; Blender
   asset tool. Props held in hands at true size (attachProp). Fixed a
