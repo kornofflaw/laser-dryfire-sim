@@ -11,7 +11,8 @@
 // score and sounds agree with the drill.
 //
 // Course fields: mode, and for 'flash': exposures, together, upTime, gap,
-// passPct; for 'order': parTime; for 'called': calls, gap, callPar.
+// passPct, failOnMiss (a plate that spins back unhit ends the run as a FAIL);
+// for 'order': parTime; for 'called': calls, gap, callPar.
 
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
@@ -49,6 +50,7 @@ export class FlipRunner extends Runner {
     this.done = 0;
     this.current = [];
     this.records = [];
+    this.gotAway = false;
     // order
     this.next = 1;
     this.splits = [];
@@ -97,6 +99,10 @@ export class FlipRunner extends Runner {
     if (this.state !== State.Running) return;
 
     if (c.mode === 'flash') {
+      if (c.failOnMiss && this.current.some(r => r.expired)) {
+        this.gotAway = true;
+        return this.finish(nowMs);
+      }
       if (this.current.length && this.current.every(r => r.hitAt != null || r.expired)) {
         this.current = [];
         if (this.done >= c.exposures) return this.finish(nowMs);
@@ -179,8 +185,9 @@ export class FlipRunner extends Runner {
         fastest: reactions.length ? Math.min(...reactions) : null,
         targets: this.records.length, targetsHit: hits.length,
         hits: hits.length,
-        passed: pct >= c.passPct && this.wrong === 0,
-        notes: `${hits.length}/${this.records.length} plates; ${this.wrong} wrong`,
+        passed: pct >= c.passPct && this.wrong === 0 && !this.gotAway,
+        gotAway: !!this.gotAway,
+        notes: `${hits.length}/${this.records.length} plates; ${this.wrong} wrong` + (this.gotAway ? '; a plate got away (run ended)' : ''),
       };
     } else if (c.mode === 'order') {
       const time = (endMs - this.revealMs) / 1000;
@@ -257,7 +264,8 @@ export class FlipRunner extends Runner {
       const r = this.result;
       const lines = [`<b>${c.name}</b> — ${r.passed ? '<span class="go">PASS</span>' : '<span class="bad">FAIL</span>'}`];
       if (c.mode === 'flash') {
-        lines.push(`Plates hit: ${r.targetsHit}/${r.targets}  (need ${c.passPct}%)`);
+        lines.push(`Plates hit: ${r.targetsHit}/${r.targets}  (${c.failOnMiss ? 'need every plate' : `need ${c.passPct}%`})`);
+        if (r.gotAway) lines.push(`<span class="bad">✗ A plate spun back before you hit it — run over</span>`);
         lines.push(`Avg reaction: ${f2(r.reaction)}s   Fastest: ${f2(r.fastest)}s`);
       } else if (c.mode === 'order') {
         lines.push(`Time 1→${this.n}: ${f2(r.time)}s  (par ${c.parTime}s)`);

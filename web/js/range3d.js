@@ -12,6 +12,8 @@
 //   range3d-star     Texas Star; rotation from range.star (star.js physics)
 //   range3d-plates   plate rack      } state and falling in steel3d.js
 //   range3d-poppers  poppers         }
+//   range3d-stage    a stage (courses.js): paper, no-shoots and steel, each at
+//                    its own distance; the definition comes from init's stage()
 //
 // Targets are drawn from the same geometry as the 2D ones (CONFIG.uspsa):
 // the die-cut shape comes from an alpha map, and scoring maps the ray's hit
@@ -31,7 +33,8 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
 import { RANGE3D_KIND } from './range.js';
-import { steelMaterials, PlateRack, Poppers, Star3D } from './steel3d.js';
+import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel } from './steel3d.js';
+import { stageTargets } from './courses.js';
 
 const R = () => CONFIG.range3d;
 const Ucfg = () => CONFIG.uspsa;
@@ -59,10 +62,13 @@ export class Range3DView {
   }
 
   get kind() { return RANGE3D_KIND[this.layoutName] || 'paper'; }
-  get distanceYards() { return this.yards[this.kind]; }
+  get distanceYards() { return this.kind === 'stage' ? 0 : this.yards[this.kind]; } // stage items place themselves
+  get lookYards() { return this.kind === 'stage' ? R().stageLookYards : this.yards[this.kind]; }
 
-  // yards: { kind: yards } overrides; star / popups: range.star, range.popups.
-  async init({ yards, star, popups } = {}) {
+  // yards: { kind: yards } overrides; star / popups: range.star, range.popups;
+  // stage: () => the current stage definition (range.stageDef).
+  async init({ yards, star, popups, stage } = {}) {
+    this.stageSource = stage || (() => null);
     Object.assign(this.yards, yards || {});
     this.star = star;
     this.bank = popups;
@@ -73,6 +79,9 @@ export class Range3DView {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
+    // Shadows are redrawn only while something moves (see render()).
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = true;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.05, 500);
@@ -303,10 +312,12 @@ export class Range3DView {
   // ---- targets ---------------------------------------------------------------------
   // Everything for a layout sits in one group at the targets' distance.
   setLayout(layout, force = false) {
-    if (this.layoutName === layout && !force) return;
+    const stage = RANGE3D_KIND[layout] === 'stage' ? this.stageSource() : null;
+    if (this.layoutName === layout && stage === this.builtStage && !force) return false;
     this.layoutName = layout;
+    this.builtStage = stage;
     if (!this.ready) return;
-    if (this.layoutGroup) this.layoutGroup.removeFromParent();
+    if (this.layoutGroup) this.disposeLayout();
     this.solids = this.solids.filter(o => !this.layoutSolids.includes(o));
     this.layoutSolids = [];
     this.targets = [];
@@ -320,6 +331,8 @@ export class Range3DView {
       xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot)));
     } else if (kind === 'popup') {
       this.buildPopups();
+    } else if (kind === 'stage') {
+      if (stage) this.buildStage(stage);
     } else {
       const S = kind === 'star' ? new Star3D(this.star, this.steelMats)
         : kind === 'plates' ? new PlateRack(this.steelMats) : new Poppers(this.steelMats);
@@ -328,6 +341,18 @@ export class Range3DView {
       this.addSolids(S.solids);
     }
     this.placeTargets();
+    this.clearMarks();
+    this.resize(window.innerWidth, window.innerHeight); // aim for the new kind
+    this.shadowAt = 0; // redraw shadows now
+    return true;
+  }
+
+  // Free the old layout's GPU memory: its geometries and each cardboard face's
+  // own textures and material (shared materials stay).
+  disposeLayout() {
+    this.layoutGroup.removeFromParent();
+    this.layoutGroup.traverse(o => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); });
+    for (const c of this.cards) { c.colorTex.dispose(); c.alphaTex.dispose(); c.mat.dispose(); }
     this.clearMarks();
   }
 
@@ -343,12 +368,13 @@ export class Range3DView {
 
   placeTargets() {
     this.layoutGroup?.position.set(0, 0, -this.distanceYards * YARD);
+    this.shadowAt = 0;
   }
 
   // A cardboard USPSA face with its own colour and alpha canvases (for holes).
   makeCard(meta, pxPerCm = PX_PER_CM) {
     const U = Ucfg();
-    const color = cardboardCanvas(pxPerCm);
+    const color = cardboardCanvas(pxPerCm, meta.kind === 'noshoot');
     const alpha = alphaCanvas(pxPerCm);
     const colorTex = new THREE.CanvasTexture(color.canvas);
     colorTex.colorSpace = THREE.SRGBColorSpace;
@@ -376,13 +402,16 @@ export class Range3DView {
     c.jolt = null;
   }
 
-  makeTarget(x, slot) {
+  // A cardboard target on stakes in a stand. opts: z (m), id, noShoot, dy
+  // (raise/lower the face, m), pxPerCm (texture detail; less for far ones).
+  makeTarget(x, slot, opts = {}) {
     const U = Ucfg();
     const H = U.height / 100;
+    const dy = opts.dy || 0;
     const group = new THREE.Group();
-    const card = this.makeCard({ kind: 'uspsa', slot });
+    const card = this.makeCard({ kind: opts.noShoot ? 'noshoot' : 'uspsa', slot }, opts.pxPerCm);
     const face = card.face;
-    face.position.y = R().targetCenterY;
+    face.position.y = R().targetCenterY + dy;
     // Face and stakes flex together from the stand when hit (or in the breeze).
     const pivot = new THREE.Group();
     pivot.position.y = 0.09;
@@ -392,7 +421,7 @@ export class Range3DView {
 
     // Two 1x2 pine stakes behind the face, in a 2x4 stand.
     const solids = [];
-    const stakeH = R().targetCenterY + H * 0.35;
+    const stakeH = R().targetCenterY + dy + H * 0.35;
     for (const sx of [-0.13, 0.13]) {
       // 1x2 furring strip (19 x 38 mm), wide face stapled flat to the back of the target.
       const stake = new THREE.Mesh(new THREE.BoxGeometry(0.038, stakeH, 0.019), this.mats.wood);
@@ -420,12 +449,31 @@ export class Range3DView {
     blob.position.set(0, 0.002, -0.024);
     blob.renderOrder = 1;
     group.add(blob);
-    group.position.x = x;
+    group.position.set(x, 0, opts.z || 0);
     this.layoutGroup.add(group);
     this.addSolids(solids);
     card.pivot = pivot;
-    card.id = 'target3d-' + slot;
+    card.id = opts.id || 'target3d-' + slot;
     return { x, slot, group, pivot, face, card, solids, id: card.id };
+  }
+
+  // A stage: every item at its own spot. Paper and no-shoots on stands (far
+  // ones with lighter textures), steel as one StageSteel set.
+  buildStage(def) {
+    const steel = [];
+    let slot = 0;
+    for (const it of stageTargets(def)) {
+      const z = -it.yd * YARD;
+      if (it.steel) { steel.push({ ...it, z }); continue; }
+      this.targets.push(this.makeTarget(it.x, slot++, {
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+      }));
+    }
+    if (steel.length) {
+      this.steel = new StageSteel(steel, this.steelMats);
+      this.layoutGroup.add(this.steel.group);
+      this.addSolids(this.steel.solids);
+    }
   }
 
   // Pop-ups: one hinged face per lane of the PopupBank, behind a low dirt
@@ -469,6 +517,7 @@ export class Range3DView {
     this.cards.forEach(c => this.resetCard(c));
     this.steel?.reset();
     this.clearMarks();
+    this.shadowAt = 0;
   }
 
   clearMarks() {
@@ -486,7 +535,7 @@ export class Range3DView {
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
     this.camera.position.set(0, CONFIG.knife.eyeHeight, 0);
-    this.camera.lookAt(0, R().aimY[this.kind], -this.distanceYards * YARD);
+    this.camera.lookAt(0, R().aimY[this.kind], -this.lookYards * YARD);
     this.camera.updateProjectionMatrix();
   }
 
@@ -495,6 +544,7 @@ export class Range3DView {
     const now = nowMs / 1000;
     const dt = Math.max(0, Math.min(0.1, now - (this.lastT ?? now)));
     this.lastT = now;
+    this.adaptResolution(dt);
     if (this.wind) this.wind.value = now;
     for (const t of this.targets) {
       // A light breeze, plus the jolt of a hit (a damped spring).
@@ -525,6 +575,12 @@ export class Range3DView {
     }
     for (const f of this.fx) f.update(now);
     this.fx = this.fx.filter(f => { if (f.done) f.obj.removeFromParent(); return !f.done; });
+    // Shadows: every frame while something moves, otherwise now and then
+    // (the targets' breeze sway is too small to need more).
+    if (this.moving || now - (this.shadowAt || 0) > R().shadowIdleInterval) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.shadowAt = now;
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -553,11 +609,13 @@ export class Range3DView {
           if (!L || L.state === 'down' || L.state === 'falling' || Math.sin(L.a * Math.PI / 2) < CONFIG.popup.hittableAbove) continue;
           return { ...base, targetId: `popup-${card.meta.lane}`, kind: 'popup', lane: card.meta.lane };
         }
+        if (card.meta.kind === 'noshoot') return { ...base, zone: 'NS', points: CONFIG.points.NS, targetId: card.id, kind: 'noshoot' };
         return { ...base, targetId: card.id, kind: 'uspsa', slot: card.meta.slot };
       }
       if (o.userData.steel != null && this.steel) {
         const i = o.userData.steel;
-        const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: `${this.steel.name}-${i}`, kind: 'steel', steel: i, point: h.point, dir };
+        const id = this.steel.idOf ? this.steel.idOf(i) : `${this.steel.name}-${i}`;
+        const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: id, kind: 'steel', steel: i, point: h.point, dir };
         if (this.kind === 'star') s.plate = i; // range.js knocks it off the star's physics
         return s;
       }
@@ -581,7 +639,7 @@ export class Range3DView {
     if (score.card) {
       const t = score.card;
       punchHole(t, score.uv);
-      if (t.meta.kind === 'uspsa') t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
+      if (t.meta.kind !== 'popup') t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
       this.fx.push(debris(this.scene, score.point, score.dir, '#c9a36b', 14, [0.6, 2.2], 0.01, 0.6));
       // The round carries on into the berm behind.
       const ray = new THREE.Raycaster(score.point.clone().addScaledVector(score.dir, 0.05), score.dir);
@@ -612,13 +670,43 @@ export class Range3DView {
     if (this.marks.length > 60) this.marks.shift().removeFromParent();
   }
 
-  setVisible(on) { this.canvas.style.display = on ? 'block' : 'none'; }
+  setVisible(on) {
+    if (this.visible === on) return;
+    this.visible = on;
+    this.canvas.style.display = on ? 'block' : 'none';
+  }
+
+  // Is anything moving whose shadow would change?
+  get moving() {
+    return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving ||
+      (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
+  }
+
+  // Frame-rate guard: if frames are slow, render at a lower resolution
+  // (steps down only, never back up until the page reloads).
+  adaptResolution(dt) {
+    const A = R().adapt;
+    if (dt <= 0 || dt > 0.25) return; // paused or hidden
+    this.frameSum = (this.frameSum || 0) + dt;
+    this.frameCount = (this.frameCount || 0) + 1;
+    if (this.frameCount < A.frames) return;
+    const avgMs = (this.frameSum / this.frameCount) * 1000;
+    this.frameSum = this.frameCount = 0;
+    const pr = this.renderer.getPixelRatio();
+    if (avgMs > A.slowMs && pr > A.minPixelRatio) {
+      this.renderer.setPixelRatio(Math.max(A.minPixelRatio, pr - A.step));
+      this.resize(window.innerWidth, window.innerHeight);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Target textures (drawn from CONFIG.uspsa, in centimetres)
 // ---------------------------------------------------------------------------
-const PX_PER_CM = 22; // close targets: 46 cm wide -> 1012 px (far ones use less)
+// Texture detail for close targets. 12 px/cm makes a 552 x 912 face: even at
+// 3 yards a target is only ~330 px tall on a 1080p screen, so more is wasted
+// memory and upload time on every hit. Far targets use CONFIG farPxPerCm.
+const PX_PER_CM = 12;
 
 function cmToPx(x, y, k) {
   const U = Ucfg();
@@ -634,7 +722,7 @@ function polyPath(g, pts, k) {
 // Cardboard: tan with fibre streaks and blotches, the printed perforation
 // lines and zone letters, and staples where it's fixed to the stakes.
 // k = pixels per cm; sizes below are for k = PX_PER_CM and scale with it.
-function cardboardCanvas(k = PX_PER_CM) {
+function cardboardCanvas(k = PX_PER_CM, noShoot = false) {
   const U = Ucfg();
   const sc = k / PX_PER_CM;
   const P = (x, y) => cmToPx(x, y, k);
@@ -658,14 +746,18 @@ function cardboardCanvas(k = PX_PER_CM) {
     g.fillStyle = b;
     g.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // Fibres.
+  // Fibres: short dark and light strokes, drawn in a few batches (one path
+  // per colour and strength) rather than one stroke call each.
   g.lineWidth = 1;
-  for (let i = 0; i < 9000 * sc * sc; i++) {
-    const x = rnd() * c.width, y = rnd() * c.height, a = rnd() * Math.PI, l = (2 + rnd() * 7) * sc;
-    g.strokeStyle = rnd() < 0.5 ? `rgba(95,65,35,${0.05 + rnd() * 0.12})` : `rgba(245,225,185,${0.05 + rnd() * 0.12})`;
+  const fibres = c.width * c.height * 0.0053;
+  for (const col of ['95,65,35', '245,225,185']) for (const alpha of [0.07, 0.12, 0.16]) {
+    g.strokeStyle = `rgba(${col},${alpha})`;
     g.beginPath();
-    g.moveTo(x, y);
-    g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+    for (let i = 0; i < fibres / 6; i++) {
+      const x = rnd() * c.width, y = rnd() * c.height, a = rnd() * Math.PI, l = (2 + rnd() * 7) * sc;
+      g.moveTo(x, y);
+      g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+    }
     g.stroke();
   }
   // Printed perforation lines (short slits).
@@ -701,6 +793,11 @@ function cardboardCanvas(k = PX_PER_CM) {
     g.moveTo(px, py - 10 * sc);
     g.lineTo(px, py + 10 * sc);
     g.stroke();
+  }
+  // No-shoots are painted white over the cardboard.
+  if (noShoot) {
+    g.fillStyle = 'rgba(236,234,226,0.9)';
+    g.fillRect(0, 0, c.width, c.height);
   }
   const pristine = document.createElement('canvas');
   pristine.width = c.width;
@@ -976,21 +1073,29 @@ function dustPuff(scene, point, normal, color = '#a58f73', size = 1) {
   return fx;
 }
 
-// A darker, scuffed spot where a round went into the dirt.
+// A darker, scuffed spot where a round went into the dirt (one shared
+// texture, material and quad for all of them).
+let strike = null;
 function strikeMark(scene, point, normal) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d');
-  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 30);
-  gr.addColorStop(0, 'rgba(25,18,12,0.9)');
-  gr.addColorStop(0.35, 'rgba(45,32,22,0.6)');
-  gr.addColorStop(1, 'rgba(60,45,30,0)');
-  g.fillStyle = gr;
-  g.fillRect(0, 0, 64, 64);
-  const mat = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.12), mat);
+  if (!strike) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 30);
+    gr.addColorStop(0, 'rgba(25,18,12,0.9)');
+    gr.addColorStop(0.35, 'rgba(45,32,22,0.6)');
+    gr.addColorStop(1, 'rgba(60,45,30,0)');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 64, 64);
+    strike = {
+      mat: new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 }),
+      geo: new THREE.PlaneGeometry(0.12, 0.12),
+    };
+  }
+  const m = new THREE.Mesh(strike.geo, strike.mat);
   m.position.copy(point).addScaledVector(normal, 0.004);
   m.lookAt(point.clone().add(normal));
+  m.rotateZ(Math.random() * Math.PI * 2);
   scene.add(m);
   return m;
 }

@@ -15,7 +15,7 @@ page on any OS. Clicking with the mouse works too, with no hardware needed.
 | Key | Action |
 | --- | --- |
 | Space | Start a timed run (random delay, then the beep) |
-| D | Choose a course: drills, pop-ups, steel (Texas Star, plate rack, poppers), Dot Torture, judgment scenarios |
+| D | Choose a course: drills, pop-ups, steel (Texas Star, plate rack, poppers, mini poppers), USPSA-style stages, Dot Torture, judgment scenarios |
 | Tab | Next course |
 | L | Targets for free practice: bay, single, pop-ups, movers, Texas Star, flip grid, and the 3D range versions |
 | [ / ] | Shorter / longer time targets stay up (flip grid, pop-ups) |
@@ -29,5 +29,5 @@ Laser setup (once per room): project the page fullscreen, plug in the camera,
 **Setup → Start camera**, tune the threshold until the preview is dark with no
 laser, then **Calibrate** by shooting the 4 crosshairs and the centre.
 
-See **PLAN.md** for the roadmap and **CLAUDE.md** for architecture and rules.
+On an iPad, see **docs/IPAD.md**. See **PLAN.md** for the roadmap and **CLAUDE.md** for architecture and rules.
 The earlier Python + Unity version is in `archive/` for reference.

@@ -38,11 +38,12 @@ export const LAYOUTS = {
 export const RANGE3D_KIND = {
   'range3d-single': 'paper', 'range3d-bay': 'paper', 'range3d-popup': 'popup',
   'range3d-star': 'star', 'range3d-plates': 'plates', 'range3d-poppers': 'poppers',
+  'range3d-stage': 'stage', // items at their own distances (range.stageDef, courses.js)
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
 export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star' };
 // Layouts only used by specific courses.
-const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d'];
+const COURSE_LAYOUTS = ['dots', 'scene', 'lot', 'lot3d', 'office3d', 'range3d-stage'];
 
 const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
@@ -70,7 +71,8 @@ export class Range {
     this.popups = new PopupBank();
     this.autoPopups = true;     // free practice: pop-ups raise themselves
     this.flip = new FlipBoard();
-    this.view3d = null;         // 3D view (knife3d.js) for the 'lot3d' layout, loaded on demand
+    this.view3d = null;         // 3D view for 3D layouts, loaded on demand
+    this.stageDef = null;       // the stage course's layout ({ items }) for 'range3d-stage'
     this.autoFlip = true;       // free practice: plates flip to targets themselves
     this.highlightDot = null;   // dot number to highlight (Dot Torture)
     this.autoResetStar = true;  // free practice: rebuild the star after it's cleared

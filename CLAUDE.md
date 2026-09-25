@@ -102,7 +102,8 @@ web/                    the app; deploy this folder as-is
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
   js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
-  js/steel3d.js         3D steel for the range: plate rack, poppers, Texas Star (rotation from star.js)
+  js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, Texas Star (rotation from star.js)
+  js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
@@ -118,6 +119,8 @@ web/                    the app; deploy this folder as-is
   js/log.js             per-run log in localStorage, CSV export
   js/review.js          shot review: records shots + frames during a run, review screen (V)
   js/storage.js         safe localStorage helpers
+  manifest.webmanifest  Add to Home Screen (iPad/tablet) app manifest; icon.svg is its icon
+docs/IPAD.md            running on an iPad: what works, hardware setup, risks, other routes
 archive/                old Python + Unity code, reference only
 ```
 

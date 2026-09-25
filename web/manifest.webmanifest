@@ -1,0 +1,12 @@
+{
+  "name": "Laser Dry-Fire Range",
+  "short_name": "Dry-Fire",
+  "description": "Laser dry-fire training: USPSA-style scoring, shot timer, drills, stages and scenarios.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2126",
+  "theme_color": "#1d2126",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

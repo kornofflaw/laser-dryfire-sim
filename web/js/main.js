@@ -16,6 +16,7 @@ import { ScenarioRunner } from './scenario.js';
 import { PopupRunner } from './popdrill.js';
 import { KnifeRunner } from './knife.js';
 import { FlipRunner } from './flipdrill.js';
+import { StageRunner } from './stage.js';
 import { COURSES, CATEGORIES } from './courses.js';
 import { ShotReview } from './review.js';
 import { RunLog } from './log.js';
@@ -63,6 +64,7 @@ const runners = {
   popup: new PopupRunner(range),
   knife: new KnifeRunner(range),
   flip: new FlipRunner(range),
+  stage: new StageRunner(),
 };
 // 3D courses load three.js and their assets on demand. Each 3D layout has
 // its own view (canvas + scene); range.view3d is the one for the current layout.
@@ -126,7 +128,7 @@ function ensureRange3D() {
     for (const l of Object.keys(RANGE3D_KIND)) views3d[l] = view;
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
     const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
-    await view.init({ yards, star: range.star, popups: range.popups });
+    await view.init({ yards, star: range.star, popups: range.popups, stage: () => range.stageDef });
     view.resize(window.innerWidth, window.innerHeight);
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
@@ -139,6 +141,11 @@ function layoutFor(c) {
   if (c.layout == null) return settings.layout;
   return settings.real3d && TO_3D[c.layout] ? TO_3D[c.layout] : c.layout;
 }
+// Put up a course's targets (a stage also needs its item list).
+function showCourseLayout(c) {
+  range.stageDef = c.stage || null;
+  range.setLayout(layoutFor(c));
+}
 // The 3D range layout the Setup distance slider is about, if any.
 const setupLayout3D = () => (isRange3D(range.layout) ? range.layout : TO_3D[course().layout] || null);
 
@@ -146,8 +153,7 @@ const setupLayout3D = () => (isRange3D(range.layout) ? range.layout : TO_3D[cour
 range.onReset = () => {
   const v = views3d[range.layout];
   if (!v?.ready || !v.resetTargets) return;
-  if (v.layoutName !== range.layout) v.setLayout(range.layout);
-  else v.resetTargets();
+  if (!v.setLayout(range.layout)) v.resetTargets(); // rebuilt for a new layout/stage, or just cleared
 };
 
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
@@ -182,7 +188,7 @@ const review = new ShotReview({ canvases: () => [views3d[range.layout]?.canvas, 
 // What shot times count from, per course type.
 function reviewZero(r) {
   switch (course().type) {
-    case 'drill': return [r.runStart || null, 'beep'];
+    case 'drill': case 'stage': return [r.runStart || null, 'beep'];
     case 'dots': return [r.startT, 'start'];
     case 'scenario': return [r.sceneStart, 'scene appearing'];
     case 'popup': return [r.startT, 'start'];
@@ -243,9 +249,27 @@ canvas.addEventListener('pointerdown', e => {
   shoot(e.clientX / window.innerWidth, e.clientY / window.innerHeight, performance.now(), 'mouse');
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+// On touch screens (iPad) only the END of a tap counts as a user gesture for
+// starting audio, so unlock there too.
+window.addEventListener('pointerup', unlockAudio);
+window.addEventListener('touchend', unlockAudio);
+
+// Keep the screen awake while the page is open (tablets and laptops would
+// otherwise dim or lock mid-session). Needs a user gesture on some browsers,
+// and is dropped when the page is hidden, so ask again.
+let wakeLock = null;
+async function keepAwake() {
+  if (wakeLock || document.visibilityState !== 'visible' || !navigator.wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch { /* not allowed yet; try again on the next tap */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+window.addEventListener('pointerup', keepAwake);
 
 // ---- HUD -------------------------------------------------------------------------
-const hudEls = { stats: $('#stats'), timer: $('#timer'), drill: $('#drill') };
+const hudEls = { stats: $('#stats'), timer: $('#timer'), drill: $('#drill'), start: $('#start-btn') };
 const hudCache = {};
 function setHUD(key, html) {
   if (hudCache[key] === html) return;
@@ -288,7 +312,7 @@ function frame(now) {
   if (isRange3D(range.layout)) {
     ensureRange3D();
     const rv = views3d[range.layout];
-    if (rv?.ready && rv.layoutName !== range.layout) rv.setLayout(range.layout);
+    if (rv?.ready) rv.setLayout(range.layout); // no-op unless the layout or stage changed
     range.loadingText = rv?.ready ? '' : (range3dError || `Loading 3D range… ${Math.round((rv?.progress || 0) * 100)}%`);
   }
   const v3 = views3d[range.layout] || null;
@@ -303,6 +327,7 @@ function frame(now) {
   setHUD('stats', statsHTML(now));
   setHUD('timer', active().timerHTML(now));
   setHUD('drill', active().panelHTML(now));
+  setHUD('start', active().busy ? 'Stop <kbd>Esc</kbd>' : 'Start <kbd>Space</kbd>');
 
   if (!$('#setup').hidden) updateCameraStatus();
   requestAnimationFrame(frame);
@@ -351,7 +376,7 @@ function selectCourse(i, announce = true) {
   courseIndex = (i + COURSES.length) % COURSES.length;
   const c = course();
   active().setCourse(withUpTime(c));
-  range.setLayout(layoutFor(c));
+  showCourseLayout(c);
   if (is3D(c.type)) ensure3D(c.type).catch(() => {});
   settings.course = c.name;
   persist();
@@ -365,10 +390,14 @@ const actions = {
     unlockAudio();
     const r = active();
     if (r.busy) return;
-    if (course().type === 'drill') range.setLayout(layoutFor(course()));
+    if (course().type === 'drill' || course().type === 'stage') showCourseLayout(course());
     const t = performance.now();
     r.start(t);
     if (r.busy) review.startRun(course(), t);
+  },
+  // Toolbar button: starts a run, or stops one (no Esc key on a tablet).
+  startStop() {
+    if (active().busy) { active().cancel(); toast('Run cancelled.'); } else actions.start();
   },
   drill(step = 1) { selectCourse(courseIndex + step); },
   courses() { toggleCourses(); },
@@ -600,12 +629,12 @@ $('#cars3d').oninput = e => {
 $('#opt-real3d').onchange = e => {
   settings.real3d = e.target.checked;
   persist();
-  if (!active().busy) range.setLayout(layoutFor(course()));
+  if (!active().busy) showCourseLayout(course());
   refreshSetup();
 };
 $('#dist3d').oninput = e => {
   const kind = RANGE3D_KIND[setupLayout3D()];
-  if (!kind) return;
+  if (!CONFIG.range3d.yardsRange[kind]) return;
   const yd = Number(e.target.value);
   settings.yards3d = { ...(settings.yards3d || {}), [kind]: yd };
   $('#dist3d-val').textContent = `${yd} yd`;
@@ -625,7 +654,9 @@ function refreshSetup() {
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
   $('#range3d-row').hidden = !l3;
-  if (kind) {
+  // Stages set each target's distance themselves: no slider.
+  $('#dist3d-label').hidden = !CONFIG.range3d.yardsRange[kind];
+  if (CONFIG.range3d.yardsRange[kind]) {
     const [lo, hi] = CONFIG.range3d.yardsRange[kind];
     const dist = $('#dist3d');
     dist.min = lo; dist.max = hi;
@@ -743,7 +774,7 @@ function toast(msg) {
 // ---- Boot --------------------------------------------------------------------------------
 resize();
 active().setCourse(withUpTime(course()));
-range.setLayout(layoutFor(course()));
+showCourseLayout(course());
 if (is3D(course().type)) ensure3D(course().type).catch(() => {});
 refreshSetup();
 if (!settings.seenHelp) $('#help').hidden = false;

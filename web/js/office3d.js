@@ -402,7 +402,11 @@ export class OfficeView {
     else this.fx.push(dust(this.scene, score.point));
   }
 
-  setVisible(on) { this.canvas.style.display = on ? 'block' : 'none'; }
+  setVisible(on) {
+    if (this.visible === on) return; // called every frame; only touch the DOM on change
+    this.visible = on;
+    this.canvas.style.display = on ? 'block' : 'none';
+  }
 }
 
 // ---------------------------------------------------------------------------

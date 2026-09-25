@@ -8,6 +8,8 @@
 // type 'flip'      flip-tile grid drills (flipdrill.js)
 // type 'knife3d'   the knife attack in real 3D (knife3d.js, loaded on demand)
 // type 'office3d'  active shooter in an office building, 3D (office3d.js, on demand)
+// type 'stage'     USPSA-style stage on the 3D range: paper, no-shoots and steel
+//                  at their own distances (stage.js scores it, range3d.js draws it)
 //
 // Drill fields (all optional except name/type/parTime):
 //   layout         range layout to use; null = whatever the user picked (L).
@@ -24,7 +26,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Stages', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -79,14 +81,71 @@ const FLIP = [
     exposures: 15, together: 1, upTime: 1.6, gap: [0.5, 1.8], passPct: 80,
     desc: 'Plates spin to an orange target for a moment. Hit each before it spins back.' },
   { name: 'Flip Grid Pairs', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'flash',
-    exposures: 8, together: 2, upTime: 2.2, gap: [0.8, 2.0], passPct: 80,
-    desc: 'Two plates at a time. Hit both before they spin back.' },
+    exposures: 8, together: 2, upTime: 2.2, gap: [0.8, 2.0], passPct: 100, failOnMiss: true,
+    desc: 'Two plates at a time. Hit both before they spin back: one that gets away fails the run.' },
   { name: 'Numbered Grid 1–12', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'order', parTime: 12,
     desc: 'At the beep all plates spin to numbers. Shoot 1 to 12 in order. Wrong number = penalty.' },
   { name: 'Called Numbers', category: 'Flip Grid', type: 'flip', layout: 'grid', mode: 'called',
     calls: 10, gap: [0.7, 1.8], callPar: 1.5,
     desc: 'A voice calls a number; shoot that plate. The numbers reshuffle after every hit.' },
 ];
+
+// Stages. Items: type 'paper' | 'noshoot' | 'popper' | 'mini' | 'plate', x in
+// metres (left -, right +, from the shooting position), yd = distance in yards.
+// No-shoots are listed after the paper they cover and sit a little in front;
+// dy raises (+) or lowers (-) one, in metres. Plates may set h (stand height).
+// Every paper needs 2 hits and every piece of steel has to fall (CONFIG.stage).
+const STAGES = [
+  { name: 'Mini Poppers', category: 'Steel', parTime: 5.0, maxShots: 10,
+    desc: 'Five mini poppers at 10 yards (3D). Knock them all down.',
+    stage: { items: [-2.4, -1.2, 0, 1.2, 2.4].map(x => ({ type: 'mini', x, yd: 10 })) } },
+  { name: 'Paper and Steel', category: 'Stages', parTime: 8.0, maxShots: 16,
+    desc: 'Two paper at 7 yd, two poppers, two plates. 2 hits per paper, all steel down.',
+    stage: { items: [
+      { type: 'plate', x: -3.6, yd: 10 },
+      { type: 'paper', x: -1.6, yd: 7 },
+      { type: 'popper', x: -0.6, yd: 13 },
+      { type: 'popper', x: 0.8, yd: 13 },
+      { type: 'paper', x: 1.8, yd: 7 },
+      { type: 'plate', x: 3.8, yd: 10 },
+    ] } },
+  { name: 'No-Shoots', category: 'Stages', parTime: 8.0, maxShots: 14,
+    desc: 'Three paper, each partly behind a white no-shoot, plus a mini popper. Hitting a no-shoot costs 10.',
+    stage: { items: [
+      { type: 'paper', x: -2.2, yd: 8 },
+      { type: 'noshoot', x: -1.9, yd: 7.8, dy: -0.25 },
+      { type: 'paper', x: 0, yd: 9 },
+      { type: 'noshoot', x: -0.3, yd: 8.8, dy: 0.25 },
+      { type: 'paper', x: 2.2, yd: 8 },
+      { type: 'noshoot', x: 2.55, yd: 7.8, dy: -0.1 },
+      { type: 'mini', x: -4.6, yd: 12 },
+    ] } },
+  { name: 'Long Course', category: 'Stages', parTime: 16.0, maxShots: 26,
+    desc: 'Paper from 5 to 15 yards, plates, mini poppers and a far popper. 2 per paper, all steel down.',
+    stage: { items: [
+      { type: 'paper', x: -3.2, yd: 5 },
+      { type: 'plate', x: -4.6, yd: 10 },
+      { type: 'plate', x: -3.9, yd: 10 },
+      { type: 'plate', x: -3.2, yd: 10 },
+      { type: 'paper', x: -1.4, yd: 9 },
+      { type: 'noshoot', x: -1.0, yd: 8.8, dy: -0.3 },
+      { type: 'mini', x: -0.3, yd: 15 },
+      { type: 'popper', x: 0.6, yd: 20 },
+      { type: 'mini', x: 1.5, yd: 15 },
+      { type: 'paper', x: 2.0, yd: 12 },
+      { type: 'paper', x: 3.4, yd: 6 },
+    ] } },
+];
+
+// The stage's items with their target ids: P1.. for paper, NS1.. for
+// no-shoots, S1.. for steel. range3d.js and stage.js both use this.
+export function stageTargets(stage) {
+  let p = 0, n = 0, s = 0;
+  return stage.items.map(it => ({
+    ...it, id: it.type === 'paper' ? `P${++p}` : it.type === 'noshoot' ? `NS${++n}` : `S${++s}`,
+    steel: it.type !== 'paper' && it.type !== 'noshoot',
+  }));
+}
 
 const DOTS = [
   { name: 'Dot Torture', category: 'Precision', type: 'dots', layout: 'dots',
@@ -109,6 +168,7 @@ export const COURSES = [
   ...DRILLS.map(d => ({ type: 'drill', ...d })),
   ...POPUPS,
   ...FLIP,
+  ...STAGES.map(c => ({ type: 'stage', layout: 'range3d-stage', ...c })),
   ...DOTS,
   ...SCENES,
 ];

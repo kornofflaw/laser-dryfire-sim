@@ -565,7 +565,11 @@ export class Lot3DView {
   // Debug/test helper: play a reaction without a shot.
   react(kind, side = 1) { this.impulses.push({ kind, t0: performance.now() / 1000, side, scale: 1 }); }
 
-  setVisible(on) { this.canvas.style.display = on ? 'block' : 'none'; }
+  setVisible(on) {
+    if (this.visible === on) return; // called every frame; only touch the DOM on change
+    this.visible = on;
+    this.canvas.style.display = on ? 'block' : 'none';
+  }
 }
 
 // ---------------------------------------------------------------------------

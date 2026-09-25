@@ -67,8 +67,15 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
 - [x] New steel courses (3D only): Plate Rack (six 8" plates, 10 yd, falls back
       onto the stop bar) and Poppers (four full-size poppers, 12 yd, tip over).
       Each target kind keeps its own distance (Setup → Current course).
+- [x] Stages (3D): USPSA-style mixes of paper, white no-shoots and steel, each
+      item at its own distance (courses.js STAGES, stage.js StageRunner):
+      Paper and Steel, No-Shoots, Long Course. Mini Poppers (Steel). Stage
+      score: best 2 hits per paper, -10 per miss (missing hit or standing
+      steel) and per no-shoot hit, floored at 0; hit factor = points / time.
+      Ends by itself when everything is engaged.
 - [ ] 3D range next: life-size option (camera FOV from screen width + viewing
-      distance); movers and the flip grid in 3D; mini poppers / mixed arrays.
+      distance); movers and the flip grid in 3D; more stages (hard cover,
+      swingers, a stage builder).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
@@ -131,6 +138,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - [ ] Trend view across sessions.
 
 ## Phase 4 — Hosting / packaging
+- [x] iPad study (docs/IPAD.md): runs in Safari as is (iPadOS 17+ supports the
+      USB camera via getUserMedia). Touch fixes done: audio unlock on tap end,
+      Start button doubles as Stop, screen wake lock, Add to Home Screen
+      manifest (full screen). To test on a real iPad + hub + projector.
+- [ ] Offline support (service worker) if the range PC / iPad has no internet.
 - [x] Hosting: Vercel project `laser-dryfire-sim` (root directory `web/`, no build),
       production deploys from `main`.
 - [ ] Test on a clean machine: camera permission prompt, fullscreen on the projector.
@@ -190,6 +202,14 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   pop-up / mover layouts, shot timer, 4 drills, PASS/FAIL + hit factor, early-shot
   flag, CSV run log. Python + Unity code moved to `archive/`.
 - 2026-09-25: Deployed to Vercel (laser-dryfire-sim.vercel.app), auto-deploys from main.
+- 2026-09-25: Flip Grid Pairs is strict: a plate that spins back unhit ends
+  the run as a FAIL (course field failOnMiss).
+- 2026-09-25: Stages + Mini Poppers (stage.js). Efficiency pass on the 3D
+  range: target textures 12 px/cm (was 22; ~3x less memory and upload per
+  hit), batched fibre drawing, old layouts freed on course change, shared
+  strike marks, shadows redrawn only while something moves, automatic
+  resolution drop if frames are slow. iPad readiness (docs/IPAD.md).
+  Hourly automated review scheduled.
 - 2026-09-25: Live test passed: 3D pop-ups and steel all work, performance fine.
 - 2026-09-25: 3D pop-ups, 3D Texas Star, Plate Rack and Poppers (steel3d.js);
   Transitions use the 3D bay; per-target-kind distances.

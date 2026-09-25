@@ -45,6 +45,12 @@ export const CONFIG = {
   // no-shoot (bystander) in a scenario: a -10 penalty, as in USPSA.
   points: { A: 5, C: 3, D: 1, Head: 5, Steel: 5, Tile: 5, Dot: 1, NS: -10, Miss: 0 },
 
+  // ---- USPSA stage scoring (stage courses: paper + steel) ---------------------
+  // Best `perPaper` hits on each paper count; each missing hit, and each steel
+  // left standing, is a miss (missPenalty). No-shoot hits are CONFIG.points.NS.
+  // Stage points never go below zero. Hit factor = points / time.
+  stage: { perPaper: 2, missPenalty: -10 },
+
   // ---- Targets -------------------------------------------------------------
   targets: {
     heightFrac: 0.42,       // target height as a fraction of viewport height
@@ -200,7 +206,8 @@ export const CONFIG = {
     // slider's limits, and the height (m) the fixed camera looks at.
     yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12 },
     yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25] },
-    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8 },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15 },
+    stageLookYards: 10,     // stages: items have their own distances; the camera looks this far out
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay
     holeRadiusCm: 0.45,     // 9 mm bullet hole
@@ -223,9 +230,14 @@ export const CONFIG = {
     dirtTile: 3.0,          // metres per berm texture tile
     berm: { width: 44, depth: 9, height: 4.5, backZ: 28, lumps: 0.6, sideX: 7.5, sideLength: 34, sideStartZ: 3 },
     maxPixelRatio: 2,
+    shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
+    // Slow frames (average over `frames`) above slowMs lower the render
+    // resolution by `step`, down to minPixelRatio.
+    adapt: { frames: 90, slowMs: 24, step: 0.25, minPixelRatio: 1 },
+    farPxPerCm: 8,          // cardboard texture detail for targets past 7 yards (close ones: 12)
     // Pop-ups: lanes from CONFIG.popup.lanes spread over `spread` metres, hinged
     // at hingeY behind a dirt mound whose crest is crestAhead in front of them.
-    popup: { spread: 8, hingeY: 0.55, moundHeight: 0.7, moundDepth: 1.2, crestAhead: 0.25, downAngle: 1.75, pxPerCm: 12 },
+    popup: { spread: 8, hingeY: 0.55, moundHeight: 0.7, moundDepth: 1.2, crestAhead: 0.25, downAngle: 1.75, pxPerCm: 8 },
     steel: {
       paint: '#e9e6dc',     // target paint
       frame: '#64615c',     // weathered steel frames and stands
@@ -236,6 +248,8 @@ export const CONFIG = {
       rack: { plates: 6, spacing: 0.3048, plateRadius: 0.1016, beamY: 0.95, paddle: 0.22, kick: 3.0, fallTo: 1.3 },
       popper: { count: 4, spacing: 1.5, height: 1.07, kick: 1.2, fallTo: 1.52 },
       star: { hubY: 1.5 },  // hub height (m); arm and plate sizes and the physics are CONFIG.star
+      mini: { height: 0.71 },                         // USPSA mini popper (2/3 scale)
+      plateStand: { height: 0.95, paddle: 0.2, fallTo: 1.45 }, // single 8" plate on a post
     },
   },
 

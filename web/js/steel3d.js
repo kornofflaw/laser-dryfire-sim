@@ -6,6 +6,8 @@
 //              plate back onto the stop bar.
 //   Poppers    full-size USPSA poppers hinged at the base; a hit tips one
 //              over backwards onto the ground.
+//   StageSteel any mix of full-size poppers, mini poppers and plates on
+//              stands, placed anywhere in the bay (stages).
 //   Star3D     the Texas Star. Its rotation comes from the same rigid-body
 //              model as the 2D star (star.js, range.star), so both behave the
 //              same; a plate that's hit comes off the arm with the arm's
@@ -46,6 +48,7 @@ class FallingSet {
   }
 
   get standing() { return this.items.filter(t => t.up).length; }
+  get moving() { return this.items.some(t => !t.up && !t.resting); }
   hittables() { return this.items.filter(t => t.up).map(t => t.mesh); }
 
   hit(i, point, dir, nowSec) {
@@ -143,26 +146,63 @@ export class Poppers extends FallingSet {
   constructor(mats) {
     super('popper');
     const P = S().popper;
-    const geo = popperGeometry(P.height);
-    for (let i = 0; i < P.count; i++) {
-      const x = (i - (P.count - 1) / 2) * P.spacing;
-      const base = box(0.36, 0.03, 0.34, mats.frame);
-      base.position.set(x, 0.015, -0.1);
-      base.userData.surface = 'steel-frame';
-      const hinge = box(0.2, 0.035, 0.04, mats.frame);
-      hinge.position.set(x, 0.045, -0.012);
-      hinge.userData.surface = 'steel-frame';
-      this.group.add(base, hinge);
-      this.solids.push(base, hinge);
-      const pivot = new THREE.Group();
-      pivot.position.set(x, 0.05, 0);
-      const mesh = new THREE.Mesh(geo, mats.paint);
-      pivot.add(mesh);
-      this.group.add(pivot);
-      this.addItem(pivot, mesh, THICK / 2, P.height, P.kick, P.fallTo);
+    for (let i = 0; i < P.count; i++) addPopper(this, mats, (i - (P.count - 1) / 2) * P.spacing, 0, P.height);
+    castShadows(this.group);
+  }
+}
+
+// Mixed steel for a stage (courses.js stage items with world x, z):
+// { type: 'popper' | 'mini' | 'plate', x, z, id, h? }. Item i's target id is its
+// stage id (S1, S2 ...), so the stage runner can tell them apart.
+export class StageSteel extends FallingSet {
+  constructor(items, mats) {
+    super('S');
+    for (const it of items) {
+      if (it.type === 'plate') addPlateStand(this, mats, it.x, it.z, it.h ?? S().plateStand.height);
+      else addPopper(this, mats, it.x, it.z, it.type === 'mini' ? S().mini.height : S().popper.height);
+      this.items[this.items.length - 1].id = it.id;
     }
     castShadows(this.group);
   }
+  idOf(i) { return this.items[i].id; }
+}
+
+// A popper on its hinged base plate at (x, z).
+function addPopper(set, mats, x, z, height) {
+  const P = S().popper;
+  const k = height / P.height;
+  const base = box(0.36 * k, 0.03, 0.34 * k, mats.frame);
+  base.position.set(x, 0.015, z - 0.1 * k);
+  const hinge = box(0.2 * k, 0.035, 0.04, mats.frame);
+  hinge.position.set(x, 0.045, z - 0.012);
+  for (const m of [base, hinge]) { m.userData.surface = 'steel-frame'; set.group.add(m); set.solids.push(m); }
+  const pivot = new THREE.Group();
+  pivot.position.set(x, 0.05, z);
+  const mesh = new THREE.Mesh(popperGeometry(height), mats.paint);
+  pivot.add(mesh);
+  set.group.add(pivot);
+  set.addItem(pivot, mesh, THICK / 2, height, P.kick, P.fallTo);
+}
+
+// A single 8" plate on a paddle hinged to the top of a post (a "plate stand").
+function addPlateStand(set, mats, x, z, height) {
+  const P = S().plateStand, r = S().rack.plateRadius;
+  const post = box(0.05, height, 0.05, mats.frame);
+  post.position.set(x, height / 2, z - 0.04);
+  const foot = box(0.4, 0.03, 0.4, mats.frame);
+  foot.position.set(x, 0.015, z - 0.04);
+  for (const m of [post, foot]) { m.userData.surface = 'steel-frame'; set.group.add(m); set.solids.push(m); }
+  const pivot = new THREE.Group();
+  pivot.position.set(x, height, z);
+  const paddle = box(0.035, P.paddle, 0.012, mats.frame);
+  paddle.position.set(0, P.paddle / 2, -0.012);
+  paddle.userData.surface = 'steel-frame';
+  const disc = plateDisc(r, mats.paint);
+  disc.position.y = P.paddle;
+  pivot.add(paddle, disc);
+  set.group.add(pivot);
+  set.solids.push(paddle);
+  set.addItem(pivot, disc, THICK / 2, P.paddle + r, S().rack.kick, P.fallTo);
 }
 
 // ---- Texas Star ---------------------------------------------------------------------
@@ -225,6 +265,7 @@ export class Star3D {
   }
 
   get standing() { return this.star.platesLeft; }
+  get moving() { return Math.abs(this.star.omega) > 1e-3 || this.plates.some(p => p.free && !(p.free.settle?.k >= 1)); }
   get clearedAt() { return null; } // the free-practice reset is done by range.js for the star
 
   hittables() { return this.plates.filter((p, i) => this.star.plates[i].on && !p.free).map(p => p.disc); }
@@ -311,7 +352,16 @@ function castShadows(group) {
 
 // Classic popper outline: 8" head on a neck, body widening to 12", tapering
 // to the base. Hinge at y = 0; painted face toward +z.
+const popperGeos = new Map();
 function popperGeometry(height) {
+  if (!popperGeos.has(height)) {
+    const g = makePopperGeometry(height);
+    g.userData.shared = true; // kept when a layout is torn down
+    popperGeos.set(height, g);
+  }
+  return popperGeos.get(height);
+}
+function makePopperGeometry(height) {
   const k = height / 1.07;
   const headR = 0.1016 * k, cy = height - headR, nx = 0.05 * k;
   const neckY = cy - Math.sqrt(headR * headR - nx * nx);
