@@ -30,6 +30,9 @@ export const REMOTE_ACTIONS = ['startStop', 'reset', 'layout', 'zones', 'hideHud
 // select (or button / text); `out` is the element showing the value;
 // `section` starts a new heading.
 export const SETUP_CONTROLS = [
+  { section: 'Sound' },
+  { id: 'vol-gun', kind: 'range', label: 'Gunshot volume', out: 'vol-gun-val' },
+  { id: 'vol-amb', kind: 'range', label: 'Background volume', out: 'vol-amb-val' },
   { section: 'Current course' },
   { id: 'up-time', kind: 'range', label: 'Time targets stay up', out: 'up-time-val' },
   { id: 'up-time-reset', button: true },

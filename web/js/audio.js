@@ -3,6 +3,19 @@ import { CONFIG } from './config.js';
 
 let ctx = null;
 
+// Volume sliders (Setup): gunshots and background, 1 = normal.
+const mix = { gun: 1, amb: 1 };
+export function setVolumes(v = {}) {
+  if (typeof v.gun === 'number') mix.gun = v.gun;
+  if (typeof v.amb === 'number') mix.amb = v.amb;
+  if (amb && ctx) { // follow the slider now
+    const g = amb.gain.gain, t = ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(CONFIG.sound.ambience.level * CONFIG.sound.volume * mix.amb, t + 0.1);
+  }
+}
+
 // Remote control (remote.js): a display window nobody has tapped can't start
 // audio on a tablet, so while this window's audio isn't running, sounds are
 // forwarded to the controller window, which plays them (same speakers/HDMI).
@@ -288,7 +301,7 @@ export function enemyShot(opts = {}) {
     return b;
   })();
   const out = ctx.createGain();
-  out.gain.value = Math.min(2, CONFIG.sound.volume * G.level * (opts.level ?? 1));
+  out.gain.value = Math.min(2, CONFIG.sound.volume * G.level * (opts.level ?? 1)) * mix.gun;
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 4;
   comp.attack.value = 0.001; comp.release.value = 0.12;
@@ -436,7 +449,7 @@ export function setAmbience(kind) {
   if (!kind) return;
   const out = ctx.createGain();
   out.gain.setValueAtTime(0, t);
-  out.gain.linearRampToValueAtTime(A.level * CONFIG.sound.volume, t + A.fade);
+  out.gain.linearRampToValueAtTime(A.level * CONFIG.sound.volume * mix.amb, t + A.fade);
   out.connect(ctx.destination);
   const nodes = [out];
   const filtered = (buf, type, f, q, level) => {

@@ -387,6 +387,8 @@ export const CONFIG = {
     parBeepHz: 700,
     beepSeconds: 0.18,
     hitHz: 1568,            // ~G6 "ding"
+    // Setup sliders: gunshot and background volume, as a multiple of normal.
+    mix: { min: 0, max: 2, step: 0.05 },
     steelHz: 2350,          // base pitch of the steel "ping"
     // Steel rings by size: steelHz is an 8" plate (ref, metres). A plate r times
     // that size rings at steelHz / r^pitch for r^decay times as long (thicker

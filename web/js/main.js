@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
@@ -49,6 +49,8 @@ const settings = Object.assign({
   viewFt: CONFIG.lifeSize.distanceFt.default,
   flipSpeed: 1,       // flip grid: plate spin / pace multiplier (CONFIG.flip.speed)
   flipVariable: false, // flip grid: vary each time up and pause
+  volGun: 1,          // gunshot volume (Setup slider, 1 = normal)
+  volAmb: 1,          // background sound volume (Setup slider)
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
@@ -782,6 +784,26 @@ function refreshFlip() {
   $('#flip-var').checked = settings.flipVariable;
 }
 
+// Sound sliders.
+setVolumes({ gun: settings.volGun, amb: settings.volAmb });
+for (const [id, key] of [['#vol-gun', 'volGun'], ['#vol-amb', 'volAmb']]) {
+  $(id).oninput = e => {
+    settings[key] = Number(e.target.value);
+    persist();
+    setVolumes({ gun: settings.volGun, amb: settings.volAmb });
+    refreshSound();
+  };
+}
+function refreshSound() {
+  const M = CONFIG.sound.mix;
+  for (const [id, v] of [['vol-gun', settings.volGun], ['vol-amb', settings.volAmb]]) {
+    const el = $('#' + id);
+    el.min = M.min; el.max = M.max; el.step = M.step;
+    el.value = v;
+    $(`#${id}-val`).textContent = `${Math.round(v * 100)}%`;
+  }
+}
+
 $('#opt-night').onchange = e => {
   settings.lotNight = e.target.checked;
   persist();
@@ -820,6 +842,7 @@ function refreshSetup() {
   $('#life-row').hidden = !(is3D(c.type) || is3DLayout(range.layout));
   refreshLife();
   refreshFlip();
+  refreshSound();
   $('#cars3d-only').hidden = c.type !== 'knife3d' && range.layout !== 'scene3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;
   $('#cars3d').value = settings.cars3d;
@@ -946,6 +969,7 @@ const remote = displayMode && 'BroadcastChannel' in window ? {
       controls: snapshotControls(document),
       review: { open: review.isOpen, has: review.hasRuns },
       calibrating: calibration.active,
+      volumes: { gun: settings.volGun, amb: settings.volAmb }, // the Controller plays sounds at these too
     });
     if (state === this.sent && now - this.sentAt < 2000) return;
     this.sent = state;
