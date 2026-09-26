@@ -201,6 +201,10 @@ export const CONFIG = {
     // bounces and stays on the floor until the next run.
     gunSmoke: { time: 1.8, size: [0.18, 0.95], rise: 0.3, opacity: 0.8 },
     casing: { speed: [1.6, 2.6], up: [1.0, 1.8], bounce: 0.32 },
+    // A miss that passes within nearMiss metres of a suspect's chest: behind
+    // a cubicle he ducks (and doesn't fire) for duckTime seconds, then comes
+    // back up; out in the open he sidesteps away from the round.
+    dodge: { nearMiss: 0.8, chance: 0.85, duckDepth: 0.75, duckDown: 0.18, duckTime: [1.0, 1.8], stepDist: 0.8, stepTime: 0.35 },
     ceilingShadowLight: 0.6, // soft top-down light that grounds people indoors
     partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
     callTime: 6.0,          // seconds outside while the radio call plays

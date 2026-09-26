@@ -855,6 +855,7 @@ export class OfficeRunner extends Runner {
       if (!p.fall) {
         p.obj.position.lerpVectors(p.from, p.to, THREE.MathUtils.smoothstep(k, 0, 1));
         p.obj.position.y -= p.sag || 0; // hostage sagging in the gunman's grip
+        if (p.dodge) this.applyDodge(p, nowS);
       }
       if (k >= 1 && !p.fall && p.flee?.length) {
         // Running for the exit (then gone).
@@ -875,6 +876,7 @@ export class OfficeRunner extends Runner {
         if (p.advanceLeft > 0) {
           const toCam = v.camera.position.clone().sub(p.obj.position).setY(0).normalize();
           const d = Math.min(p.advanceLeft, O().advanceSpeed * dt);
+          p.to.addScaledVector(toCam, d); // p.to, or the next frame's lerp undoes the step
           p.obj.position.addScaledVector(toCam, d);
           p.advanceLeft -= d;
           p.play('walk');
@@ -960,7 +962,7 @@ export class OfficeRunner extends Runner {
     if (this.state !== State.Running) return;
     this.shots++;
     const p = score.person;
-    if (!p) return;
+    if (!p) { this.nearMiss(score); return; }
     const nowS = score.t / 1000;
     if (p.role !== 'gunman' || !p.live) {
       const what = { victim: 'the wounded man', innocent: 'an office worker', hostage: 'the hostage' }[p.role] || 'a bystander';
@@ -981,6 +983,45 @@ export class OfficeRunner extends Runner {
         h.sag = 0;
         this.caption = 'Suspect down. Hostage safe.';
       }
+    }
+  }
+
+  // A round that missed but went close past a suspect makes him react.
+  nearMiss(score) {
+    if (!score.dir || this.phase !== 'room') return;
+    const D = O().dodge, now = score.t / 1000;
+    const origin = this.view.camera.position;
+    const chest = new THREE.Vector3(), closest = new THREE.Vector3();
+    const ray = new THREE.Ray(origin, score.dir);
+    for (const g of this.gunmen) {
+      if (!g.live || g.down || g.dodge || g === this.hostagePair.taker || !g.obj.visible) continue;
+      (g.bones.Spine2 || g.obj).getWorldPosition(chest);
+      ray.closestPointToPoint(chest, closest);
+      if (closest.distanceTo(chest) > D.nearMiss || Math.random() > D.chance) continue;
+      if (g.spot?.type === 'pod') {
+        const time = rand(...D.duckTime);
+        g.dodge = { kind: 'duck', t0: now, time };
+        g.fireAt = Math.max(g.fireAt, now + time + rand(0.4, 0.9)); // can't shoot from down there
+      } else {
+        // Step away from where the round went.
+        const away = chest.clone().sub(closest).setY(0);
+        if (away.lengthSq() < 1e-6) away.set(Math.random() < 0.5 ? -1 : 1, 0, 0);
+        g.dodge = { kind: 'step', t0: now, move: away.normalize().multiplyScalar(D.stepDist) };
+      }
+    }
+  }
+
+  // Offset for a dodge in progress (added after the walk-in position).
+  applyDodge(p, nowS) {
+    const D = O().dodge, d = p.dodge, u = nowS - d.t0;
+    if (d.kind === 'duck') {
+      const down = Math.min(1, u / D.duckDown), up = Math.max(0, Math.min(1, (u - d.time) / 0.35));
+      p.obj.position.y -= D.duckDepth * THREE.MathUtils.smoothstep(down, 0, 1) * (1 - THREE.MathUtils.smoothstep(up, 0, 1));
+      if (up >= 1) p.dodge = null;
+    } else {
+      const k = THREE.MathUtils.smoothstep(Math.min(1, u / D.stepTime), 0, 1);
+      p.obj.position.addScaledVector(d.move, k);
+      if (k >= 1) { p.to.add(d.move); p.from.add(d.move); p.dodge = null; } // stays there
     }
   }
 
