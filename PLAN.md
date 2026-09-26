@@ -309,7 +309,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-26: iPad sound fix (Andrew: no gunshots on iPad): ask Safari for
   'playback' audio (navigator.audioSession) so silent mode doesn't mute it,
   play a silent sample on the tap that starts audio, and resume after the
-  screen locks / another app interrupts.
+  screen locks / another app interrupts. Older iPadOS (no audioSession): a silent
+  looping <audio> clip made in code switches the page to playback audio.
+  (Andrew: the flip-grid voice was audible, the effects weren't: speech is
+  media playback, web audio was ringer-class and muted by silent mode.)
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

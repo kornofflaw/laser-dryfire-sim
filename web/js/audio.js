@@ -23,6 +23,7 @@ const forwarded = (name, args) => {
 let primed = false;
 export function unlockAudio() {
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older Safari */ }
+  if (!navigator.audioSession) keepPlaybackSession();
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -37,6 +38,32 @@ export function unlockAudio() {
     src.connect(ctx.destination);
     src.start(0);
   }
+}
+
+// Older iPadOS (before 17) has no audioSession setting. There, a playing
+// <audio> element (media, like the speech voice) switches the page to playback
+// audio, which silent mode doesn't mute, so loop a silent clip made here in
+// code (a WAV header + silence) from the first tap on.
+let silentLoop = null;
+function keepPlaybackSession() {
+  if (!/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return; // iOS / iPadOS only
+  if (!silentLoop) {
+    const rate = 8000, n = rate / 2; // half a second of 8-bit silence
+    const b = new Uint8Array(44 + n);
+    const v = new DataView(b.buffer);
+    const str = (o, t) => [...t].forEach((c, i) => { b[o + i] = c.charCodeAt(0); });
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+    str(36, 'data'); v.setUint32(40, n, true);
+    b.fill(128, 44); // 8-bit silence is the midpoint
+    silentLoop = document.createElement('audio');
+    silentLoop.src = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+    silentLoop.loop = true;
+    silentLoop.setAttribute('playsinline', '');
+    silentLoop.setAttribute('x-webkit-airplay', 'deny');
+  }
+  if (silentLoop.paused) silentLoop.play().catch(() => {});
 }
 
 function tone(freq, seconds, gain, decay = 0) {
