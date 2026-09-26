@@ -331,6 +331,8 @@ export class Lot3DView {
       this.char.effects.forEach(e => e.obj.removeFromParent());
     }
     const c = new Character(this.manRig, { role: 'knife' });
+    c.mood = 'angry';
+    c.viewer = this.camera.position; // eyes on you
     this.char = c;
     this.man = c.obj;
     this.bones = c.bones;

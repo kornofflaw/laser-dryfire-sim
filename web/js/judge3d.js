@@ -66,6 +66,7 @@ export class Judge3DView extends Lot3DView {
     (this.used ??= []).push(id);
     const char = new Character(this.cast.rig(id), { role: 'person' });
     char.actor = a;
+    char.viewer = this.camera.position; // eyes follow you
     // Someone standing where an earlier person stands is in front of them
     // (the 2D scripts put the bystander in front by drawing order).
     let z = -J().distance;

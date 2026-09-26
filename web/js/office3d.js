@@ -400,6 +400,7 @@ export class OfficeView {
     const id = pick(free.length ? free : pool);
     this.usedCast.push(id);
     const p = new Character(this.cast.rig(id), { role });
+    p.viewer = this.camera.position; // eyes follow you
     this.scene.add(p.obj);
     if (opts.gun) this.scene.add(p.addGun(opts.gun === true ? 'pistol' : opts.gun));
     if (opts.vest) this.scene.add(p.addVest());
@@ -796,8 +797,12 @@ export class OfficeRunner extends Runner {
       const near = v.walkZ < 2.5 && v.walkZ > -11;
       if (near && this.opt.victimVoice && nowS >= this.victimTalk) {
         const lines = ["Help me... please. I've been shot.", 'Please... help me.', 'They went in there... to the offices...', "I can't... feel my legs...", "Don't leave me..."];
-        const spoke = say(this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))], { rate: 0.8, pitch: 0.75, volume: 0.9, polite: true });
-        if (spoke !== false) this.victimLine = 1; // his first line waits until the radio is quiet
+        const line = this.victimLine === undefined ? lines[0] : lines[1 + Math.floor(Math.random() * (lines.length - 1))];
+        const spoke = say(line, { rate: 0.8, pitch: 0.75, volume: 0.9, polite: true });
+        if (spoke !== false) {
+          this.victimLine = 1; // his first line waits until the radio is quiet
+          this.victim.talkUntil = nowS + 0.4 + line.length * 0.075; // mouth moves while he speaks
+        }
         this.victimTalk = nowS + rand(4.5, 7);
       }
     }

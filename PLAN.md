@@ -162,8 +162,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
       "Red triangle"; shoot a matching plate); Setup -> Flip speed (0.5x-2x:
       spin and pace) and Variable timing (each time up and pause varies).
 - [ ] More realism: post-processing (ambient occlusion, bloom), more
-      environments (street, store interior), facial expressions (Rocketbox
-      avatars have face bones). (Done: pistol draw from the hip, 2026-09-25.)
+      environments (street, store interior). (Done: pistol draw from the hip,
+      faces: blinks, eyes follow you, angry / afraid brows, talking jaw.)
 
 ## Phase 3 — Review & analytics
 - [x] Per-run log (points, zones, splits, hit factor, pass, early shots) with CSV export.
@@ -260,6 +260,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-25 (hourly review): office gunfire is more real: a suspect's muzzle
   flash briefly lights the room around him, and shots echo off the walls
   (WebAudio convolver). The wounded man's first line waits for the radio.
+- 2026-09-26 (hourly review): faces on 3D people (Rocketbox face bones): they
+  blink, their eyes follow you, armed people frown, hostages / hands-up /
+  the wounded man look afraid (brows up, mouth open), and the wounded man's
+  jaw moves while he talks. Checked the iPad Controller mirrors the new flip
+  and office settings.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

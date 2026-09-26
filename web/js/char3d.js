@@ -195,6 +195,7 @@ export class Character {
       this.bones.Spine2?.getWorldPosition(this.vest.position);
       this.obj.getWorldQuaternion(this.vest.quaternion);
     }
+    this.updateFace(now);
     // Pistol follows the right hand and points at the aim target.
     if (this.gun) this.gun.visible = this.obj.visible;
     if (this.gun && this.obj.visible) {
@@ -214,6 +215,64 @@ export class Character {
     }
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => { if (fx.done && !fx.persistent) fx.obj.removeFromParent(); return !fx.done || fx.persistent; });
+  }
+
+  // --- face ------------------------------------------------------------------
+  // Blinks, eyes that follow the viewer (this.viewer, a Vector3 the view sets
+  // to its camera position), brows by mood, and a jaw that moves while
+  // talking (this.talkUntil, seconds). Mood: this.mood, or from the role/pose:
+  // afraid (hostage, wounded, hands up), angry (armed), else neutral.
+  updateFace(now) {
+    const F = CONFIG.face, B = this.bones;
+    if (!this.face) {
+      const get = n => B[n] || B['Bip01_' + n] || B['Bip01 ' + n];
+      const f = { head: B.Head, eyes: ['LEye', 'REye'].map(get).filter(Boolean), lids: ['LEyeBlinkTop', 'REyeBlinkTop'].map(get).filter(Boolean),
+        brows: ['LInnerEyebrow', 'RInnerEyebrow', 'MMiddleEyebrow'].map(get).filter(Boolean), jaw: get('MJaw'), nextBlink: now + rand(...F.blinkEvery) };
+      f.all = [...f.eyes, ...f.lids, ...f.brows, f.jaw].filter(Boolean);
+      f.rest = f.all.map(b => [b.position.clone(), b.quaternion.clone()]);
+      this.face = f;
+    }
+    const f = this.face;
+    if (!f.head || !f.all.length || !this.obj.visible) return;
+    f.all.forEach((b, i) => { b.position.copy(f.rest[i][0]); b.quaternion.copy(f.rest[i][1]); });
+    f.head.updateWorldMatrix(true, true);
+    const W = () => new THREE.Vector3();
+    const headP = f.head.getWorldPosition(W());
+    const top = this.bones.HeadTop_End?.getWorldPosition(W());
+    const fu = top ? top.sub(headP).normalize() : new THREE.Vector3(0, 1, 0);     // face up
+    // Face forward: the body's facing, square to the face-up line (the head
+    // bone's own axes differ between rigs).
+    const ff = new THREE.Vector3(0, 0, 1).applyQuaternion(this.obj.getWorldQuaternion(new THREE.Quaternion()));
+    ff.addScaledVector(fu, -ff.dot(fu)).normalize();
+    const nudge = (b, d) => { const p = b.getWorldPosition(W()).add(d); b.position.copy(b.parent.worldToLocal(p)); };
+
+    const mood = this.mood ?? ((this.pose === 'handsUp' || this.role === 'hostage' || this.role === 'victim') ? 'afraid'
+      : (this.role === 'gunman' || this.pose === 'aim') ? 'angry' : null);
+    // Eyelids: blink now and then; half shut once down.
+    let lid = this.down ? 0.7 : 0;
+    if (!this.down) {
+      if (now >= f.nextBlink + F.blinkTime) f.nextBlink = now + rand(...F.blinkEvery);
+      const b = (now - f.nextBlink) / F.blinkTime;
+      if (b >= 0 && b <= 1) lid = Math.sin(b * Math.PI);
+    }
+    for (const l of f.lids) nudge(l, fu.clone().multiplyScalar(-F.lidDrop * lid));
+    // Brows.
+    const brow = mood === 'angry' ? -1 : mood === 'afraid' ? 1 : 0;
+    if (brow) for (const b of f.brows) nudge(b, fu.clone().multiplyScalar(brow * F.browMove));
+    // Eyes follow the viewer (within what eyes can turn).
+    if (this.viewer && !this.down) {
+      for (const e of f.eyes) {
+        const to = this.viewer.clone().sub(e.getWorldPosition(W())).normalize();
+        const q = new THREE.Quaternion().setFromUnitVectors(ff, to);
+        const ang = 2 * Math.acos(Math.min(1, Math.abs(q.w)));
+        if (ang > F.eyeMax) q.slerp(new THREE.Quaternion(), 1 - F.eyeMax / ang);
+        rotateWorld(e, q);
+      }
+    }
+    // Jaw: hangs open when afraid, moves while talking.
+    let jaw = mood === 'afraid' ? F.jawAfraid : 0;
+    if (this.talkUntil > now) jaw += F.jawTalk * (0.35 + 0.65 * Math.abs(Math.sin(now * 11) * Math.sin(now * 4.3 + 1)));
+    if (f.jaw && jaw) rotateWorld(f.jaw, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3().crossVectors(fu, ff).normalize(), jaw));
   }
 
   // 0 -> 1 through a pistol draw (1 = on target).
@@ -376,6 +435,7 @@ function pointBone(bone, child, dir, w = 1) {
 // Bones the procedural poses and hit reactions rotate.
 const IK_BONES = ['Spine1', 'Head', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand'];
 
+const rand = (a, b) => a + Math.random() * (b - a);
 const smooth = x => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t); };
 
 // Apply a world-space rotation q to a bone (pre-multiply its world rotation).

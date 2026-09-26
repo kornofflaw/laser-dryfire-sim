@@ -178,6 +178,17 @@ export const CONFIG = {
   },
 
   // ---- 3D office active-shooter scenario (office3d.js) ------------------------------
+  // ---- 3D people's faces (char3d.js, Rocketbox face bones) ------------------------
+  face: {
+    blinkEvery: [2, 6],     // seconds between blinks
+    blinkTime: 0.16,        // seconds for a blink
+    lidDrop: 0.011,         // metres the upper lid travels to close
+    eyeMax: 0.45,           // radians the eyes turn to follow you
+    browMove: 0.004,        // metres the brows move (angry: down, afraid: up)
+    jawAfraid: 0.08,        // radians the mouth hangs open when afraid
+    jawTalk: 0.2,           // radians the jaw opens while talking
+  },
+
   office3d: {
     exposure: 1.0,
     envIntensity: 0.55,     // image-based light from the city sky
