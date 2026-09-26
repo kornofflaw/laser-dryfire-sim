@@ -243,11 +243,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. People: breathing/idle weight shifts, hands-up fear tremble, hostage struggling.
-2. Parking lot: night version with car headlights and sodium lights.
-3. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
-4. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
-5. Office: sprinkler/emergency lights, fire alarm option (stress).
+1. Parking lot: night version with car headlights and sodium lights.
+2. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
+3. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
+4. Office: sprinkler/emergency lights, fire alarm option (stress).
 
 ---
 
@@ -346,6 +345,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   ready (char3d 'knife' pose), raised by his head in the last 2.5 m
   (CONFIG.knife3d.strikeFrom). Footsteps now have a heel thump tablet
   speakers can play plus a shoe scuff (were a 90 Hz thud).
+- 2026-09-26 (realism pass): hands-up people raise their hands apart (they were
+  crossed over the head: the pose used the wrong side) and tremble; the
+  office hostage pulls at the gunman's arm with both hands and twists
+  against the hold (char3d 'held' pose, CONFIG.people).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

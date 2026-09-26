@@ -760,6 +760,8 @@ export class OfficeRunner extends Runner {
     hostage.id = 'hostage';
     taker.hostage = hostage;
     taker.pose = 'hostage';
+    hostage.captor = taker;
+    hostage.pose = 'held'; // pulling at his gun arm
     for (const p of [hostage, taker]) { p.obj.position.set(hostageOffice.x - 1, 0, -39); p.obj.visible = false; }
     this.hostagePair = { hostage, taker, office: hostageOffice };
     this.gunmen.push(taker);

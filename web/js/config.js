@@ -178,6 +178,12 @@ export const CONFIG = {
   },
 
   // ---- 3D office active-shooter scenario (office3d.js) ------------------------------
+  // ---- 3D people's body language (char3d.js) ------------------------------------
+  people: {
+    tremble: 0.012,         // metres of hand shake with hands up (fear)
+    struggle: 0.16,         // radians a hostage twists and leans against the hold
+  },
+
   // ---- 3D people's faces (char3d.js, Rocketbox face bones) ------------------------
   face: {
     blinkEvery: [2, 6],     // seconds between blinks

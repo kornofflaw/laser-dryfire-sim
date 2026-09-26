@@ -351,11 +351,28 @@ export class Character {
       const hand = sh.clone().add(new THREE.Vector3(sway, 0.5, 0.15));
       this.solveArm('Left', hand, new THREE.Vector3(-1, 0, 0), w);
     } else if (this.pose === 'handsUp') {
-      for (const [side, s] of [['Left', 1], ['Right', -1]]) {
+      // Hands up and apart (right = his right, so his left hand goes -right),
+      // trembling a little with fear.
+      const t = this.now || 0, F = CONFIG.people;
+      for (const [side, s] of [['Left', -1], ['Right', 1]]) {
         const sh = P(side + 'Arm');
-        const hand = sh.clone().addScaledVector(up, 0.42).addScaledVector(right, s * 0.28).addScaledVector(fwd, 0.08);
+        const shake = F.tremble * (Math.sin(t * 47 + s) * 0.6 + Math.sin(t * 29.3 + 2 * s) * 0.4);
+        const hand = sh.clone().addScaledVector(up, 0.42 + shake).addScaledVector(right, s * 0.28 + shake * 0.7).addScaledVector(fwd, 0.08);
         this.solveArm(side, hand, right.clone().multiplyScalar(s).addScaledVector(up, -0.5), w);
       }
+    } else if (this.pose === 'held' && this.captor) {
+      // A hostage: both hands pulling at the captor's gun arm, twisting and
+      // leaning against the hold.
+      const t = this.now || 0, F = CONFIG.people;
+      const a = this.captor.bones.RightForeArm?.getWorldPosition(new THREE.Vector3());
+      const b = this.captor.bones.RightHand?.getWorldPosition(new THREE.Vector3());
+      if (a && b) {
+        const pull = Math.sin(t * 3.1) * 0.03;
+        this.solveArm('Left', a.clone().lerp(b, 0.25).addScaledVector(fwd, 0.04 + pull), up.clone().multiplyScalar(-1).addScaledVector(right, -0.6), w);
+        this.solveArm('Right', a.clone().lerp(b, 0.7).addScaledVector(fwd, 0.04 - pull), up.clone().multiplyScalar(-1).addScaledVector(right, 0.6), w);
+      }
+      this.tiltBone('Spine1', F.struggle * 0.5 * Math.sin(t * 2.3) * w, F.struggle * Math.sin(t * 1.7 + 1) * w);
+      this.tiltBone('Head', F.struggle * 0.6 * Math.sin(t * 2.9 + 2) * w, F.struggle * 1.4 * Math.sin(t * 1.3) * w);
     } else if (this.pose === 'offer') {
       const sh = P('RightArm');
       const hand = sh.clone().addScaledVector(fwd, 0.42).addScaledVector(up, -0.22).addScaledVector(right, 0.1);
