@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
@@ -63,6 +63,7 @@ const game = new Game();
 const log = new RunLog();
 const camera = new LaserCamera();
 let lastInput = 'mouse';
+let lastAmbience;          // the scene's background sound, set when it changes
 
 // One runner per course type; `active()` is the one for the selected course.
 const runners = {
@@ -369,6 +370,9 @@ function frame(now) {
   }
   const v3 = views3d[range.layout] || null;
   range.view3d = v3;
+  // Background sound for the scene on screen (none for 2D courses).
+  const amb = range.layout === 'office3d' ? 'office' : (range.layout === 'lot3d' || range.layout === 'scene3d') ? 'lot' : range.layout.startsWith('range3d') ? 'range' : null;
+  if (amb !== lastAmbience) { lastAmbience = amb; setAmbience(amb); }
   if (v3) v3.autoReset = range.autoResetStar; // free practice: steel stands back up
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
   if (v3?.ready) v3.render(now);

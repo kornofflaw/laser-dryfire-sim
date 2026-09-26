@@ -385,6 +385,14 @@ export const CONFIG = {
     steelHz: 2350,          // base pitch of the steel "ping"
     indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
     indoorEchoMix: 0.45,    // echo level relative to the shot
+    // Background sound per 3D scene (quiet, under the shots): the outdoor
+    // range has wind and now and then a distant shot from another bay; the
+    // office an air-handling hum; the parking lot distant traffic and wind.
+    ambience: {
+      level: 0.35,          // overall (x volume)
+      fade: 1.5,            // seconds to fade in / out when the scene changes
+      distantShots: [3, 14], // seconds between distant shots at the range
+    },
     // Gunshots (suspects firing): a crack, a low thump and a deep falling boom,
     // compressed for punch. Saturation adds harmonics so tablet and laptop
     // speakers can reproduce the low end.

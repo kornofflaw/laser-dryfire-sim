@@ -31,7 +31,10 @@ export function unlockAudio() {
     ctx = new AC();
   }
   const wasRunning = ctx.state === 'running';
-  if (!wasRunning) ctx.resume().catch(() => {});
+  // Start the scene's background sound once audio is actually running.
+  const startAmb = () => { if ((amb?.kind ?? null) !== ambWanted) setAmbience(ambWanted); };
+  if (!wasRunning) ctx.resume().then(startAmb).catch(() => {});
+  else startAmb();
   if (!primed || !wasRunning) { // until a tap has really started it
     primed = true;
     const src = ctx.createBufferSource();
@@ -378,4 +381,93 @@ export function armorThud() {
   o.connect(g).connect(ctx.destination);
   o.start(t0);
   o.stop(t0 + 0.2);
+}
+
+// ---- Ambience (one bed at a time; generated noise, no files) ---------------------
+// setAmbience('range' | 'office' | 'lot' | null). Fades between beds.
+let amb = null; // { kind, gain, nodes, timer }
+function noiseBuffer(seconds, brown) {
+  const n = Math.floor(ctx.sampleRate * seconds);
+  const b = ctx.createBuffer(1, n, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < n; i++) {
+    const w = Math.random() * 2 - 1;
+    if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
+  }
+  return b;
+}
+function loopSource(buf) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; }
+function lfo(freq, depth, target, offset) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.value = freq; g.gain.value = depth;
+  o.connect(g).connect(target); target.value = offset; o.start();
+  return o;
+}
+
+let ambWanted = null; // started once audio is unlocked
+// Not forwarded to the Controller: a bed there would keep playing after the
+// Display gets its own audio. It starts here on the Display's first tap.
+export function setAmbience(kind) {
+  ambWanted = kind ?? null;
+  if (!ctx || ctx.state !== 'running' || (amb?.kind ?? null) === ambWanted) return;
+  const A = CONFIG.sound.ambience, t = ctx.currentTime;
+  if (amb) { // fade the old bed out, then stop it
+    const old = amb;
+    old.gain.gain.cancelScheduledValues(t);
+    old.gain.gain.setValueAtTime(old.gain.gain.value, t);
+    old.gain.gain.linearRampToValueAtTime(0, t + A.fade);
+    clearTimeout(old.timer);
+    setTimeout(() => old.nodes.forEach(n => { try { n.stop?.(); n.disconnect(); } catch { /* gone */ } }), A.fade * 1000 + 100);
+    amb = null;
+  }
+  if (!kind) return;
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0, t);
+  out.gain.linearRampToValueAtTime(A.level * CONFIG.sound.volume, t + A.fade);
+  out.connect(ctx.destination);
+  const nodes = [out];
+  const filtered = (buf, type, f, q, level) => {
+    const src = loopSource(buf), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+    fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = level;
+    src.connect(fl).connect(g).connect(out);
+    nodes.push(src, fl, g);
+    return { src, fl, g };
+  };
+  if (kind === 'range' || kind === 'lot') {
+    // Wind: band-passed noise whose level and pitch drift in gusts.
+    const w = filtered(noiseBuffer(4, false), 'bandpass', 500, 0.6, 0.6);
+    nodes.push(lfo(0.13, 0.4, w.g.gain, 0.6), lfo(0.07, 180, w.fl.frequency, 520));
+  }
+  if (kind === 'lot') {
+    // Distant traffic: low rumble that swells as cars pass.
+    const r = filtered(noiseBuffer(6, true), 'lowpass', 260, 0.7, 0.7);
+    nodes.push(lfo(0.09, 0.4, r.g.gain, 0.6));
+  }
+  if (kind === 'office') {
+    // Air handling: steady low roar plus a faint 120 Hz ballast hum.
+    filtered(noiseBuffer(4, true), 'lowpass', 420, 0.5, 0.7);
+    const hum = ctx.createOscillator(), hg = ctx.createGain();
+    hum.frequency.value = 120; hg.gain.value = 0.015;
+    hum.connect(hg).connect(out); hum.start();
+    nodes.push(hum, hg);
+  }
+  amb = { kind, gain: out, nodes, timer: null };
+  if (kind === 'range') {
+    // A shot from another bay now and then: muffled by distance.
+    const next = () => {
+      amb.timer = setTimeout(() => {
+        if (amb?.kind !== 'range') return;
+        const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), t0 = ctx.currentTime;
+        src.buffer = noiseBuffer(0.5, false);
+        lp.type = 'lowpass'; lp.frequency.value = 700;
+        g.gain.setValueAtTime(0.5 + Math.random() * 0.4, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
+        src.connect(lp).connect(g).connect(out);
+        src.start(t0);
+        next();
+      }, (A.distantShots[0] + Math.random() * (A.distantShots[1] - A.distantShots[0])) * 1000);
+    };
+    next();
+  }
 }

@@ -244,7 +244,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 
 ## Realism queue (hourly realism pass takes the top item)
 1. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
-2. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
+2. Sounds: steel ring varies by plate size (big plates lower and longer).
 3. Office: sprinkler/emergency lights, fire alarm option (stress).
 
 ---
@@ -385,3 +385,4 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   metric target shape on stakes with cardboard texture (scoring now uses the
   same shape), torn bullet holes, dust strikes on misses, Dot Torture sheet on a
   backer, shaded people with clothing/faces in an indoor room.
+- 2026-09-26: Background sound per 3D scene (audio.js setAmbience, CONFIG.sound.ambience): range = gusting wind + a muffled shot from another bay every 3–14 s; office = air-handling roar + faint light hum; parking lot = wind + distant traffic rumble. Fades between scenes, silent on 2D courses, starts on the first tap (not forwarded to the Controller). Measured well below a gunshot (bed rms 0.008–0.044 vs shot 0.21).
