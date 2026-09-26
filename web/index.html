@@ -77,6 +77,14 @@
         <p class="note">How fast plates spin, and how soon the next plate turns or the next call comes.</p>
         <label class="check"><input type="checkbox" id="flip-var"> Variable timing (each plate's time up and the pause before it vary)</label>
       </div>
+      <div id="life-row" hidden>
+        <label class="check"><input type="checkbox" id="opt-life"> Life-size 3D (match the camera to your screen)</label>
+        <label>Projected image width <output id="life-screen-val"></output>
+          <input type="range" id="life-screen"></label>
+        <label>Your distance from the screen <output id="life-dist-val"></output>
+          <input type="range" id="life-dist"></label>
+        <p class="note">Measure the width of the picture on the wall and how far your eyes are from it. With this on, targets and people look their real size from where you stand (you see less of the scene on a small screen).</p>
+      </div>
       <div id="office-row" hidden>
         <label>Armed suspects <select id="of-gunmen"><option value="0">Random (2–3)</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
         <label>Office workers <select id="of-innocents"><option value="-1">Random (1–2)</option><option>0</option><option>1</option><option>2</option><option>3</option></select></label>

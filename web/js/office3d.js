@@ -441,7 +441,8 @@ export class OfficeView {
   resize(W, H) {
     if (!this.renderer) return;
     this.renderer.setSize(W, H, false);
-    const focal = CONFIG.knife.focalFrac * H;
+    // Life-size (Setup) sets fovOverride (vertical degrees); else the usual framing.
+    const focal = this.fovOverride ? H / 2 / Math.tan(THREE.MathUtils.degToRad(this.fovOverride) / 2) : CONFIG.knife.focalFrac * H;
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
     this.camera.updateProjectionMatrix();

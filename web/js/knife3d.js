@@ -376,7 +376,8 @@ export class Lot3DView {
     this.renderer.setSize(W, H, false);
     const k = K();
     // Same framing as the 2D version: focal length and horizon from config.
-    const focal = k.focalFrac * H;
+    // Life-size (Setup) sets fovOverride (vertical degrees); else the usual framing.
+    const focal = this.fovOverride ? H / 2 / Math.tan(THREE.MathUtils.degToRad(this.fovOverride) / 2) : k.focalFrac * H;
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
     this.camera.position.set(0, k.eyeHeight, 0);

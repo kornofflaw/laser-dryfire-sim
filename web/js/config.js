@@ -257,6 +257,15 @@ export const CONFIG = {
   },
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
+  // ---- Life-size 3D (Setup) --------------------------------------------------------
+  // The 3D camera's field of view matched to the screen: things look their
+  // real size from where you stand. Vertical FOV = 2 atan(screen height / 2 /
+  // your distance); screen height comes from its width and the page's shape.
+  lifeSize: {
+    screenWidthIn: { min: 30, max: 200, step: 1, default: 100 },  // projected image width (inches)
+    distanceFt: { min: 4, max: 30, step: 1, default: 12 },         // your eyes to the screen (feet)
+  },
+
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the
     // slider's limits, and the height (m) the fixed camera looks at.

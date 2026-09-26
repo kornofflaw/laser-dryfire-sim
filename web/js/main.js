@@ -43,6 +43,9 @@ const settings = Object.assign({
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
+  lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
+  screenIn: CONFIG.lifeSize.screenWidthIn.default,
+  viewFt: CONFIG.lifeSize.distanceFt.default,
   flipSpeed: 1,       // flip grid: plate spin / pace multiplier (CONFIG.flip.speed)
   flipVariable: false, // flip grid: vary each time up and pause
 }, load(CONFIG.storage.settings, {}));
@@ -111,6 +114,7 @@ function ensure3D(type) {
       throw e;
     }
     view.blood = settings.blood;
+    resize3D();
     if (type === 'office3d') runner.opts = settings.office;
     runner.onComplete(runDone);
     runners[type] = runner;
@@ -134,7 +138,7 @@ function ensureRange3D() {
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
     const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
     await view.init({ yards, star: range.star, popups: range.popups, stage: () => range.stageDef });
-    view.resize(window.innerWidth, window.innerHeight);
+    resize3D();
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
 }
@@ -151,7 +155,7 @@ function ensureJudge3D() {
     views3d.scene3d = view;
     await view.init({ cars: settings.cars3d });
     view.blood = settings.blood;
-    view.resize(window.innerWidth, window.innerHeight);
+    resize3D();
   })().catch(e => { judge3dError = `Could not load the 3D scene (${e.message}). Turn the 3D range off in Setup.`; console.error(e); });
   return judge3dLoading;
 }
@@ -259,9 +263,25 @@ function resize() {
 }
 window.addEventListener('resize', () => {
   resize();
-  for (const v of new Set(Object.values(views3d))) v.resize(window.innerWidth, window.innerHeight);
+  resize3D();
   refreshSetup();
 });
+
+// Life-size: the vertical field of view that makes the 3D scene true to size
+// for the viewer (null = the usual framing).
+function lifeFov() {
+  if (!settings.lifeSize) return null;
+  const hIn = settings.screenIn * (window.innerHeight / window.innerWidth);
+  return THREE_DEG * 2 * Math.atan(hIn / 2 / (settings.viewFt * 12));
+}
+const THREE_DEG = 180 / Math.PI;
+function resize3D() {
+  const fov = lifeFov();
+  for (const v of new Set(Object.values(views3d))) {
+    v.fovOverride = fov;
+    v.resize(window.innerWidth, window.innerHeight);
+  }
+}
 
 canvas.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
@@ -710,6 +730,22 @@ function refreshOffice() {
   $('#of-voice').checked = o.victimVoice;
 }
 
+// Life-size 3D.
+$('#opt-life').onchange = e => { settings.lifeSize = e.target.checked; persist(); resize3D(); refreshSetup(); };
+$('#life-screen').oninput = e => { settings.screenIn = Number(e.target.value); persist(); resize3D(); refreshSetup(); };
+$('#life-dist').oninput = e => { settings.viewFt = Number(e.target.value); persist(); resize3D(); refreshSetup(); };
+function refreshLife() {
+  const L = CONFIG.lifeSize;
+  for (const [id, r, v] of [['#life-screen', L.screenWidthIn, settings.screenIn], ['#life-dist', L.distanceFt, settings.viewFt]]) {
+    const el = $(id);
+    el.min = r.min; el.max = r.max; el.step = r.step; el.value = v;
+    el.disabled = !settings.lifeSize;
+  }
+  $('#opt-life').checked = settings.lifeSize;
+  $('#life-screen-val').textContent = `${settings.screenIn} in (${Math.round(settings.screenIn * 2.54)} cm)`;
+  $('#life-dist-val').textContent = `${settings.viewFt} ft (${(settings.viewFt * 0.3048).toFixed(1)} m)`;
+}
+
 // Flip grid: spin speed and variable timing (apply to the board right away).
 function applyFlip() {
   range.flip.speed = settings.flipSpeed;
@@ -764,6 +800,8 @@ function refreshSetup() {
   $('#office-row').hidden = c.type !== 'office3d';
   refreshOffice();
   $('#flip-row').hidden = c.layout !== 'grid' && range.layout !== 'grid';
+  $('#life-row').hidden = !(is3D(c.type) || is3DLayout(range.layout));
+  refreshLife();
   refreshFlip();
   $('#cars3d-only').hidden = c.type !== 'knife3d' && range.layout !== 'scene3d';
   $('#cars3d').max = CONFIG.knife3d.maxCars;

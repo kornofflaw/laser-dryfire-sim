@@ -73,8 +73,10 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       score: best 2 hits per paper, -10 per miss (missing hit or standing
       steel) and per no-shoot hit, floored at 0; hit factor = points / time.
       Ends by itself when everything is engaged.
-- [ ] 3D range next: life-size option (camera FOV from screen width + viewing
-      distance); movers and the flip grid in 3D; more stages (hard cover,
+- [x] Life-size 3D (2026-09-26): Setup -> "Life-size 3D" with the projected
+      image width and your distance from the screen; the camera's field of
+      view is set so targets and people are their real size (all 3D scenes).
+- [ ] 3D range next: movers and the flip grid in 3D; more stages (hard cover,
       swingers, a stage builder).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 
@@ -218,9 +220,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 6. ~~Target reaction for scenario people.~~ Done: threats drop after 2 hits.
 
 ## Open questions / risks
-- 3D assets are from the three.js examples (Ready Player Me avatar, Mixamo
-  clips, CC BY car, CC0 sky); see web/assets/3d/CREDITS.md. Fine for a
-  personal trainer; revisit licences before any commercial use.
+- 3D assets: Rocketbox people and clips (MIT), the car (CC BY 4.0, credit
+  required), Poly Haven skies (CC0), Babylon.js range textures (CC BY 4.0);
+  see web/assets/3d/CREDITS.md. Fine for a personal trainer; revisit before
+  any commercial use (keep the CC BY credits visible).
 - 3D performance: Andrew's live test (2026-09-25) of the 3D range, pop-ups and
   steel ran smoothly. Headless software rendering is not representative (the
   3D range runs about 1-2 s/frame there). Still to check: iPad.
@@ -287,6 +290,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   (skeleton textures, gun, vest, props, wound stains); the office frees its
   blood pool, glass shards and dust (one shared dust texture). Office
   textures level off instead of +10 per run; knife attack flat.
+- 2026-09-26 (hourly review): Life-size 3D option (Setup): field of view from
+  the projected image width and your distance, so a target or person is its
+  real size (checked: 10 cm at 5 yd = 30.1 px vs 30.2 expected). Also on the
+  iPad Controller. Updated the licence note (Rocketbox, not RPM/Mixamo).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
