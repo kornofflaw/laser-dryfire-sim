@@ -130,11 +130,13 @@ export class Lot3DView {
           gl_FragColor = vec4(c, 1.0); }`,
     });
     this.scene.add(new THREE.Mesh(geo, mat));
+    this.skyMat = mat;
   }
 
   buildLights() {
     const hemi = new THREE.HemisphereLight('#8f97b8', '#2e2823', V().hemiIntensity);
     this.scene.add(hemi);
+    this.hemi = hemi;
     // Last light of the day from behind the store, casting long soft shadows.
     const sun = new THREE.DirectionalLight('#ffb27a', V().sunIntensity);
     sun.position.set(-18, 14, -60);
@@ -146,6 +148,7 @@ export class Lot3DView {
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.02;
     this.scene.add(sun, sun.target);
+    this.sun = sun;
   }
 
   buildGround(renderer) {
@@ -202,6 +205,7 @@ export class Lot3DView {
     const emissive = storeFacadeTexture(true);
     emissive.colorSpace = THREE.SRGBColorSpace;
     const front = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: emissive, emissive: '#ffffff', emissiveIntensity: 1.6, roughness: 0.9 });
+    this.storeFront = front;
     const side = new THREE.MeshStandardMaterial({ color: '#8f8474', roughness: 0.95 });
     const store = new THREE.Mesh(new THREE.BoxGeometry(48, 7.5, 16), [side, side, side, side, front, side]);
     store.position.set(0, 3.75, -58);
@@ -230,6 +234,8 @@ export class Lot3DView {
   buildPoles() {
     const poleMat = new THREE.MeshStandardMaterial({ color: '#3a3d42', roughness: 0.6, metalness: 0.6 });
     const lampMat = new THREE.MeshStandardMaterial({ color: '#fff3d6', emissive: '#ffe2a8', emissiveIntensity: 6 });
+    this.lamps = [];
+    this.lampMat = lampMat;
     const glowTex = glowTexture();
     const poles = [[-3.9, -36], [3.9, -36], [-9.4, -22], [9.4, -22], [-9.4, -6], [9.4, -6]];
     for (const [x, z] of poles) {
@@ -253,6 +259,50 @@ export class Lot3DView {
       glow.position.copy(head.position).add(new THREE.Vector3(0, -0.15, 0));
       glow.scale.set(2.2, 2.2, 1);
       this.scene.add(glow);
+      this.lamps.push({ spot, glow });
+    }
+  }
+
+  // Night or dusk (Setup). Swaps sky, fill light, lamps and the store glow,
+  // and turns on one parked car's headlights at night.
+  setNight(on) {
+    if (!this.ready || this.night === on) return;
+    this.night = on;
+    const N = V().night, D = {
+      sky: ['#1b2640', '#5d5f7a', '#d8956a'], env: V().envIntensity, hemi: V().hemiIntensity, sun: V().sunIntensity,
+      exposure: V().exposure, lamp: V().lampIntensity, lampColor: '#ffd9a0', store: 1.6, fog: V().fogColor,
+    };
+    const S = on ? N : D;
+    const u = this.skyMat.uniforms;
+    u.top.value.set(S.sky[0]); u.mid.value.set(S.sky[1]); u.horizon.value.set(S.sky[2]);
+    this.scene.environmentIntensity = S.env;
+    this.hemi.intensity = S.hemi;
+    this.sun.intensity = S.sun;
+    this.renderer.toneMappingExposure = S.exposure;
+    this.scene.fog.color.set(S.fog);
+    for (const L of this.lamps) { L.spot.intensity = S.lamp; L.spot.color.set(S.lampColor); L.glow.material.color.set(S.lampColor); }
+    this.lampMat.emissive.set(S.lampColor);
+    if (this.storeFront) this.storeFront.emissiveIntensity = S.store;
+    this.setHeadlights(on);
+  }
+
+  // One parked car (the nearest) with its low beams on.
+  setHeadlights(on) {
+    this.headlights?.forEach(o => o.removeFromParent());
+    this.headlights = null;
+    const car = this.cars?.[0];
+    if (!on || !car) return;
+    const N = V().night;
+    const lamp = new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#fff4de', emissiveIntensity: 8 });
+    this.headlights = [];
+    for (const sx of [-0.62, 0.62]) {
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), lamp);
+      bulb.position.set(sx, 0.6, -2.18); // the car's nose is -z in its own space
+      const beam = new THREE.SpotLight('#fff1d8', N.headlight, N.headlightRange, 0.42, 0.55, 1.5);
+      beam.position.copy(bulb.position);
+      beam.target.position.set(sx * 1.4, 0, -12);
+      car.add(bulb, beam, beam.target);
+      this.headlights.push(bulb, beam, beam.target);
     }
   }
 
@@ -285,6 +335,7 @@ export class Lot3DView {
   // Park n cars (0 = empty lot).
   setCarCount(n) {
     if (!this.carModels) return;
+    this.setHeadlights(false);
     for (const car of this.cars) this.scene.remove(car);
     this.solids = this.solids.filter(o => !this.cars.includes(o));
     this.cars = [];
@@ -313,6 +364,7 @@ export class Lot3DView {
       this.solids.push(car);
       this.cars.push(car);
     });
+    if (this.night) this.setHeadlights(true);
   }
 
   buildMan(id) {

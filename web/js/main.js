@@ -42,6 +42,7 @@ const settings = Object.assign({
   yards3d: {},        // 3D range distance per kind of target (defaults: CONFIG.range3d.yards)
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
+  lotNight: false,    // parking lot at night (knife attack, 3D judgment scenes)
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
   screenIn: CONFIG.lifeSize.screenWidthIn.default,
@@ -114,6 +115,7 @@ function ensure3D(type) {
       throw e;
     }
     view.blood = settings.blood;
+    view.setNight?.(settings.lotNight);
     resize3D();
     if (type === 'office3d') runner.opts = settings.office;
     runner.onComplete(runDone);
@@ -155,6 +157,7 @@ function ensureJudge3D() {
     views3d.scene3d = view;
     await view.init({ cars: settings.cars3d });
     view.blood = settings.blood;
+    view.setNight?.(settings.lotNight);
     resize3D();
   })().catch(e => { judge3dError = `Could not load the 3D scene (${e.message}). Turn the 3D range off in Setup.`; console.error(e); });
   return judge3dLoading;
@@ -775,6 +778,12 @@ function refreshFlip() {
   $('#flip-var').checked = settings.flipVariable;
 }
 
+$('#opt-night').onchange = e => {
+  settings.lotNight = e.target.checked;
+  persist();
+  for (const v of new Set(Object.values(views3d))) v.setNight?.(settings.lotNight);
+};
+
 $('#opt-blood').onchange = e => {
   settings.blood = e.target.checked;
   persist();
@@ -784,6 +793,7 @@ $('#opt-blood').onchange = e => {
 function refreshSetup() {
   const c = course();
   $('#opt-blood').checked = settings.blood;
+  $('#opt-night').checked = settings.lotNight;
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
   $('#range3d-row').hidden = !l3;

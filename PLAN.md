@@ -243,10 +243,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. Parking lot: night version with car headlights and sodium lights.
-2. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
-3. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
-4. Office: sprinkler/emergency lights, fire alarm option (stress).
+1. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
+2. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
+3. Office: sprinkler/emergency lights, fire alarm option (stress).
 
 ---
 
@@ -349,6 +348,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   crossed over the head: the pose used the wrong side) and tremble; the
   office hostage pulls at the gunman's arm with both hands and twists
   against the hold (char3d 'held' pose, CONFIG.people).
+- 2026-09-26 (realism pass): parking lot at night (Setup -> Night; knife attack
+  and 3D judgment scenes): dark sky, sodium-orange street lights, lit store
+  front, the nearest parked car with its headlights on (CONFIG.knife3d.night).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

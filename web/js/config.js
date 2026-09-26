@@ -174,6 +174,15 @@ export const CONFIG = {
     defaultCars: 6,         // parked cars (user can pick 0-maxCars in Setup; fewer = faster)
     maxCars: 16,
     strikeFrom: 2.5,        // metres: inside this the knife comes up high for an overhand stab
+    // Night (Setup): dark sky, sodium street lights, lit store, one car with
+    // its headlights on. Values replace the dusk ones while it's on.
+    night: {
+      sky: ['#04060b', '#0b0f1a', '#231d27'],  // top, mid, horizon
+      env: 0.05, hemi: 0.1, sun: 0, exposure: 1.15,
+      lamp: 150, lampColor: '#ffae55',          // high-pressure sodium orange
+      store: 2.6, fog: '#0e1016',
+      headlight: 40, headlightRange: 28,
+    },
     carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
   },
 
