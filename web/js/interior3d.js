@@ -12,11 +12,14 @@
 //   troffer(M), extinguisher(M), copier(M)
 //   blinds(M, width, height)         venetian blinds (one InstancedMesh)
 //   outsideView(width, height)       city/sky backdrop seen through windows
+//   mergeStatic(scene, opts)         merge everything that never moves into a
+//                                    few meshes (one per material): far fewer draw calls
 //
 // Each builder returns a THREE.Group; `group.userData.solids` lists meshes
 // that should stop rounds (walls, desks, doors), for the view's hit testing.
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // ---- textures ----------------------------------------------------------------------
 function canvas(w, h = w) {
@@ -589,4 +592,53 @@ export function blinds(M, width, height, drop = 0.7) {
 
 export function outsideView(M, width, height) {
   return mesh(new THREE.PlaneGeometry(width, height), M.outside, 0, 0, 0, { shadow: false });
+}
+
+// ---- merging -------------------------------------------------------------------------
+// A building is hundreds of small boxes; each is a draw call (three with two
+// shadow lights and ambient occlusion). Merge every static, opaque mesh that
+// shares a material and shadow settings into one mesh, baked in world space.
+// `keep` holds objects (and their children) that move, hide or break: glass,
+// sliding doors. `movers` are groups that move as a whole (a door's swinging
+// pivot): their parts are merged inside the group, so it still moves.
+// `solids` is the list of meshes that stop rounds; returns the new list
+// (merged meshes replace their parts).
+export function mergeStatic(scene, { keep = [], movers = [], solids = [] } = {}) {
+  scene.updateMatrixWorld(true);
+  const skip = new Set();
+  for (const k of [...keep, ...movers]) k?.traverse(o => skip.add(o));
+  const solidSet = new Set(solids), merged = new Set(), out = solids.slice();
+  mergeUnder(scene, o => !skip.has(o), solidSet, merged, out);
+  for (const m of movers) mergeUnder(m, o => !keep.some(k => k === o), solidSet, merged, out);
+  return out.filter(o => !merged.has(o));
+}
+
+function mergeUnder(root, allowed, solidSet, merged, out) {
+  const inv = root.matrixWorld.clone().invert();
+  const groups = new Map();
+  root.traverse(o => {
+    if (!o.isMesh || !allowed(o) || o.isInstancedMesh || o.isSkinnedMesh || !o.visible) return;
+    const m = o.material;
+    if (Array.isArray(m) || m.transparent || m.isShaderMaterial || o.geometry.morphAttributes?.position) return;
+    for (let p = o.parent; p && p !== root; p = p.parent) if (!p.visible) return;
+    const g = o.geometry;
+    const key = [m.uuid, o.castShadow, o.receiveShadow, solidSet.has(o), !!g.index, Object.keys(g.attributes).sort().join()].join('|');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(o);
+  });
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    const geo = mergeGeometries(list.map(o => {
+      const g = o.geometry.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld));
+      g.clearGroups();
+      return g;
+    }));
+    if (!geo) continue;
+    const mesh = new THREE.Mesh(geo, list[0].material);
+    mesh.castShadow = list[0].castShadow;
+    mesh.receiveShadow = list[0].receiveShadow;
+    root.add(mesh);
+    for (const o of list) { o.removeFromParent(); merged.add(o); }
+    if (solidSet.has(list[0])) out.push(mesh);
+  }
 }

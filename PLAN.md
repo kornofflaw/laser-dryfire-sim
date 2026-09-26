@@ -265,6 +265,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   the wounded man look afraid (brows up, mouth open), and the wounded man's
   jaw moves while he talks. Checked the iPad Controller mirrors the new flip
   and office settings.
+- 2026-09-26 (hourly review): office speed-up: everything that never moves is
+  merged into one mesh per material (interior3d.js mergeStatic; door leaves
+  merged inside their swinging pivot). Draw calls per frame 3519 -> 247
+  (6059 -> 441 with ambient occlusion); the picture is unchanged.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

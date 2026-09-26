@@ -23,7 +23,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { People } from './people3d.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Post } from './post3d.js';
-import { makeMaterials, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView } from './interior3d.js';
+import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView } from './interior3d.js';
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
@@ -115,6 +115,11 @@ export class OfficeView {
     this.buildHall();
     this.buildOffice();
     this.buildLights();
+    // Everything that never moves becomes a few big meshes (draw calls).
+    const keep = [...this.doors, ...this.panes.flatMap(p => [p.mesh, ...p.extra])];
+    const movers = [];
+    this.scene.traverse(o => { if (o.userData?.pivot) movers.push(o.userData.pivot); });
+    this.solids = mergeStatic(this.scene, { keep, movers, solids: this.solids });
     this.drops = new GroundDrops(this.scene);
     this.post = new Post(renderer, this.scene, this.camera);
     this.resize(window.innerWidth, window.innerHeight);
