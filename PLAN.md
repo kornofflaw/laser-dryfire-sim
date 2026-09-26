@@ -278,6 +278,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   Surrender scenario the page threw every frame once the person surrendered
   (copying the pistol to drop it also copied a link back to the person,
   which can't be serialized), so the scene froze. The gun now drops.
+- 2026-09-26 (hourly review): smoke test of every course in 2D, fake-camera
+  start/stop and calibration maths: all fine. Realism: hitting a person no
+  longer plays the range "ding" (the person's reaction is the feedback; the
+  no-shoot buzz stays); your own shots echo in the office.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

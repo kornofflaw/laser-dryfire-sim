@@ -235,10 +235,10 @@ function shoot(nx, ny, tMs, source) {
   if (active().busy) review.recordShot(score);
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
-  shotPop();
+  shotPop({ indoor: range.layout === 'office3d' }); // the office echoes
   if (score.zone === 'Steel' || score.zone === 'Tile') steelPing();
   else if (score.zone === 'NS' || score.wrongDot || score.wrongTile) penaltyBuzz();
-  else if (['A', 'C', 'D', 'Head'].includes(score.zone)) hitDing();
+  else if (['A', 'C', 'D', 'Head'].includes(score.zone) && score.kind !== 'actor') hitDing(); // people react instead of dinging
 }
 
 camera.onShot = (nx, ny, t) => {

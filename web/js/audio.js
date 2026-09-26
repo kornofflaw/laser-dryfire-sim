@@ -62,7 +62,8 @@ export function hitDing() {
 }
 
 // Short burst of decaying noise: a percussive "pop" for every shot.
-export function shotPop() {
+// opts.indoor: with the room echo (office).
+export function shotPop(opts = {}) {
   if (forwarded('shotPop', arguments)) return;
   if (!ctx) return;
   const dur = 0.09;
@@ -78,6 +79,11 @@ export function shotPop() {
   g.gain.value = CONFIG.sound.volume;
   src.buffer = buf;
   src.connect(g).connect(ctx.destination);
+  if (opts.indoor) {
+    const wet = ctx.createGain();
+    wet.gain.value = CONFIG.sound.indoorEchoMix;
+    g.connect(roomEcho()).connect(wet).connect(ctx.destination);
+  }
   src.start();
 }
 
