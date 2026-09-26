@@ -351,6 +351,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-26 (realism pass): parking lot at night (Setup -> Night; knife attack
   and 3D judgment scenes): dark sky, sodium-orange street lights, lit store
   front, the nearest parked car with its headlights on (CONFIG.knife3d.night).
+- 2026-09-26 (realism pass): Background sound per 3D scene (audio.js setAmbience, CONFIG.sound.ambience): range = gusting wind + a muffled shot from another bay every 3–14 s; office = air-handling roar + faint light hum; parking lot = wind + distant traffic rumble. Fades between scenes, silent on 2D courses, starts on the first tap (not forwarded to the Controller). Measured well below a gunshot (bed rms 0.008–0.044 vs shot 0.21).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
@@ -385,4 +386,4 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   metric target shape on stakes with cardboard texture (scoring now uses the
   same shape), torn bullet holes, dust strikes on misses, Dot Torture sheet on a
   backer, shaded people with clothing/faces in an indoor room.
-- 2026-09-26: Background sound per 3D scene (audio.js setAmbience, CONFIG.sound.ambience): range = gusting wind + a muffled shot from another bay every 3–14 s; office = air-handling roar + faint light hum; parking lot = wind + distant traffic rumble. Fades between scenes, silent on 2D courses, starts on the first tap (not forwarded to the Controller). Measured well below a gunshot (bed rms 0.008–0.044 vs shot 0.21).
+
