@@ -294,6 +294,9 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 // starting audio, so unlock there too.
 window.addEventListener('pointerup', unlockAudio);
 window.addEventListener('touchend', unlockAudio);
+// iPad with a Magic Keyboard: trackpad clicks and key presses start audio too.
+window.addEventListener('click', unlockAudio);
+window.addEventListener('keydown', unlockAudio, true);
 
 // Keep the screen awake while the page is open (tablets and laptops would
 // otherwise dim or lock mid-session). Needs a user gesture on some browsers,

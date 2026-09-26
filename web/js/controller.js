@@ -43,7 +43,7 @@ async function keepAwake() {
     wakeLock.addEventListener('release', () => { wakeLock = null; });
   } catch { /* try again on the next tap */ }
 }
-for (const ev of ['pointerup', 'touchend']) window.addEventListener(ev, () => { audio.unlockAudio(); keepAwake(); });
+for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, () => { audio.unlockAudio(); keepAwake(); });
 document.addEventListener('visibilitychange', keepAwake);
 
 // ---- buttons ----------------------------------------------------------------------
