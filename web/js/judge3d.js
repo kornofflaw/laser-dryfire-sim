@@ -50,6 +50,7 @@ export class Judge3DView extends Lot3DView {
   // The Range calls these like the 3D range view's (main.js range.onReset).
   setLayout() { return false; }
   resetTargets() {
+    this.holes.clear();
     for (const p of this.people.values()) this.removePerson(p);
     this.people.clear();
     this.groundDrops?.clear();
@@ -194,7 +195,8 @@ export class Judge3DView extends Lot3DView {
     }
     let o = h.object, surface = o.userData.surface;
     while (!surface && o.parent) { o = o.parent; surface = o.userData.surface; }
-    return { ...miss, surface, point: h.point, dir };
+    const normal = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : null;
+    return { ...miss, surface, point: h.point, dir, normal, object: h.object };
   }
 
   onShot(score) {

@@ -28,6 +28,7 @@ import { CONFIG } from './config.js';
 import { KnifeRunner } from './knife.js';
 import { GroundDrops } from './blood3d.js';
 import { Character } from './char3d.js';
+import { BulletHoles, surfaceKind } from './holes3d.js';
 import { People, attachProp } from './people3d.js';
 
 const K = () => CONFIG.knife;
@@ -44,6 +45,7 @@ const KNIFE_CAST = ['m04', 'm06', 'm09', 'm17', 'm18'];
 export class Lot3DView {
   constructor(canvas) {
     this.canvas = canvas;
+    this.holes = new BulletHoles();
     this.ready = false;
     this.progress = 0;
     this.effects = [];
@@ -321,6 +323,7 @@ export class Lot3DView {
   // A fresh Character for the man (a new run starts from a clean slate:
   // no wounds, standing, idle).
   newMan() {
+    this.holes.clear(); // a new run: fresh walls and cars
     if (this.char) {
       this.char.obj.removeFromParent();
       this.char.effects.forEach(e => e.obj.removeFromParent());
@@ -419,7 +422,8 @@ export class Lot3DView {
       const zone = threat ? info.zone : 'NS';
       return { zone, points: CONFIG.points[zone], targetId: 'man', kind: 'actor', bodyZone: info.zone, threat, point: h.point, dir, hit: info };
     }
-    return { zone: 'Miss', points: 0, targetId: null, kind: null, surface, point: h.point, dir };
+    const normal = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : null;
+    return { zone: 'Miss', points: 0, targetId: null, kind: null, surface, point: h.point, dir, normal, object: h.object };
   }
 
   // Reaction to a shot: body reaction + blood on the man, dust on the ground,
@@ -430,8 +434,10 @@ export class Lot3DView {
       this.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
     } else if (score.surface === 'car' || score.surface === 'building') {
       this.effects.push(puff(this.scene, score.point, '#ffcf8a', 0.15, 0.12, true));
+      this.holes.add(score.point, score.normal, score.object, score.surface === 'car' ? 'metal' : surfaceKind(score.object, 'plaster'));
     } else if (score.surface === 'ground') {
       this.effects.push(puff(this.scene, score.point, '#7d776c', 0.35, 0.6));
+      this.holes.add(score.point, score.normal, score.object, 'ground');
     }
   }
 

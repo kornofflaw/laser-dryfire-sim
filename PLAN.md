@@ -242,6 +242,16 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Reflections on a glossy screen can look like shots (maxBlobArea helps).
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
+## Realism queue (hourly realism pass takes the top item)
+1. Suspects: shell casings ejected and gun smoke after each shot.
+2. Office: suspects duck or take cover when you miss near them; some move between cover.
+3. Knife attacker: charge with the knife raised (arm pose), footstep sounds getting louder.
+4. People: breathing/idle weight shifts, hands-up fear tremble, hostage struggling.
+5. Parking lot: night version with car headlights and sodium lights.
+6. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
+7. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
+8. Office: sprinkler/emergency lights, fire alarm option (stress).
+
 ---
 
 ## Changelog
@@ -322,6 +332,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   thump + saturated falling boom (120->42 Hz), compressed (CONFIG.sound.gunshot).
   Energy moved from <100 Hz (inaudible on iPad speakers) + hiss into 100-300 Hz;
   no more clipping. Your own shots use it too (75% level) instead of the pop.
+- 2026-09-26 (realism pass): bullet holes stay where rounds hit walls, desks,
+  door frames, windows, cars, the store and the ground in the office, parking
+  lot and judgment scenes (holes3d.js; plaster / metal / glass-crack / ground
+  looks, max 80, cleared each run). Fixed: shooting office glass before the
+  first run threw (shards list not created yet).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

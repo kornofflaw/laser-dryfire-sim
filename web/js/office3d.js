@@ -27,6 +27,7 @@ import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
+import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
 import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud } from './audio.js';
 
@@ -110,6 +111,8 @@ export class OfficeView {
     this.usedCast = [];
 
     this.solids = [];
+    this.holes = new BulletHoles();
+    this.shards = [];     // fallen glass (resetGlass sweeps it up)
     this.buildOutside();
     this.buildLobby();
     this.buildHall();
@@ -415,6 +418,7 @@ export class OfficeView {
 
   clearPeople() {
     this.usedCast = [];
+    this.holes.clear();
     this.resetGlass();
     for (const d of this.officeDoors?.values() || []) { d.userData.target = d.userData.open = 0; d.userData.pivot.rotation.y = 0; }
     for (const p of this.people) {
@@ -537,7 +541,8 @@ export class OfficeView {
       const armor = !!h.object.userData.armor || person.isArmored(info.bone);
       return { zone, points: CONFIG.points[zone], targetId: person.id, kind: 'actor', bodyZone: info.zone, threat, armor, point: h.point, dir, person, glass };
     }
-    return { ...miss, point: h.point, dir, surface: 'wall', glass };
+    const normal = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : null;
+    return { ...miss, point: h.point, dir, surface: 'wall', glass, normal, object: h.object };
   }
 
   // Reaction (called by Range.onShot): blood/reaction on people, dust on walls.
@@ -552,7 +557,10 @@ export class OfficeView {
       this.fx.push(dust(this.scene, score.point));
       armorThud();
     } else if (score.person) score.person.hit(score.point, score.dir, now, this.scene, this.drops, this.blood);
-    else this.fx.push(dust(this.scene, score.point));
+    else {
+      this.fx.push(dust(this.scene, score.point));
+      this.holes.add(score.point, score.normal, score.object, surfaceKind(score.object, 'plaster'));
+    }
   }
 
   // A pane shatters: it's gone, shards spray out along the round and fall,

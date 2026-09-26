@@ -257,6 +257,12 @@ export const CONFIG = {
   },
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
+  // ---- Bullet holes in 3D scenes (holes3d.js) ---------------------------------------
+  holes: {
+    sizeCm: 2.2,            // decal size: 9 mm hole plus the damaged ring around it
+    max: 80,                // oldest holes are recycled past this
+  },
+
   // ---- Life-size 3D (Setup) --------------------------------------------------------
   // The 3D camera's field of view matched to the screen: things look their
   // real size from where you stand. Vertical FOV = 2 atan(screen height / 2 /
