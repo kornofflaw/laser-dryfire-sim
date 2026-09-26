@@ -69,9 +69,12 @@ reference only. They are not used and should not be edited.
    distortion, so a low-distortion lens is required (no 170-degree fisheye).
    Calibration is only valid while the page fills the same projected area it was
    calibrated at (use fullscreen); setup warns when the viewport size changes.
-7. **No audio files.** Sounds are generated in audio.js (WebAudio). 2D scenes
-   are drawn in code. 3D scenes may use asset files in `web/assets/3d/`; every
-   asset must be listed with its source and licence in `web/assets/3d/CREDITS.md`.
+7. **Sounds are generated in audio.js (WebAudio)**, with small recorded WAVs in
+   `web/assets/sounds/` layered in (Andrew approved, Sept 2026). Every recording
+   must be free to use and listed in `web/assets/sounds/CREDITS.md`, and the
+   generated sound must still play if a file doesn't load. 2D scenes are drawn
+   in code. 3D scenes may use asset files in `web/assets/3d/`; every asset must
+   be listed with its source and licence in `web/assets/3d/CREDITS.md`.
 8. **No build step.** Plain ES modules served as static files. The one library
    is three.js, vendored (copied) into `web/vendor/three/` and mapped with the
    import map in index.html; never load it from a CDN at runtime. 3D modules are
@@ -110,6 +113,7 @@ web/                    the app; deploy this folder as-is
   js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, flip grid, Texas Star (rotation from star.js)
   js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
+  assets/sounds/        recorded pistol reports, steel clanks, footsteps, glass (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
   js/uspsa.js           USPSA metric target shape: drawing + zone scoring

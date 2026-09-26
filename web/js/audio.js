@@ -30,6 +30,7 @@ export function unlockAudio() {
     if (!AC) return;
     ctx = new AC();
   }
+  loadSamples();
   const wasRunning = ctx.state === 'running';
   // Start the scene's background sound once audio is actually running.
   const startAmb = () => { if ((amb?.kind ?? null) !== ambWanted) setAmbience(ambWanted); };
@@ -118,6 +119,7 @@ export function shotPop(opts = {}) {
 export function steelPing() {
   if (forwarded('steelPing', arguments)) return;
   if (!ctx) return;
+  playSample('steel', CONFIG.sound.samples.steel);
   const base = CONFIG.sound.steelHz * (0.96 + Math.random() * 0.08);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
   const t0 = ctx.currentTime;
@@ -174,6 +176,7 @@ export function clack() {
 export function footstep(loudness) {
   if (forwarded('footstep', arguments)) return;
   if (!ctx) return;
+  if (playSample('step_concrete', Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.samples.step)) return;
   const n = Math.floor(ctx.sampleRate * 0.08);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -266,7 +269,7 @@ export function radioStatic() {
 
 // A suspect's gunshot: louder and heavier than your own shot's pop.
 // opts.indoor: add a room echo (office).
-// opts.indoor: room echo; opts.level: loudness scale.
+// opts.indoor: room echo; opts.outdoor: recorded outdoor echo; opts.level: loudness scale.
 export function enemyShot(opts = {}) {
   if (forwarded('enemyShot', arguments)) return;
   if (!ctx) return;
@@ -312,6 +315,9 @@ export function enemyShot(opts = {}) {
   osc.connect(shaper);
   env(shaper, G.boom, G.boomTime);
   osc.start(t0); osc.stop(t0 + G.boomTime + 0.05);
+  // Outdoors: a real pistol report with its echo off buildings / berms under
+  // the generated crack and boom.
+  if (opts.outdoor) playSample('shot_near', CONFIG.sound.samples.outdoorTail, { out });
   if (opts.indoor) {
     const wet = ctx.createGain();
     wet.gain.value = CONFIG.sound.indoorEchoMix;
@@ -346,6 +352,7 @@ function roomEcho() {
 export function glassBreak() {
   if (forwarded('glassBreak', arguments)) return;
   if (!ctx) return;
+  playSample('glass', CONFIG.sound.samples.glass);
   const n = Math.floor(ctx.sampleRate * 0.9);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -458,6 +465,7 @@ export function setAmbience(kind) {
     const next = () => {
       amb.timer = setTimeout(() => {
         if (amb?.kind !== 'range') return;
+        if (playSample(Math.random() < 0.6 ? 'shot_far' : 'shot_near', CONFIG.sound.samples.distantShot * (0.5 + Math.random() * 0.5) / (A.level * CONFIG.sound.volume), { out, lowpass: 2500 })) { next(); return; }
         const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), t0 = ctx.currentTime;
         src.buffer = noiseBuffer(0.5, false);
         lp.type = 'lowpass'; lp.frequency.value = 700;
@@ -470,4 +478,48 @@ export function setAmbience(kind) {
     };
     next();
   }
+}
+
+// ---- Recorded sounds -------------------------------------------------------------
+// Small WAV files in web/assets/sounds (sources and licences in CREDITS.md):
+// real pistol reports with street echo (ShotSpotter, CC BY 4.0) and Kenney
+// impacts / footsteps (CC0). Loaded after the first tap; until a set has
+// loaded (or if it fails), playSample returns false and the generated sound
+// is used instead.
+const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3 };
+const samples = {};
+let samplesLoading = false;
+function loadSamples() {
+  if (samplesLoading || !CONFIG.sound.samples?.enabled || !ctx) return;
+  samplesLoading = true;
+  const base = new URL('../assets/sounds/', import.meta.url);
+  for (const [name, n] of Object.entries(SAMPLE_SETS)) {
+    samples[name] = [];
+    for (let i = 0; i < n; i++) {
+      fetch(new URL(`${name}_${i}.wav`, base))
+        .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+        .then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+        .then(buf => samples[name].push(buf))
+        .catch(() => { /* keep the generated sound */ });
+    }
+  }
+}
+// Play a random take from a set; opts.out: node to play into (default the
+// speakers); opts.lowpass: Hz. Returns false if nothing is loaded.
+function playSample(name, level, opts = {}) {
+  const takes = samples[name];
+  if (!ctx || !takes?.length) return false;
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = takes[Math.floor(Math.random() * takes.length)];
+  src.playbackRate.value = 1 + (Math.random() * 2 - 1) * CONFIG.sound.samples.rateJitter;
+  g.gain.value = level * (opts.out ? 1 : CONFIG.sound.volume);
+  let node = src;
+  if (opts.lowpass) {
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = opts.lowpass;
+    node = node.connect(lp);
+  }
+  node.connect(g).connect(opts.out || ctx.destination);
+  src.start();
+  return true;
 }

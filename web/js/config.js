@@ -390,6 +390,18 @@ export const CONFIG = {
     steelHz: 2350,          // base pitch of the steel "ping"
     indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
     indoorEchoMix: 0.45,    // echo level relative to the shot
+    // Recorded sounds (web/assets/sounds, credits in CREDITS.md), layered with
+    // or replacing the generated ones; the generated sound plays if a file
+    // hasn't loaded. Levels are relative to CONFIG.sound.volume.
+    samples: {
+      enabled: true,
+      steel: 0.55,        // real metal clank at the moment of a steel hit (the ring is generated)
+      step: 1.3,          // concrete footsteps (knife attacker)
+      glass: 0.9,         // glass impact under the generated shatter
+      outdoorTail: 0.5,   // real pistol report + echo under your shot outdoors
+      distantShot: 0.35,  // range ambience: shots from other bays
+      rateJitter: 0.08,   // +- playback speed so repeats don't sound identical
+    },
     // Background sound per 3D scene (quiet, under the shots): the outdoor
     // range has wind and now and then a distant shot from another bay; the
     // office an air-handling hum; the parking lot distant traffic and wind.
