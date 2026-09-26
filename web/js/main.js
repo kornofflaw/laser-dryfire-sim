@@ -137,7 +137,7 @@ function ensureRange3D() {
     for (const l of Object.keys(RANGE3D_KIND)) views3d[l] = view;
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
     const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
-    await view.init({ yards, star: range.star, popups: range.popups, stage: () => range.stageDef });
+    await view.init({ yards, star: range.star, popups: range.popups, flip: range.flip, stage: () => range.stageDef });
     resize3D();
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
@@ -792,7 +792,7 @@ function refreshSetup() {
     dist.min = lo; dist.max = hi;
     dist.value = yards3d(kind);
     $('#dist3d-val').textContent = `${yards3d(kind)} yd`;
-    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers' }[kind];
+    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers', grid: 'flip grid' }[kind];
   }
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
   $('#opt-real3d').disabled = !TO_3D[c.layout];

@@ -269,9 +269,12 @@ export const CONFIG = {
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the
     // slider's limits, and the height (m) the fixed camera looks at.
-    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8 },
-    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25] },
-    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3 },
+    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8, grid: 5 },
+    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25], grid: [3, 20] },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3, grid: 1.25 },
+    // Flip grid in 3D: plate size (m, square) and the frame's centre height;
+    // columns, rows, spin and faces come from CONFIG.flip and the FlipBoard.
+    flipGrid: { plate: 0.25, centerY: 1.25 },
     // Movers: targets on stands sliding along a track across the bay; a hit
     // one tips back, and a fresh one comes on from a side after `respawn` s.
     movers: { count: 2, track: 8, speed: [0.9, 2.2], respawn: 0.9, fallTime: 0.3 },

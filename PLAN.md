@@ -80,8 +80,11 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
       track across the bay (0.9-2.2 m/s, turn at the ends), tip back when hit,
       and a fresh one comes on from a side; own distance slider. The Movers
       course uses it when the 3D range is on.
-- [ ] 3D range next: the flip grid in 3D; more stages (hard cover, swingers,
-      a stage builder).
+- [x] Flip grid in 3D (2026-09-26): a steel frame of square plates that spin
+      on axles, mirroring the same FlipBoard as 2D (faces drawn by the same
+      code, lead splashes, green/red hit flash); all five flip courses use it
+      when the 3D range is on; own distance slider (default 5 yd).
+- [ ] 3D range next: more stages (hard cover, swingers, a stage builder).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
@@ -300,6 +303,9 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   iPad Controller. Updated the licence note (Rocketbox, not RPM/Mixamo).
 - 2026-09-26 (hourly review): 3D movers (range3d.js buildMovers /
   updateMovers, CONFIG.range3d.movers, layout 'range3d-movers').
+- 2026-09-26 (hourly review): 3D flip grid (steel3d.js FlipGrid3D, layout
+  'range3d-grid'). Only the painted face of a face-on plate counts; edge-on
+  plates let rounds past, like 2D.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

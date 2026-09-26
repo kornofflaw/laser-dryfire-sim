@@ -106,7 +106,7 @@ web/                    the app; deploy this folder as-is
   js/judge3d.js         judgment scenarios (scenarios.js scripts) in 3D with realistic people, in the parking lot
   js/people3d.js        realistic people: Rocketbox avatars (MIT) + motion-capture clips, as char3d.js rigs
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
-  js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, Texas Star (rotation from star.js)
+  js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, flip grid, Texas Star (rotation from star.js)
   js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)

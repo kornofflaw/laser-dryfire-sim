@@ -33,6 +33,7 @@ export const LAYOUTS = {
   'range3d-plates': '3D range: plate rack',
   'range3d-poppers': '3D range: poppers',
   'range3d-movers': '3D range: movers',
+  'range3d-grid': '3D range: flip grid',
   grid: 'Flip grid (spinning plates)',
 };
 // What each 3D range layout holds (range3d.js); each kind has its own distance.
@@ -41,9 +42,10 @@ export const RANGE3D_KIND = {
   'range3d-star': 'star', 'range3d-plates': 'plates', 'range3d-poppers': 'poppers',
   'range3d-stage': 'stage', // items at their own distances (range.stageDef, courses.js)
   'range3d-movers': 'movers',
+  'range3d-grid': 'grid',
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
-export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', scene: 'scene3d' };
+export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', grid: 'range3d-grid', scene: 'scene3d' };
 // Layouts drawn by a 3D view (the 2D canvas only overlays them).
 export const is3DLayout = l => l === 'lot3d' || l === 'office3d' || l === 'scene3d' || l.startsWith('range3d');
 // Layouts only used by specific courses.
@@ -203,7 +205,7 @@ export class Range {
       this.popups.auto = this.autoPopups;
       this.popups.update(dt, nowSec);
     }
-    if (this.layout === 'grid') {
+    if (this.layout === 'grid' || this.layout === 'range3d-grid') {
       this.flip.auto = this.autoFlip;
       this.flip.update(dt, nowSec);
     }
@@ -338,6 +340,11 @@ export class Range {
       // 3D pop-ups and the 3D star share their state with the 2D ones.
       if (score.lane != null && this.layout === 'range3d-popup') this.popups.hit(score.lane, px, py, W, H, nowSec, score.t);
       if (score.plate != null && this.layout === 'range3d-star') this.star.knockOff(score.plate, px, py, W, H, nowSec);
+      // 3D flip grid: same board as the 2D one (free practice flips targets back).
+      if (score.tile != null && this.layout === 'range3d-grid' && this.autoFlip && score.face === 'target') {
+        this.flip.mark(score.tile, score.u, score.v, true);
+        this.flip.autoHit(score.tile, score.t, nowSec);
+      }
       this.view3d?.onShot(score);
       return;
     }

@@ -229,8 +229,8 @@ export class FlipBoard {
   }
 }
 
-// One plate face, centred at (0,0), size s.
-function drawPlate(g, s, face, num, marks) {
+// One plate face, centred at (0,0), size s (also the 3D grid's face textures).
+export function drawPlate(g, s, face, num, marks) {
   const h = s / 2;
   if (face === 'blank') {
     // Bare steel: grey with a sheen and faint brushing.

@@ -8,6 +8,9 @@
 //              over backwards onto the ground.
 //   StageSteel any mix of full-size poppers, mini poppers and plates on
 //              stands, placed anywhere in the bay (stages).
+//   FlipGrid3D the flip grid: a steel frame of square plates that spin on
+//              vertical axles, mirroring the FlipBoard (fliptiles.js) that
+//              the flip courses drive, faces drawn by the same code as 2D.
 //   Star3D     the Texas Star. Its rotation comes from the same rigid-body
 //              model as the 2D star (star.js, range.star), so both behave the
 //              same; a plate that's hit comes off the arm with the arm's
@@ -23,6 +26,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { clack } from './audio.js';
+import { drawPlate } from './fliptiles.js';
 
 const S = () => CONFIG.range3d.steel;
 const THICK = 0.0095; // 3/8" plate
@@ -207,6 +211,127 @@ function addPlateStand(set, mats, x, z, height) {
 
 // ---- Texas Star ---------------------------------------------------------------------
 const N = 5;
+// ---- flip grid ---------------------------------------------------------------------
+// The board (fliptiles.js FlipBoard) holds every plate's face, spin and hit
+// marks; this draws it. A plate turns on its axle through 180 degrees; at the
+// half-way point the other face comes round, so the plate is shown with the
+// face the board says is visible, turned by up to +/- 90 degrees.
+export class FlipGrid3D {
+  constructor(board, mats) {
+    this.name = 'tile';
+    this.board = board;
+    this.group = new THREE.Group();
+    this.solids = [];
+    this.plates = [];
+    this.textures = new Map();
+    this.clearedAt = null;
+    const { cols, rows } = CONFIG.flip;
+    const G = CONFIG.range3d.flipGrid, s = G.plate, gap = s * 0.18, pad = s * 0.35;
+    const W = s * (cols + (cols - 1) * 0.18 + 0.7), H = s * (rows + (rows - 1) * 0.18 + 0.7);
+    const bar = (w, h, x, y) => {
+      const m = box(w, h, 0.05, mats.frame);
+      m.position.set(x, y, -0.03);
+      m.userData.surface = 'steel-frame';
+      this.group.add(m);
+      this.solids.push(m);
+    };
+    const cy = G.centerY;
+    // Border, the bars between openings, legs and feet.
+    bar(W, pad, 0, cy + H / 2 - pad / 2);
+    bar(W, pad, 0, cy - H / 2 + pad / 2);
+    bar(pad, H, -W / 2 + pad / 2, cy);
+    bar(pad, H, W / 2 - pad / 2, cy);
+    const cx = c => -W / 2 + pad + c * (s + gap) + s / 2;
+    const ry = r => cy + H / 2 - pad - r * (s + gap) - s / 2;
+    for (let c = 1; c < cols; c++) bar(gap, H - 2 * pad, cx(c) - s / 2 - gap / 2, cy);
+    for (let r = 1; r < rows; r++) bar(W - 2 * pad, gap, 0, ry(r) + s / 2 + gap / 2);
+    for (const sx of [-0.3, 0.3]) {
+      const leg = box(0.06, cy - H / 2, 0.06, mats.frame);
+      leg.position.set(sx * W, (cy - H / 2) / 2, -0.03);
+      leg.userData.surface = 'steel-frame';
+      const foot = box(0.08, 0.04, 0.6, mats.frame);
+      foot.position.set(sx * W, 0.02, -0.03);
+      this.group.add(leg, foot);
+      this.solids.push(leg);
+    }
+    // Plates: a thin steel square, the painted face on the front.
+    const edge = mats.frame;
+    const back = new THREE.MeshStandardMaterial({ color: S().frame, roughness: 0.6, metalness: 0.4 });
+    this.splashMat = new THREE.MeshStandardMaterial({ color: '#77797c', roughness: 0.5, metalness: 0.3 });
+    this.splashGeo = new THREE.CircleGeometry(s * 0.045, 9);
+    for (let i = 0; i < cols * rows; i++) {
+      const face = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.1 });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(s, s, 0.012), [edge, edge, edge, edge, face, back]);
+      mesh.position.set(cx(i % cols), ry(Math.floor(i / cols)), 0.01);
+      mesh.userData.tile = i;
+      const axle = box(0.012, s + gap, 0.012, mats.frame);
+      axle.position.set(mesh.position.x, mesh.position.y, -0.002);
+      this.group.add(mesh, axle);
+      this.plates.push({ mesh, face, marks: [], key: null });
+    }
+    this.size = s;
+    castShadows(this.group);
+  }
+
+  // A face texture (cached per face: blank, target, each number, each shape).
+  texture(face, num) {
+    const key = face + ':' + (num ?? '');
+    if (!this.textures.has(key)) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const g = c.getContext('2d');
+      g.translate(128, 128);
+      drawPlate(g, 256, face, num, []);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      this.textures.set(key, t);
+    }
+    return this.textures.get(key);
+  }
+
+  get moving() { return this.board.tiles.some(t => t.anim); }
+
+  hittables() { return this.plates.map(p => p.mesh); }
+
+  // A round hit plate i at texture coords uv: which face it hit, where on it
+  // (u, v as fractions of the plate from its centre, v down, like 2D), or
+  // null if the plate is too edge-on to be hit (the round goes past).
+  tileHit(i, uv, nowSec) {
+    const t = this.board.tiles[i];
+    const v = this.board.view(t, nowSec);
+    if (v.k < CONFIG.flip.hittableAbove) return null;
+    return { tile: i, face: v.face, num: v.num, u: uv.x - 0.5, v: 0.5 - uv.y };
+  }
+
+  update(dt, nowSec) {
+    const s = this.size;
+    this.board.tiles.forEach((t, i) => {
+      const p = this.plates[i];
+      const v = this.board.view(t, nowSec);
+      const key = v.face + ':' + (v.num ?? '');
+      if (p.key !== key) { p.key = key; p.face.map = this.texture(v.face, v.num); p.face.needsUpdate = true; }
+      p.mesh.rotation.y = t.anim ? (v.p < 0.5 ? v.p : v.p - 1) * Math.PI : 0;
+      // Hit flash (green = right plate, red = wrong) and lead splashes.
+      p.face.emissive.set(t.flashGood ? '#3cff78' : '#ff3c3c');
+      p.face.emissiveIntensity = t.anim ? 0 : t.flash * 0.6;
+      const marks = t.anim ? [] : t.marks;
+      if (marks.length !== p.marks.length) {
+        p.marks.forEach(m => m.removeFromParent());
+        p.marks = marks.map(([u, w]) => {
+          const m = new THREE.Mesh(this.splashGeo, this.splashMat);
+          m.position.set(u * s, -w * s, 0.0065);
+          p.mesh.add(m);
+          return m;
+        });
+      }
+    });
+  }
+
+  hit() {}      // the board and runner handle plate hits
+  reset() {}    // the board resets with the range
+}
+
 export class Star3D {
   // star: the TexasStar physics object (star.js) shared with the 2D view.
   constructor(star, mats) {

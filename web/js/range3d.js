@@ -33,7 +33,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
 import { RANGE3D_KIND } from './range.js';
-import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel } from './steel3d.js';
+import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D } from './steel3d.js';
 import { stageTargets } from './courses.js';
 
 const R = () => CONFIG.range3d;
@@ -67,10 +67,11 @@ export class Range3DView {
 
   // yards: { kind: yards } overrides; star / popups: range.star, range.popups;
   // stage: () => the current stage definition (range.stageDef).
-  async init({ yards, star, popups, stage } = {}) {
+  async init({ yards, star, popups, flip, stage } = {}) {
     this.stageSource = stage || (() => null);
     Object.assign(this.yards, yards || {});
     this.star = star;
+    this.flip = flip;
     this.bank = popups;
     const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, R().maxPixelRatio));
@@ -338,6 +339,7 @@ export class Range3DView {
       if (stage) this.buildStage(stage);
     } else {
       const S = kind === 'star' ? new Star3D(this.star, this.steelMats)
+        : kind === 'grid' ? new FlipGrid3D(this.flip, this.steelMats)
         : kind === 'plates' ? new PlateRack(this.steelMats) : new Poppers(this.steelMats);
       this.steel = S;
       this.layoutGroup.add(S.group);
@@ -674,6 +676,15 @@ export class Range3DView {
         if (card.meta.kind === 'noshoot') return { ...base, zone: 'NS', points: CONFIG.points.NS, targetId: card.id, kind: 'noshoot' };
         return { ...base, targetId: card.id, kind: 'uspsa', slot: card.meta.slot };
       }
+      if (o.userData.tile != null && this.steel?.tileHit) {
+        // Flip grid: only the painted face counts, and only if the plate is
+        // face-on enough (edge-on plates let the round past).
+        if (h.face?.materialIndex !== 4) return { ...miss, frame: true, point: h.point, dir, surface: 'steel' };
+        const r = this.steel.tileHit(o.userData.tile, h.uv, performance.now() / 1000);
+        if (!r) continue;
+        const zone = r.face === 'blank' ? 'Miss' : 'Tile';
+        return { zone, points: CONFIG.points[zone], targetId: `tile-${r.tile}`, kind: 'tile', ...r, point: h.point, dir };
+      }
       if (o.userData.steel != null && this.steel) {
         const i = o.userData.steel;
         const id = this.steel.idOf ? this.steel.idOf(i) : `${this.steel.name}-${i}`;
@@ -691,6 +702,11 @@ export class Range3DView {
   onShot(score) {
     if (!this.ready || !score.point) return;
     const now = performance.now() / 1000;
+    if (score.tile != null) {
+      // Flip-grid plate: the board draws the lead splash; a spray of lead.
+      this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 12, [1.5, 4], 0.006, 0.5));
+      return;
+    }
     if (score.steel != null && this.steel) {
       this.steel.hit(score.steel, score.point, score.dir, now);
       // Lead and paint spray off the face, mostly sideways and down.
