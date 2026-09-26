@@ -337,6 +337,13 @@ export class Character {
       this.solveArm('Right', hand, up.clone().multiplyScalar(-1).addScaledVector(right, 0.5), wR);
       const wL = w * smooth((e - 0.55) / 0.45);
       if (wL > 0) this.solveArm('Left', grip.clone().addScaledVector(right, 0.03), up.clone().multiplyScalar(-1).addScaledVector(right, -0.5), wL);
+    } else if (this.pose === 'knife') {
+      // Charging with a knife: blade hand up and forward, ready; in the last
+      // metres (this.strike 0 -> 1) it comes up high for an overhand stab.
+      const s = this.strike || 0;
+      const sh = P('RightArm');
+      const hand = sh.clone().addScaledVector(fwd, 0.36 - 0.06 * s).addScaledVector(up, 0.02 + 0.2 * s).addScaledVector(right, 0.12 - 0.08 * s);
+      this.solveArm('Right', hand, up.clone().multiplyScalar(-1).addScaledVector(right, 0.8), w);
     } else if (this.pose === 'reach') {
       // Lying on his back, reaching up toward whoever comes in.
       const sh = P('LeftArm');

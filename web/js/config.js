@@ -173,6 +173,7 @@ export const CONFIG = {
     aZoneRadius: 0.1,       // metres from the spine line that count as A zone on the chest
     defaultCars: 6,         // parked cars (user can pick 0-maxCars in Setup; fewer = faster)
     maxCars: 16,
+    strikeFrom: 2.5,        // metres: inside this the knife comes up high for an overhand stab
     carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
   },
 

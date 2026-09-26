@@ -360,6 +360,9 @@ export class Lot3DView {
       this.man.rotation.set(0, Math.atan2(x, d), 0); // facing the shooter
     }
     c.play(pose === 'charge' ? 'run' : 'angry');
+    // Charging: knife up and ready, raised high to stab in the last metres.
+    c.pose = pose === 'charge' && !stopped ? 'knife' : null;
+    c.strike = THREE.MathUtils.clamp((V().strikeFrom - d) / (V().strikeFrom - CONFIG.knife.reach), 0, 1);
     // Legs keep up with his real speed.
     if (c.current === 'run') c.actions.run.timeScale = Math.max(0.6, speed / V().runClipSpeed);
     // Stopped: he goes down forward, toward the shooter, at full stride.

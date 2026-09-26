@@ -176,14 +176,17 @@ export function footstep(loudness) {
   const d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) {
     const t = i / ctx.sampleRate;
-    d[i] = ((Math.random() * 2 - 1) * 0.6 + Math.sin(2 * Math.PI * 90 * t)) * Math.exp(-t * 45);
+    // Heel strike (a thump tablet speakers can play) + shoe scuff on grit.
+    const thump = Math.sin(2 * Math.PI * (170 - 60 * t / 0.08) * t) * Math.exp(-t * 55);
+    const scuff = (Math.random() * 2 - 1) * Math.exp(-t * 30) * (t > 0.01 ? 0.7 : 0.3);
+    d[i] = thump * 0.9 + scuff * 0.6;
   }
   const src = ctx.createBufferSource();
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.value = 900;
+  lp.frequency.value = 2200;
   const g = ctx.createGain();
-  g.gain.value = Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.volume;
+  g.gain.value = Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.volume * 1.4;
   src.buffer = buf;
   src.connect(lp).connect(g).connect(ctx.destination);
   src.start();
