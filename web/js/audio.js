@@ -116,14 +116,19 @@ export function shotPop(opts = {}) {
 
 // Steel "ping": a few inharmonic partials with long, uneven decays, which is
 // what makes struck plate steel sound metallic rather than like a beep.
-export function steelPing() {
+export function steelPing(size) {
   if (forwarded('steelPing', arguments)) return;
   if (!ctx) return;
-  playSample('steel', CONFIG.sound.samples.steel);
-  const base = CONFIG.sound.steelHz * (0.96 + Math.random() * 0.08);
+  // Size ratio to an 8" plate: bigger steel rings lower and longer.
+  const SR = CONFIG.sound.steelRing;
+  const r = Math.min(SR.range[1], Math.max(SR.range[0], (size || SR.ref) / SR.ref));
+  playSample('steel', CONFIG.sound.samples.steel, { rate: 1 / Math.sqrt(r) });
+  const base = CONFIG.sound.steelHz / Math.pow(r, SR.pitch) * (0.96 + Math.random() * 0.08);
+  const long = Math.pow(r, SR.decay);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
   const t0 = ctx.currentTime;
-  for (const [ratio, amp, decay] of partials) {
+  for (const [ratio, amp, d] of partials) {
+    const decay = d * long;
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.frequency.value = base * ratio;
@@ -505,13 +510,14 @@ function loadSamples() {
   }
 }
 // Play a random take from a set; opts.out: node to play into (default the
-// speakers); opts.lowpass: Hz. Returns false if nothing is loaded.
+// speakers); opts.lowpass: Hz; opts.rate: playback speed. Returns false if
+// nothing is loaded.
 function playSample(name, level, opts = {}) {
   const takes = samples[name];
   if (!ctx || !takes?.length) return false;
   const src = ctx.createBufferSource(), g = ctx.createGain();
   src.buffer = takes[Math.floor(Math.random() * takes.length)];
-  src.playbackRate.value = 1 + (Math.random() * 2 - 1) * CONFIG.sound.samples.rateJitter;
+  src.playbackRate.value = (opts.rate ?? 1) * (1 + (Math.random() * 2 - 1) * CONFIG.sound.samples.rateJitter);
   g.gain.value = level * (opts.out ? 1 : CONFIG.sound.volume);
   let node = src;
   if (opts.lowpass) {

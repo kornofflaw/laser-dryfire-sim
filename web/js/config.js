@@ -388,6 +388,11 @@ export const CONFIG = {
     beepSeconds: 0.18,
     hitHz: 1568,            // ~G6 "ding"
     steelHz: 2350,          // base pitch of the steel "ping"
+    // Steel rings by size: steelHz is an 8" plate (ref, metres). A plate r times
+    // that size rings at steelHz / r^pitch for r^decay times as long (thicker
+    // big steel keeps this gentler than thin-plate physics' r^2). r is clamped
+    // to `range`. A popper rings like a plate popperSize x its height.
+    steelRing: { ref: 0.2032, pitch: 1, decay: 0.7, range: [0.5, 2.5], popperSize: 0.4 },
     indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
     indoorEchoMix: 0.45,    // echo level relative to the shot
     // Recorded sounds (web/assets/sounds, credits in CREDITS.md), layered with

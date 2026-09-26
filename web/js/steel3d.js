@@ -97,10 +97,11 @@ class FallingSet {
     this.clearedAt = null;
   }
 
-  addItem(pivot, mesh, faceZ, length, kick, fallTo) {
+  // size: the plate's ringing size in metres (sets the pitch of its ring).
+  addItem(pivot, mesh, faceZ, length, kick, fallTo, size) {
     const i = this.items.length;
     mesh.userData.steel = i;
-    this.items.push({ pivot, mesh, faceZ, k: (3 * 9.81) / (2 * length), kick, fallTo, up: true, theta: 0, omega: 0, resting: false, marks: [] });
+    this.items.push({ pivot, mesh, faceZ, k: (3 * 9.81) / (2 * length), kick, fallTo, size, up: true, theta: 0, omega: 0, resting: false, marks: [] });
   }
 }
 
@@ -139,7 +140,7 @@ export class PlateRack extends FallingSet {
       pivot.add(paddle, disc);
       this.group.add(pivot);
       this.solids.push(paddle);
-      this.addItem(pivot, disc, THICK / 2, R.paddle + r, R.kick, R.fallTo);
+      this.addItem(pivot, disc, THICK / 2, R.paddle + r, R.kick, R.fallTo, 2 * r);
     }
     castShadows(this.group);
   }
@@ -185,7 +186,7 @@ function addPopper(set, mats, x, z, height) {
   const mesh = new THREE.Mesh(popperGeometry(height), mats.paint);
   pivot.add(mesh);
   set.group.add(pivot);
-  set.addItem(pivot, mesh, THICK / 2, height, P.kick, P.fallTo);
+  set.addItem(pivot, mesh, THICK / 2, height, P.kick, P.fallTo, height * CONFIG.sound.steelRing.popperSize);
 }
 
 // A single 8" plate on a paddle hinged to the top of a post (a "plate stand").
@@ -206,7 +207,7 @@ function addPlateStand(set, mats, x, z, height) {
   pivot.add(paddle, disc);
   set.group.add(pivot);
   set.solids.push(paddle);
-  set.addItem(pivot, disc, THICK / 2, P.paddle + r, S().rack.kick, P.fallTo);
+  set.addItem(pivot, disc, THICK / 2, P.paddle + r, S().rack.kick, P.fallTo, 2 * r);
 }
 
 // ---- Texas Star ---------------------------------------------------------------------

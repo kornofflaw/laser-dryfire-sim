@@ -243,10 +243,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. Sounds: steel ring varies by plate size (big plates lower and longer).
-2. Office: sprinkler/emergency lights, fire alarm option (stress).
-3. People: idle life while standing (breathing, small weight shifts, blinks).
-4. Parking lot: wet-asphalt / rain option (reflections, rain sound).
+1. Office: sprinkler/emergency lights, fire alarm option (stress).
+2. People: idle life while standing (breathing, small weight shifts, blinks).
+3. Parking lot: wet-asphalt / rain option (reflections, rain sound).
+4. Sounds: real close-range pistol shot from the shooter's position (needs Andrew's range recording).
 
 ---
 
@@ -355,6 +355,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-26 (realism pass): Background sound per 3D scene (audio.js setAmbience, CONFIG.sound.ambience): range = gusting wind + a muffled shot from another bay every 3–14 s; office = air-handling roar + faint light hum; parking lot = wind + distant traffic rumble. Fades between scenes, silent on 2D courses, starts on the first tap (not forwarded to the Controller). Measured well below a gunshot (bed rms 0.008–0.044 vs shot 0.21).
 - 2026-09-26 (realism pass): 3D range paper targets rock by where they're hit (CONFIG.range3d.jolt): off-centre hits twist the target, high hits push the top back more, a second hit adds to the swing, and a round through a stake rocks the whole target. Fixed: side hits used to swing the hit side toward the shooter (wrong sign).
 - 2026-09-26: Real recorded sounds (Andrew approved audio files; CLAUDE.md rule 7 updated). web/assets/sounds (404 KB, CREDITS.md): ShotSpotter CC BY 4.0 real 9mm/.40/.45 shots with street echo -> under your shot outside the office and as the range's distant shots; Kenney CC0 metal clank on steel hits (generated ring kept), concrete footsteps for the knife attacker, glass impact under the shatter. Loaded after the first tap; generated sounds play if a file is missing (CONFIG.sound.samples). Still wanted: a close-range pistol shot from the shooter's position (Andrew's own range recording).
+- 2026-09-26 (realism pass): steel rings by its size (CONFIG.sound.steelRing): 8" plates / Texas Star ~2.35 kHz, flip-grid plates ~1.9 kHz, mini poppers ~1.7 kHz, full poppers ~1.15 kHz, bigger ones ringing longer; the recorded clank is slowed to match. Size comes from the 3D steel's geometry (steel3d.js addItem size) via the shot's score.size.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
