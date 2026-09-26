@@ -138,7 +138,12 @@ export class Judge3DView extends Lot3DView {
 
   // Surrendering: the pistol falls at their feet.
   dropGun(p) {
+    // clone() copies userData through JSON, and the gun's meshes point back at
+    // their Character (circular): clear it for the copy.
+    const saved = [];
+    p.char.gun.traverse(o => { saved.push([o, o.userData]); o.userData = {}; });
     const g = p.char.gun.clone();
+    for (const [o, u] of saved) o.userData = u;
     g.traverse(m => { if (m.isMesh) m.userData = { surface: 'ground' }; });
     g.children.filter(c => c.isSprite).forEach(c => c.removeFromParent()); // no muzzle flash
     const o = p.char.obj.position;

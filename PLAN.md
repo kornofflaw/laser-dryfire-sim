@@ -274,6 +274,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   for the nearer cars, car_lod.glb (62k, no interior) beyond 14 m; the
   359k-triangle source is no longer loaded. 16 cars: 3.4M -> 1.1M triangles
   per frame, same look. Removed a duplicated config key (carDetailDist).
+- 2026-09-26 (hourly review): smoke test of every course. Fixed: in the 3D
+  Surrender scenario the page threw every frame once the person surrendered
+  (copying the pistol to drop it also copied a link back to the person,
+  which can't be serialized), so the scene froze. The gun now drops.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
