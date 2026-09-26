@@ -269,6 +269,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   merged into one mesh per material (interior3d.js mergeStatic; door leaves
   merged inside their swinging pivot). Draw calls per frame 3519 -> 247
   (6059 -> 441 with ambient occlusion); the picture is unchanged.
+- 2026-09-26 (hourly review): parking lot speed-up: lighter car models made in
+  Blender (tools/car_lods.py): car_mid.glb (170k triangles, interior kept)
+  for the nearer cars, car_lod.glb (62k, no interior) beyond 14 m; the
+  359k-triangle source is no longer loaded. 16 cars: 3.4M -> 1.1M triangles
+  per frame, same look. Removed a duplicated config key (carDetailDist).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

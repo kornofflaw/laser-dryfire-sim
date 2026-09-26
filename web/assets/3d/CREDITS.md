@@ -7,6 +7,7 @@ Unless noted, files were taken from the three.js repository's examples
 | File | What | Source / licence |
 | --- | --- | --- |
 | `car.glb`, `car_shadow.png` | Parked cars (`ferrari.glb`, `ferrari_ao.png`) | "Ferrari 458 Italia" by vicent091036, CC BY 4.0, as distributed with three.js examples. |
+| `car_mid.glb`, `car_lod.glb` | Lighter versions of `car.glb` (decimated; `car_lod` without the interior), made by `tools/car_lods.py` | Derived from "Ferrari 458 Italia" by vicent091036, CC BY 4.0 (modified: reduced detail). |
 | `people/*.glb` (m04 … bf01) | Realistic people for the judgment scenes, the knife attack and the office scenario: 12 avatars (Rocketbox `Male_Adult_04/05/06/09/12/17/18`, `Female_Adult_04/07/13`, `Business_Male_02`, `Business_Female_01`), converted by `tools/rocketbox_to_glb.py` (bones renamed, textures reduced to 1024 px) | Microsoft Rocketbox Avatar Library (github.com/microsoft/Microsoft-Rocketbox), MIT licence, © 2020 Microsoft. |
 | `people/anims_m.glb`, `people/anims_f.glb` | Motion-captured idle, look around, nervous, angry, walk, run and phone-call clips for those avatars | Microsoft Rocketbox Avatar Library, MIT licence, © 2020 Microsoft. |
 | `sky.hdr` | Dusk lighting and reflections (`venice_sunset_1k.hdr`) | Poly Haven (polyhaven.com), CC0. |

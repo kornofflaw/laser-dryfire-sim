@@ -173,8 +173,7 @@ export const CONFIG = {
     aZoneRadius: 0.1,       // metres from the spine line that count as A zone on the chest
     defaultCars: 6,         // parked cars (user can pick 0-maxCars in Setup; fewer = faster)
     maxCars: 16,
-    carDetailDist: 20,      // metres: cars further than this skip interior parts
-    carDetailDist: 20,      // metres: cars further than this skip interior parts
+    carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
   },
 
   // ---- 3D office active-shooter scenario (office3d.js) ------------------------------

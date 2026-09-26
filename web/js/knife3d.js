@@ -76,9 +76,10 @@ export class Lot3DView {
     this.gltf = gltf;
     this.cast = new People(gltf);
     const manId = KNIFE_CAST[Math.floor(Math.random() * KNIFE_CAST.length)];
-    const [, carG, sky, carShadow] = await Promise.all([
+    const [, carG, carLod, sky, carShadow] = await Promise.all([
       man ? this.cast.load([manId]) : null,
-      gltf.loadAsync(ASSETS + 'car.glb'),
+      gltf.loadAsync(ASSETS + 'car_mid.glb'),
+      gltf.loadAsync(ASSETS + 'car_lod.glb'),
       new HDRLoader(manager).loadAsync(ASSETS + 'sky.hdr'),
       new THREE.TextureLoader(manager).loadAsync(ASSETS + 'car_shadow.png'),
     ]);
@@ -96,7 +97,7 @@ export class Lot3DView {
     this.buildGround(renderer);
     this.buildStore();
     this.buildPoles();
-    this.buildCars(carG.scene, carShadow);
+    this.buildCars(carG.scene, carLod.scene, carShadow);
     this.setCarCount(cars);
     if (man) this.buildMan(manId);
     this.groundDrops = new GroundDrops(scene);
@@ -253,20 +254,14 @@ export class Lot3DView {
     }
   }
 
-  // Parked cars. For frame rate: cars don't cast real-time shadows (each has a
-  // baked contact-shadow plane, as games do), and cars beyond `carDetailDist`
-  // drop interior/brake parts you can't see from the shooter's position.
-  // Parked cars. The car model is very detailed, so for frame rate: cars
-  // don't cast real-time shadows (each has a baked contact-shadow plane, as
-  // games do), cars beyond `carDetailDist` drop interior/brake parts you can't
-  // see from the shooter's position, and the user picks how many (0 = none).
-  buildCars(carScene, shadowTex) {
-    const hidden = /steering|interior|leather|carpet|carbon|brake|nuts|centre|leds|wipers/i;
-    const lite = carScene.clone(true);
-    const drop = [];
-    lite.traverse(o => { if (o.isMesh && (hidden.test(o.name) || hidden.test(o.material?.name || ''))) drop.push(o); });
-    drop.forEach(o => o.removeFromParent());
-    this.carModels = { full: carScene, lite };
+  // Parked cars. The source model (car.glb) is far too detailed for cars 10+ m
+  // away, so tools/car_lods.py makes two lighter versions in Blender: nearer
+  // cars use car_mid.glb (all parts, 170k triangles), cars beyond
+  // `carDetailDist` use car_lod.glb (no interior, 62k). Cars don't cast
+  // real-time shadows (each has a baked contact-shadow plane, as games do),
+  // and the user picks how many (0 = none).
+  buildCars(carScene, lodScene, shadowTex) {
+    this.carModels = { full: carScene, lod: lodScene };
     this.carShadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, blending: THREE.MultiplyBlending, toneMapped: false, transparent: true, premultipliedAlpha: true });
 
     // Fixed stall order so the same count always parks the same cars: alternate
@@ -293,7 +288,7 @@ export class Lot3DView {
     this.cars = [];
     const colors = ['#5b0f12', '#1d2b45', '#b9bcc0', '#111214', '#e8e8e6', '#26382b', '#4a4d52', '#6b1d16'];
     this.carSpots.slice(0, Math.max(0, n)).forEach((spot, i) => {
-      const car = (spot.d > V().carDetailDist ? this.carModels.lite : this.carModels.full).clone(true);
+      const car = (spot.d > V().carDetailDist ? this.carModels.lod : this.carModels.full).clone(true);
       const color = new THREE.Color(colors[i % colors.length]);
       car.traverse(o => {
         if (!o.isMesh) return;

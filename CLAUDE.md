@@ -128,6 +128,7 @@ web/                    the app; deploy this folder as-is
   js/remote.js          Controller <-> Display messages (BroadcastChannel); index.html?display is the Display
 docs/IPAD.md            running on an iPad: what works, hardware setup, risks, other routes
 tools/rocketbox_to_glb.py  Blender (pip bpy) script that converts Rocketbox avatars/animations to web GLBs
+tools/car_lods.py       Blender (pip bpy) script that makes the lighter parked-car models (car_mid / car_lod)
 archive/                old Python + Unity code, reference only
 ```
 
