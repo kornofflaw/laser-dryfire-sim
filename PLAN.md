@@ -243,14 +243,13 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. Suspects: shell casings ejected and gun smoke after each shot.
-2. Office: suspects duck or take cover when you miss near them; some move between cover.
-3. Knife attacker: charge with the knife raised (arm pose), footstep sounds getting louder.
-4. People: breathing/idle weight shifts, hands-up fear tremble, hostage struggling.
-5. Parking lot: night version with car headlights and sodium lights.
-6. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
-7. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
-8. Office: sprinkler/emergency lights, fire alarm option (stress).
+1. Office: suspects duck or take cover when you miss near them; some move between cover.
+2. Knife attacker: charge with the knife raised (arm pose), footstep sounds getting louder.
+3. People: breathing/idle weight shifts, hands-up fear tremble, hostage struggling.
+4. Parking lot: night version with car headlights and sodium lights.
+5. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
+6. Sounds: distant traffic/HVAC ambience per scene; steel ring varies by plate size.
+7. Office: sprinkler/emergency lights, fire alarm option (stress).
 
 ---
 
@@ -337,6 +336,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   lot and judgment scenes (holes3d.js; plaster / metal / glass-crack / ground
   looks, max 80, cleared each run). Fixed: shooting office glass before the
   first run threw (shards list not created yet).
+- 2026-09-26 (realism pass): suspects' shots leave gun smoke at the muzzle and
+  throw a brass case that bounces and stays on the floor (CONFIG.office3d
+  gunSmoke / casing). Fixed: the ambient-occlusion pass drew see-through
+  things (smoke, dust, decals) as dark squares; it now skips them (post3d.js).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

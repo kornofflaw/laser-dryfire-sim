@@ -113,6 +113,7 @@ export class OfficeView {
     this.solids = [];
     this.holes = new BulletHoles();
     this.shards = [];     // fallen glass (resetGlass sweeps it up)
+    this.casings = [];    // spent brass on the floor (cleared each run)
     this.buildOutside();
     this.buildLobby();
     this.buildHall();
@@ -419,6 +420,8 @@ export class OfficeView {
   clearPeople() {
     this.usedCast = [];
     this.holes.clear();
+    this.casings.forEach(c => c.removeFromParent());
+    this.casings = [];
     this.resetGlass();
     for (const d of this.officeDoors?.values() || []) { d.userData.target = d.userData.open = 0; d.userData.pivot.rotation.y = 0; }
     for (const p of this.people) {
@@ -510,7 +513,7 @@ export class OfficeView {
     this.muzzle.intensity = shooter ? O().muzzleLight : 0;
     if (shooter) shooter.flash.getWorldPosition(this.muzzle.position);
     for (const f of this.fx) f.update(now);
-    this.fx = this.fx.filter(f => { if (f.done) f.obj.removeFromParent(); return !f.done; });
+    this.fx = this.fx.filter(f => { if (f.done && !f.keep) f.obj.removeFromParent(); return !f.done; });
     this.post.render();
   }
 
@@ -609,6 +612,23 @@ export class OfficeView {
       im.instanceMatrix.needsUpdate = true;
       if (!moving) this.fx = this.fx.filter(f => f.obj !== im); // settled: stop updating, keep on the floor
     } });
+  }
+
+  // A suspect fired: smoke from the muzzle, a case out of the ejection port.
+  gunFx(p) {
+    if (!p.gun || !p.flash) return;
+    const now = performance.now() / 1000;
+    const muzzle = p.flash.getWorldPosition(new THREE.Vector3());
+    const q = p.gun.getWorldQuaternion(new THREE.Quaternion());
+    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+    const right = new THREE.Vector3(-1, 0, 0).applyQuaternion(q); // the shooter's right (gun looks along +z)
+    this.fx.push(gunSmoke(this.scene, muzzle, fwd, now));
+    const C = O().casing;
+    const port = p.gun.getWorldPosition(new THREE.Vector3()).addScaledVector(fwd, 0.05).add(new THREE.Vector3(0, 0.04, 0));
+    const v = right.multiplyScalar(rand(...C.speed)).add(new THREE.Vector3(0, rand(...C.up), 0)).addScaledVector(fwd, -0.3);
+    const fx = brassCase(this.scene, port, v, now, C.bounce);
+    this.casings.push(fx.obj);
+    this.fx.push(fx);
   }
 
   // New run: every pane whole again, shards swept up.
@@ -874,6 +894,7 @@ export class OfficeRunner extends Runner {
         if (!g.live || g.down || g === this.hostagePair.taker || this.killedAt) continue;
         if (nowS >= g.fireAt) {
           g.fire(nowS);
+          v.gunFx(g);
           enemyShot({ indoor: true });
           g.fireAt = nowS + rand(...O().refireDelay);
           this.youAreHit(nowMs);
@@ -909,6 +930,7 @@ export class OfficeRunner extends Runner {
       }
       if (hp.out && !hp.taker.down && !this.hostageKilledAt && nowS >= hp.deadline && !this.killedAt) {
         hp.taker.fire(nowS);
+        v.gunFx(hp.taker);
         enemyShot({ indoor: true });
         this.hostageKilledAt = nowMs;
         hp.hostage.goDown(nowS, 'forward');
@@ -1064,6 +1086,71 @@ export class OfficeRunner extends Runner {
 // ---------------------------------------------------------------------------
 // Small effects and procedural textures
 // ---------------------------------------------------------------------------
+// Gun smoke: a soft grey puff that grows, drifts up and forward, and fades.
+let smokeTex = null;
+function gunSmoke(scene, at, fwd, t0) {
+  const S = O().gunSmoke;
+  if (!smokeTex) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d');
+    for (let i = 0; i < 6; i++) { // lumpy, not a perfect disc
+      const cx = 32 + (Math.random() - 0.5) * 18, cy = 32 + (Math.random() - 0.5) * 18, r = 14 + Math.random() * 10;
+      const gr = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      gr.addColorStop(0, 'rgba(178,178,174,0.6)');
+      gr.addColorStop(1, 'rgba(178,178,174,0)');
+      x.fillStyle = gr;
+      x.fillRect(0, 0, 64, 64);
+    }
+    smokeTex = new THREE.CanvasTexture(c);
+  }
+  const mat = new THREE.SpriteMaterial({ map: smokeTex, transparent: true, depthWrite: false, opacity: S.opacity, rotation: Math.random() * 6 });
+  const s = new THREE.Sprite(mat);
+  const start = at.clone().addScaledVector(fwd, 0.08);
+  s.position.copy(start);
+  scene.add(s);
+  const fx = { obj: s, done: false, update(now) {
+    const k = (now - t0) / S.time;
+    if (k >= 1) { fx.done = true; mat.dispose(); return; }
+    const e = 1 - Math.pow(1 - k, 3);
+    s.scale.setScalar(S.size[0] + (S.size[1] - S.size[0]) * e);
+    s.position.copy(start).addScaledVector(fwd, 0.25 * e).add(new THREE.Vector3(0, S.rise * k, 0));
+    mat.opacity = S.opacity * (1 - k) * Math.min(1, k * 12 + 0.3);
+  } };
+  return fx;
+}
+
+// A spent 9 mm case: thrown out, tumbling, bounces on the floor and stays.
+let caseGeo = null, caseMat = null;
+function brassCase(scene, at, v, t0, bounce) {
+  caseGeo ??= new THREE.CylinderGeometry(0.0048, 0.0048, 0.019, 8);
+  caseMat ??= new THREE.MeshStandardMaterial({ color: '#c9a24a', metalness: 0.9, roughness: 0.35 });
+  const m = new THREE.Mesh(caseGeo, caseMat);
+  m.position.copy(at);
+  m.castShadow = true;
+  scene.add(m);
+  const spin = new THREE.Vector3(rand(-20, 20), rand(-20, 20), rand(-20, 20));
+  let last = t0;
+  const fx = { obj: m, done: false, update(now) {
+    const dt = Math.min(0.05, now - last);
+    last = now;
+    v.y -= 9.81 * dt;
+    m.position.addScaledVector(v, dt);
+    m.rotation.x += spin.x * dt; m.rotation.y += spin.y * dt; m.rotation.z += spin.z * dt;
+    if (m.position.y <= 0.005) {
+      m.position.y = 0.005;
+      if (Math.abs(v.y) < 0.4) { // at rest on its side; keep it on the floor
+        m.rotation.set(Math.PI / 2, 0, Math.random() * 6);
+        fx.done = true;
+        fx.keep = true;
+        return;
+      }
+      v.y = -v.y * bounce; v.x *= 0.6; v.z *= 0.6; spin.multiplyScalar(0.5);
+    }
+  } };
+  return fx;
+}
+
 let dustTex = null; // one texture for every puff
 function dust(scene, point) {
   if (!dustTex) {

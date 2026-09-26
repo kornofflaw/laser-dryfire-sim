@@ -34,6 +34,20 @@ export class Post {
     this.ao.updateGtaoMaterial({ radius: P().aoRadius, distanceExponent: 2, thickness: 1, scale: 1, samples: 16 });
     this.ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 16 });
     this.ao.blendIntensity = P().aoIntensity;
+    // The AO pass draws the scene's depth and normals with every visible
+    // object as solid, so see-through things (smoke and dust sprites, bullet
+    // hole and blood decals, glass) came out as dark squares. Hide them from
+    // it, like it already hides points and lines.
+    this.ao._overrideVisibility = function () {
+      const cache = this._visibilityCache;
+      this.scene.traverse(o => {
+        if (!o.visible) return;
+        const m = o.material;
+        const seeThrough = o.isSprite || o.isPoints || o.isLine || o.isLine2 ||
+          (m && !Array.isArray(m) && m.transparent && m.depthWrite === false);
+        if (seeThrough) { o.visible = false; cache.push(o); }
+      });
+    };
     composer.addPass(this.ao);
     this.bloom = new UnrealBloomPass(size, P().bloomStrength, 0.4, P().bloomThreshold);
     composer.addPass(this.bloom);

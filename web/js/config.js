@@ -196,6 +196,11 @@ export const CONFIG = {
     roomLight: 9,          // indoor point lights (candela)
     muzzleLight: 5,        // a suspect's muzzle flash lights up the room this much (candela) for a moment
     muzzleLightRange: 5,   // metres
+    // Each shot a suspect fires: a puff of gun smoke from the muzzle that
+    // drifts up and fades, and a brass case thrown out to the right that
+    // bounces and stays on the floor until the next run.
+    gunSmoke: { time: 1.8, size: [0.18, 0.95], rise: 0.3, opacity: 0.8 },
+    casing: { speed: [1.6, 2.6], up: [1.0, 1.8], bounce: 0.32 },
     ceilingShadowLight: 0.6, // soft top-down light that grounds people indoors
     partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
     callTime: 6.0,          // seconds outside while the radio call plays
