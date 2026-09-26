@@ -14,15 +14,29 @@ const forwarded = (name, args) => {
   return true;
 };
 
-// Browsers only allow audio after a user gesture; main.js calls this on the
-// first click / key press.
+// Browsers only allow audio after a user gesture; main.js calls this on every
+// click / tap / key press.
+// iPad / iPhone: (1) web audio is treated like ringer sounds and is muted by
+// silent mode unless the page asks for 'playback' audio; (2) it only fully
+// starts if a sound is played during the tap; (3) it can be left 'interrupted'
+// after the screen locks or another app plays sound, so resume every time.
+let primed = false;
 export function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older Safari */ }
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  const wasRunning = ctx.state === 'running';
+  if (!wasRunning) ctx.resume().catch(() => {});
+  if (!primed || !wasRunning) { // until a tap has really started it
+    primed = true;
+    const src = ctx.createBufferSource();
+    src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); // one silent sample
+    src.connect(ctx.destination);
+    src.start(0);
+  }
 }
 
 function tone(freq, seconds, gain, decay = 0) {

@@ -306,6 +306,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - 2026-09-26 (hourly review): 3D flip grid (steel3d.js FlipGrid3D, layout
   'range3d-grid'). Only the painted face of a face-on plate counts; edge-on
   plates let rounds past, like 2D.
+- 2026-09-26: iPad sound fix (Andrew: no gunshots on iPad): ask Safari for
+  'playback' audio (navigator.audioSession) so silent mode doesn't mute it,
+  play a silent sample on the tap that starts audio, and resume after the
+  screen locks / another app interrupts.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes
