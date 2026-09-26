@@ -313,6 +313,11 @@ export const CONFIG = {
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay
     holeRadiusCm: 0.45,     // 9 mm bullet hole
+    // A hit rocks the target on its stand (a damped spring, radians). A hit
+    // off to one side twists it more (twist x offset from centre, -1..1); a
+    // high hit pushes the top back more (push + tilt x height, -1..1). A round
+    // through a stake rocks it by `stake`. freq rad/s, damping 1/s.
+    jolt: { twist: 0.07, push: 0.012, tilt: 0.014, stake: 0.05, freq: 38, damping: 7 },
     exposure: 0.95,
     envIntensity: 1.0,      // light from the HDRI sky
     bgIntensity: 1.0,       // brightness of the sky backdrop

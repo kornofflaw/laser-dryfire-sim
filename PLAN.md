@@ -243,9 +243,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. 3D range: target stands rock and paper flaps when hit near the edge; brass on the ground near you.
-2. Sounds: steel ring varies by plate size (big plates lower and longer).
-3. Office: sprinkler/emergency lights, fire alarm option (stress).
+1. Sounds: steel ring varies by plate size (big plates lower and longer).
+2. Office: sprinkler/emergency lights, fire alarm option (stress).
+3. People: idle life while standing (breathing, small weight shifts, blinks).
+4. Parking lot: wet-asphalt / rain option (reflections, rain sound).
 
 ---
 
@@ -352,6 +353,7 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   and 3D judgment scenes): dark sky, sodium-orange street lights, lit store
   front, the nearest parked car with its headlights on (CONFIG.knife3d.night).
 - 2026-09-26 (realism pass): Background sound per 3D scene (audio.js setAmbience, CONFIG.sound.ambience): range = gusting wind + a muffled shot from another bay every 3–14 s; office = air-handling roar + faint light hum; parking lot = wind + distant traffic rumble. Fades between scenes, silent on 2D courses, starts on the first tap (not forwarded to the Controller). Measured well below a gunshot (bed rms 0.008–0.044 vs shot 0.21).
+- 2026-09-26 (realism pass): 3D range paper targets rock by where they're hit (CONFIG.range3d.jolt): off-centre hits twist the target, high hits push the top back more, a second hit adds to the swing, and a round through a stake rocks the whole target. Fixed: side hits used to swing the hit side toward the shooter (wrong sign).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

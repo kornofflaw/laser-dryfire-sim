@@ -433,6 +433,7 @@ export class Range3DView {
       stake.position.set(sx, stakeH / 2 - 0.09, -0.0115);
       stake.castShadow = stake.receiveShadow = true;
       stake.userData.surface = 'wood';
+      stake.userData.card = card; // a round through a stake rocks the target
       pivot.add(stake);
       solids.push(stake);
     }
@@ -613,11 +614,10 @@ export class Range3DView {
       const c = t.card;
       let ry = Math.sin(now * 0.8 + c.phase) * 0.01, rx = Math.sin(now * 0.53 + c.phase * 2) * 0.0015;
       if (c.jolt) {
-        const k = now - c.jolt.t0;
-        const s = Math.exp(-k * 7) * Math.sin(k * 38);
+        const k = now - c.jolt.t0, s = joltAt(k);
         ry += c.jolt.ry * s;
         rx += c.jolt.rx * s;
-        if (k > 1) c.jolt = null;
+        if (k > 1.2) c.jolt = null;
       }
       t.pivot.rotation.set(rx, ry, 0);
     }
@@ -694,7 +694,7 @@ export class Range3DView {
       }
       const normal = h.face?.normal?.clone().transformDirection(o.matrixWorld);
       if (o.userData.surface === 'steel-frame') return { ...miss, frame: true, point: h.point, dir, surface: 'steel', normal };
-      return { ...miss, point: h.point, dir, surface: o.userData.surface, normal };
+      return { ...miss, point: h.point, dir, surface: o.userData.surface, normal, object: o };
     }
     return { ...miss, dir };
   }
@@ -717,7 +717,13 @@ export class Range3DView {
     if (score.card) {
       const t = score.card;
       punchHole(t, score.uv);
-      if (t.meta.kind !== 'popup') t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
+      if (t.meta.kind !== 'popup') {
+        // Rocks by where it was hit: off-centre twists it, high pushes the top back.
+        const J = R().jolt, U = Ucfg();
+        const side = Math.max(-1, Math.min(1, score.local.x / (U.width / 2)));
+        const up = Math.max(-1, Math.min(1, score.local.y / (U.height / 2)));
+        rock(t, now, side * J.twist, -(J.push + up * J.tilt));
+      }
       const mv = this.movers?.[t.meta.mover];
       if (mv && mv.state === 'moving') { mv.state = 'down'; mv.t0 = now; t.jolt = null; } // movers drop when hit
       this.fx.push(debris(this.scene, score.point, score.dir, '#c9a36b', 14, [0.6, 2.2], 0.01, 0.6));
@@ -726,6 +732,12 @@ export class Range3DView {
       const behind = ray.intersectObjects(this.solids, false)[0];
       if (behind) this.impact(behind.point, score.dir, behind.face?.normal?.clone().transformDirection(behind.object.matrixWorld), behind.object.userData.surface, now);
       return;
+    }
+    const staked = score.object?.userData.card;
+    if (staked && staked.meta.kind !== 'popup' && staked.meta.mover == null) {
+      // Through a stake: the whole target rocks, twisting toward that side.
+      const J = R().jolt;
+      rock(staked, now, (staked.pivot.worldToLocal(score.point.clone()).x > 0 ? 1 : -1) * J.stake, -J.push);
     }
     this.impact(score.point, score.dir, score.normal, score.surface, now);
   }
@@ -905,6 +917,21 @@ function alphaCanvas(k = PX_PER_CM) {
 }
 
 // Cut a bullet hole at a uv point: see-through centre, grey wipe ring, torn fibres.
+// Damped-spring displacement k seconds after a hit (1 at the kick, rings down).
+function joltAt(k) {
+  const J = R().jolt;
+  return Math.exp(-k * J.damping) * Math.sin(k * J.freq);
+}
+// Start a hit's rock on a card; a hit while it is still moving adds to what is left.
+function rock(c, now, ry, rx) {
+  if (c.jolt) {
+    const left = Math.exp(-(now - c.jolt.t0) * R().jolt.damping);
+    ry += c.jolt.ry * left;
+    rx += c.jolt.rx * left;
+  }
+  c.jolt = { t0: now, ry, rx };
+}
+
 function punchHole(t, uv) {
   const x = uv.x * t.alpha.canvas.width, y = (1 - uv.y) * t.alpha.canvas.height;
   const r = Math.max(1.5, R().holeRadiusCm * t.pxPerCm);
