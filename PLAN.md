@@ -314,6 +314,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   (Andrew: the flip-grid voice was audible, the effects weren't: speech is
   media playback, web audio was ringer-class and muted by silent mode.)
   Audio also starts on any click or key press (iPad + Magic Keyboard trackpad).
+  Then the flip-grid voice went quiet on iPad: speech is now primed with a
+  silent utterance on the first gesture, not cancelled unless something is
+  speaking (and spoken 60 ms after a cancel), resumed if paused, and the
+  utterance is kept referenced. Needs Andrew's iPad test.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

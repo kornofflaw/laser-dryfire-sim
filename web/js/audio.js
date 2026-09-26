@@ -24,6 +24,7 @@ let primed = false;
 export function unlockAudio() {
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older Safari */ }
   if (!navigator.audioSession) keepPlaybackSession();
+  primeSpeech();
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -211,19 +212,42 @@ export function footstep(loudness) {
 // browser has no voices.
 // opts: { rate, pitch, volume } (e.g. a weak, slow voice for a wounded man).
 // opts.polite: don't interrupt speech already playing (skip this line instead).
+// Speech on iPad Safari is fragile: it only works after one utterance was
+// started inside a tap/click/key press (primeSpeech, from unlockAudio), it
+// drops a sentence queued straight after cancel(), it can be left paused, and
+// an utterance that gets garbage-collected is never heard (keep a reference).
+let lastUtterance = null;
 export function say(text, opts = {}) {
   if (forwarded('say', arguments)) return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
     if (opts.polite && synth.speaking) return false;
-    synth.cancel();
     const u = new SpeechSynthesisUtterance(String(text));
     u.rate = opts.rate ?? 1.15;
     u.pitch = opts.pitch ?? 1;
-    u.volume = CONFIG.sound.volume * (opts.volume ?? 1);
-    synth.speak(u);
+    u.volume = Math.min(1, CONFIG.sound.volume * (opts.volume ?? 1));
+    lastUtterance = u;
+    const go = () => { if (synth.paused) synth.resume(); synth.speak(u); };
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+      setTimeout(go, 60); // right after cancel() Safari can swallow it
+    } else go();
     return true;
+  } catch { /* no speech available */ }
+}
+
+let speechPrimed = false;
+function primeSpeech() {
+  if (speechPrimed) return;
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    lastUtterance = u;
+    synth.speak(u);
+    speechPrimed = true;
   } catch { /* no speech available */ }
 }
 
