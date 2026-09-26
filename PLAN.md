@@ -318,6 +318,10 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   silent utterance on the first gesture, not cancelled unless something is
   speaking (and spoken 60 ms after a cancel), resumed if paused, and the
   utterance is kept referenced. Needs Andrew's iPad test.
+- 2026-09-26: Deeper gunshots (Andrew: tinny). New synth: crack + low-passed
+  thump + saturated falling boom (120->42 Hz), compressed (CONFIG.sound.gunshot).
+  Energy moved from <100 Hz (inaudible on iPad speakers) + hiss into 100-300 Hz;
+  no more clipping. Your own shots use it too (75% level) instead of the pop.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

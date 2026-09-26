@@ -103,30 +103,11 @@ export function hitDing() {
   tone(CONFIG.sound.hitHz, 0.18, 0.6, 1);
 }
 
-// Short burst of decaying noise: a percussive "pop" for every shot.
+// Your shot: the same gunshot as a suspect's, a little quieter.
 // opts.indoor: with the room echo (office).
 export function shotPop(opts = {}) {
   if (forwarded('shotPop', arguments)) return;
-  if (!ctx) return;
-  const dur = 0.09;
-  const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
-  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) {
-    const t = i / ctx.sampleRate;
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 45) * 0.8;
-  }
-  const src = ctx.createBufferSource();
-  const g = ctx.createGain();
-  g.gain.value = CONFIG.sound.volume;
-  src.buffer = buf;
-  src.connect(g).connect(ctx.destination);
-  if (opts.indoor) {
-    const wet = ctx.createGain();
-    wet.gain.value = CONFIG.sound.indoorEchoMix;
-    g.connect(roomEcho()).connect(wet).connect(ctx.destination);
-  }
-  src.start();
+  enemyShot({ ...opts, level: CONFIG.sound.gunshot.yourShot });
 }
 
 // Steel "ping": a few inharmonic partials with long, uneven decays, which is
@@ -279,27 +260,65 @@ export function radioStatic() {
 
 // A suspect's gunshot: louder and heavier than your own shot's pop.
 // opts.indoor: add a room echo (office).
+// opts.indoor: room echo; opts.level: loudness scale.
 export function enemyShot(opts = {}) {
   if (forwarded('enemyShot', arguments)) return;
   if (!ctx) return;
-  const n = Math.floor(ctx.sampleRate * 0.35);
-  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) {
-    const t = i / ctx.sampleRate;
-    d[i] = ((Math.random() * 2 - 1) * Math.exp(-t * 18) + Math.sin(2 * Math.PI * 70 * t) * Math.exp(-t * 12) * 0.8);
-  }
-  const src = ctx.createBufferSource();
-  const g = ctx.createGain();
-  g.gain.value = Math.min(1, CONFIG.sound.volume * 1.4);
-  src.buffer = buf;
-  src.connect(g).connect(ctx.destination);
+  const G = CONFIG.sound.gunshot, t0 = ctx.currentTime;
+  // Shared noise (made once).
+  gunNoise ??= (() => {
+    const n = Math.floor(ctx.sampleRate * 0.6);
+    const b = ctx.createBuffer(1, n, ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  })();
+  const out = ctx.createGain();
+  out.gain.value = Math.min(2, CONFIG.sound.volume * G.level * (opts.level ?? 1));
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 4;
+  comp.attack.value = 0.001; comp.release.value = 0.12;
+  out.connect(comp).connect(ctx.destination);
+  const env = (node, peak, decay) => {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(peak, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+    node.connect(g).connect(out);
+    return g;
+  };
+  const noise = () => { const s = ctx.createBufferSource(); s.buffer = gunNoise; s.start(t0); s.stop(t0 + 0.6); return s; };
+  // Crack: bright, very short.
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 1500;
+  noise().connect(hp);
+  env(hp, G.crack, 0.08);
+  // Thump: low-passed noise, the body of the report.
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t0); lp.frequency.exponentialRampToValueAtTime(180, t0 + 0.2);
+  noise().connect(lp);
+  env(lp, G.thump, 0.3);
+  // Boom: a falling low tone, saturated so small speakers carry it.
+  const osc = ctx.createOscillator();
+  osc.frequency.setValueAtTime(G.boomFrom, t0);
+  osc.frequency.exponentialRampToValueAtTime(G.boomTo, t0 + G.boomTime);
+  const shaper = ctx.createWaveShaper();
+  shaper.curve = driveCurve(G.drive);
+  osc.connect(shaper);
+  env(shaper, G.boom, G.boomTime);
+  osc.start(t0); osc.stop(t0 + G.boomTime + 0.05);
   if (opts.indoor) {
     const wet = ctx.createGain();
     wet.gain.value = CONFIG.sound.indoorEchoMix;
-    g.connect(roomEcho()).connect(wet).connect(ctx.destination);
+    out.connect(roomEcho()).connect(wet).connect(ctx.destination);
   }
-  src.start();
+}
+let gunNoise = null;
+let curves = {};
+function driveCurve(k) {
+  if (curves[k]) return curves[k];
+  const n = 1024, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(k * x) / Math.tanh(k); }
+  return (curves[k] = c);
 }
 
 // A hard-walled room: a convolver with a decaying noise impulse (made once).
