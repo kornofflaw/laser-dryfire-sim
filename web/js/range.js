@@ -32,6 +32,7 @@ export const LAYOUTS = {
   'range3d-star': '3D range: Texas Star',
   'range3d-plates': '3D range: plate rack',
   'range3d-poppers': '3D range: poppers',
+  'range3d-movers': '3D range: movers',
   grid: 'Flip grid (spinning plates)',
 };
 // What each 3D range layout holds (range3d.js); each kind has its own distance.
@@ -39,9 +40,10 @@ export const RANGE3D_KIND = {
   'range3d-single': 'paper', 'range3d-bay': 'paper', 'range3d-popup': 'popup',
   'range3d-star': 'star', 'range3d-plates': 'plates', 'range3d-poppers': 'poppers',
   'range3d-stage': 'stage', // items at their own distances (range.stageDef, courses.js)
+  'range3d-movers': 'movers',
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
-export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', scene: 'scene3d' };
+export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', scene: 'scene3d' };
 // Layouts drawn by a 3D view (the 2D canvas only overlays them).
 export const is3DLayout = l => l === 'lot3d' || l === 'office3d' || l === 'scene3d' || l.startsWith('range3d');
 // Layouts only used by specific courses.

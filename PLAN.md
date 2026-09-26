@@ -76,8 +76,12 @@ A/C/D + head zone), times it, and runs drills. The mouse feeds the same shot pat
 - [x] Life-size 3D (2026-09-26): Setup -> "Life-size 3D" with the projected
       image width and your distance from the screen; the camera's field of
       view is set so targets and people are their real size (all 3D scenes).
-- [ ] 3D range next: movers and the flip grid in 3D; more stages (hard cover,
-      swingers, a stage builder).
+- [x] Movers in 3D (2026-09-26): two targets on stands slide along a timber
+      track across the bay (0.9-2.2 m/s, turn at the ends), tip back when hit,
+      and a fresh one comes on from a side; own distance slider. The Movers
+      course uses it when the 3D range is on.
+- [ ] 3D range next: the flip grid in 3D; more stages (hard cover, swingers,
+      a stage builder).
 - [ ] Draw-to-first-shot timing (first shot is measured from the beep today).
 
 ## Phase 2b — Judgment (shoot / no-shoot) scenarios, ≤10 s each
@@ -294,6 +298,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   the projected image width and your distance, so a target or person is its
   real size (checked: 10 cm at 5 yd = 30.1 px vs 30.2 expected). Also on the
   iPad Controller. Updated the licence note (Rocketbox, not RPM/Mixamo).
+- 2026-09-26 (hourly review): 3D movers (range3d.js buildMovers /
+  updateMovers, CONFIG.range3d.movers, layout 'range3d-movers').
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

@@ -269,9 +269,12 @@ export const CONFIG = {
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the
     // slider's limits, and the height (m) the fixed camera looks at.
-    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12 },
-    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25] },
-    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15 },
+    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8 },
+    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25] },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3 },
+    // Movers: targets on stands sliding along a track across the bay; a hit
+    // one tips back, and a fresh one comes on from a side after `respawn` s.
+    movers: { count: 2, track: 8, speed: [0.9, 2.2], respawn: 0.9, fallTime: 0.3 },
     stageLookYards: 10,     // stages: items have their own distances; the camera looks this far out
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay

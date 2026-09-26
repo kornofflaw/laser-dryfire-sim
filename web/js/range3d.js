@@ -322,6 +322,7 @@ export class Range3DView {
     this.layoutSolids = [];
     this.targets = [];
     this.cards = [];
+    this.movers = [];
     this.steel = null;
     this.layoutGroup = new THREE.Group();
     this.scene.add(this.layoutGroup);
@@ -331,6 +332,8 @@ export class Range3DView {
       xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot)));
     } else if (kind === 'popup') {
       this.buildPopups();
+    } else if (kind === 'movers') {
+      this.buildMovers();
     } else if (kind === 'stage') {
       if (stage) this.buildStage(stage);
     } else {
@@ -457,6 +460,61 @@ export class Range3DView {
     return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
+  // Movers: a timber track across the bay, targets on stands sliding along it.
+  buildMovers() {
+    const M = R().movers, half = M.track / 2;
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(M.track + 0.8, 0.06, 0.1), this.mats.wood);
+    rail.position.set(0, 0.03, 0.2);
+    rail.castShadow = rail.receiveShadow = true;
+    rail.userData.surface = 'wood';
+    this.layoutGroup.add(rail);
+    for (const s of [-1, 1]) {
+      const stop = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.25), this.mats.wood);
+      stop.position.set(s * (half + 0.45), 0.125, 0.2);
+      stop.castShadow = stop.receiveShadow = true;
+      stop.userData.surface = 'wood';
+      this.layoutGroup.add(stop);
+      this.addSolids([stop]);
+    }
+    this.addSolids([rail]);
+    for (let i = 0; i < M.count; i++) {
+      const t = this.makeTarget(0, i, { id: `mover-${i}` });
+      t.card.meta.mover = i;
+      const m = { t, i, round: 0 };
+      this.movers.push(m);
+      this.startMover(m, i === 0 ? -1 : 1, i === 0 ? 0.3 : -0.2);
+      this.targets.push(t);
+    }
+  }
+
+  // (Re)start a mover at a side of the track (side -1 left, +1 right), heading in.
+  startMover(m, side, at = null) {
+    const M = R().movers, half = M.track / 2;
+    m.x = at != null ? at * half : side * half;
+    m.v = -side * (M.speed[0] + Math.random() * (M.speed[1] - M.speed[0]));
+    m.state = 'moving';
+    m.round++;
+    m.t.card.id = `mover-${m.i}-${m.round}`; // each appearance is a new target
+    this.resetCard(m.t.card);
+    m.t.group.position.x = m.x;
+  }
+
+  updateMovers(dt, now) {
+    const M = R().movers, half = M.track / 2;
+    for (const m of this.movers) {
+      if (m.state === 'moving') {
+        m.x += m.v * dt;
+        if (m.x > half) { m.x = half; m.v = -Math.abs(m.v); }
+        if (m.x < -half) { m.x = -half; m.v = Math.abs(m.v); }
+      } else if (now - m.t0 > M.fallTime + M.respawn) {
+        this.startMover(m, Math.random() < 0.5 ? -1 : 1);
+      }
+      m.t.group.position.x = m.x;
+      // Tipped back on its hinge once hit.
+      if (m.state === 'down') m.t.pivot.rotation.x = -1.45 * Math.min(1, (now - m.t0) / M.fallTime);
+    }
+  }
+
   // A stage: every item at its own spot. Paper and no-shoots on stands (far
   // ones with lighter textures), steel as one StageSteel set.
   buildStage(def) {
@@ -516,6 +574,7 @@ export class Range3DView {
   resetTargets() {
     this.cards.forEach(c => this.resetCard(c));
     this.steel?.reset();
+    this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
     this.clearMarks();
     this.shadowAt = 0;
   }
@@ -560,6 +619,7 @@ export class Range3DView {
       }
       t.pivot.rotation.set(rx, ry, 0);
     }
+    if (this.movers?.length) this.updateMovers(dt, now);
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
       for (const c of this.popups || []) {
@@ -610,6 +670,7 @@ export class Range3DView {
           if (!L || L.state === 'down' || L.state === 'falling' || Math.sin(L.a * Math.PI / 2) < CONFIG.popup.hittableAbove) continue;
           return { ...base, targetId: `popup-${card.meta.lane}`, kind: 'popup', lane: card.meta.lane };
         }
+        if (card.meta.mover != null && this.movers[card.meta.mover]?.state !== 'moving') continue; // already down
         if (card.meta.kind === 'noshoot') return { ...base, zone: 'NS', points: CONFIG.points.NS, targetId: card.id, kind: 'noshoot' };
         return { ...base, targetId: card.id, kind: 'uspsa', slot: card.meta.slot };
       }
@@ -641,6 +702,8 @@ export class Range3DView {
       const t = score.card;
       punchHole(t, score.uv);
       if (t.meta.kind !== 'popup') t.jolt = { t0: now, ry: (score.local.x > 0 ? -1 : 1) * 0.04, rx: -0.008 };
+      const mv = this.movers?.[t.meta.mover];
+      if (mv && mv.state === 'moving') { mv.state = 'down'; mv.t0 = now; t.jolt = null; } // movers drop when hit
       this.fx.push(debris(this.scene, score.point, score.dir, '#c9a36b', 14, [0.6, 2.2], 0.01, 0.6));
       // The round carries on into the berm behind.
       const ray = new THREE.Raycaster(score.point.clone().addScaledVector(score.dir, 0.05), score.dir);
@@ -679,7 +742,7 @@ export class Range3DView {
 
   // Is anything moving whose shadow would change?
   get moving() {
-    return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving ||
+    return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving || this.movers?.length > 0 ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }
 

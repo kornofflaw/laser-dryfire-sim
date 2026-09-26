@@ -792,7 +792,7 @@ function refreshSetup() {
     dist.min = lo; dist.max = hi;
     dist.value = yards3d(kind);
     $('#dist3d-val').textContent = `${yards3d(kind)} yd`;
-    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers' }[kind];
+    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers' }[kind];
   }
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
   $('#opt-real3d').disabled = !TO_3D[c.layout];
