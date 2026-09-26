@@ -92,7 +92,8 @@ export class Judge3DView extends Lot3DView {
   removePerson(p) {
     p.char.obj.removeFromParent();
     p.char.gun?.removeFromParent();
-    p.droppedGun?.removeFromParent();
+    p.droppedGun?.removeFromParent(); // shares the gun's geometry and materials
+    p.char.dispose();
   }
 
   worldX(a) { return (a.cx - 0.5) * J().spread; }

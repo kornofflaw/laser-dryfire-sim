@@ -324,6 +324,7 @@ export class Lot3DView {
     if (this.char) {
       this.char.obj.removeFromParent();
       this.char.effects.forEach(e => e.obj.removeFromParent());
+      this.char.dispose();
     }
     const c = new Character(this.manRig, { role: 'knife' });
     c.mood = 'angry';

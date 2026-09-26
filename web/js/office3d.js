@@ -422,12 +422,19 @@ export class OfficeView {
       p.gun?.removeFromParent();
       p.vest?.removeFromParent();
       p.effects.forEach(e => e.obj.removeFromParent());
+      p.dispose();
     }
     this.people = [];
     this.fx.forEach(e => e.obj.removeFromParent());
     this.fx = [];
     this.drops.clear();
-    this.victimPool?.removeFromParent();
+    if (this.victimPool) {
+      this.victimPool.removeFromParent();
+      this.victimPool.geometry.dispose();
+      this.victimPool.material.map.dispose();
+      this.victimPool.material.dispose();
+      this.victimPool = null;
+    }
   }
 
   // ---- camera ------------------------------------------------------------------------
@@ -598,7 +605,7 @@ export class OfficeView {
   // New run: every pane whole again, shards swept up.
   resetGlass() {
     for (const p of this.panes || []) { p.mesh.visible = true; p.extra.forEach(e => { e.visible = true; }); }
-    for (const im of this.shards || []) im.removeFromParent();
+    for (const im of this.shards || []) { im.removeFromParent(); im.geometry.dispose(); im.material.dispose(); im.dispose(); }
     this.shards = [];
   }
 
@@ -1048,23 +1055,27 @@ export class OfficeRunner extends Runner {
 // ---------------------------------------------------------------------------
 // Small effects and procedural textures
 // ---------------------------------------------------------------------------
+let dustTex = null; // one texture for every puff
 function dust(scene, point) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 32;
-  const x = c.getContext('2d');
-  const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
-  gr.addColorStop(0, 'rgba(230,225,215,0.9)');
-  gr.addColorStop(1, 'rgba(230,225,215,0)');
-  x.fillStyle = gr;
-  x.fillRect(0, 0, 32, 32);
-  const mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false });
+  if (!dustTex) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d');
+    const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gr.addColorStop(0, 'rgba(230,225,215,0.9)');
+    gr.addColorStop(1, 'rgba(230,225,215,0)');
+    x.fillStyle = gr;
+    x.fillRect(0, 0, 32, 32);
+    dustTex = new THREE.CanvasTexture(c);
+  }
+  const mat = new THREE.SpriteMaterial({ map: dustTex, transparent: true, depthWrite: false });
   const s = new THREE.Sprite(mat);
   s.position.copy(point);
   scene.add(s);
   const t0 = performance.now() / 1000;
   const fx = { obj: s, done: false, update(now) {
     const k = (now - t0) / 0.5;
-    if (k >= 1) { fx.done = true; return; }
+    if (k >= 1) { fx.done = true; mat.dispose(); return; }
     s.scale.setScalar(0.05 + k * 0.3);
     mat.opacity = 1 - k;
   } };

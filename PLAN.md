@@ -282,6 +282,11 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
   start/stop and calibration maths: all fine. Realism: hitting a person no
   longer plays the range "ding" (the person's reaction is the feedback; the
   no-shoot buzz stays); your own shots echo in the office.
+- 2026-09-26 (hourly review): long sessions: GPU memory no longer grows run
+  after run in the 3D scenes. People now free what they own when removed
+  (skeleton textures, gun, vest, props, wound stains); the office frees its
+  blood pool, glass shards and dust (one shared dust texture). Office
+  textures level off instead of +10 per run; knife attack flat.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

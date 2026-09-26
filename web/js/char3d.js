@@ -60,6 +60,7 @@ export class Character {
     this.model.rotation.y = rig.facing || 0;
     this.obj.add(this.model);
     this.meshes = [];
+    this.ownMaterials = [];
     this.bones = {};
     this.model.traverse(o => {
       if (o.isBone) this.bones[norm(o.name)] = o;
@@ -69,6 +70,7 @@ export class Character {
       if (tint) {
         o.material = o.material.clone();
         o.material.color = new THREE.Color(tint);
+        this.ownMaterials.push(o.material);
       }
       o.castShadow = true;
       o.receiveShadow = true;
@@ -77,6 +79,7 @@ export class Character {
       if (!this.skinned && o.isSkinnedMesh) this.skinned = o;
       this.meshes.push(o);
     });
+    this.baseMeshes = new Set(this.meshes); // shared with the rig: never disposed here
     this.mixer = new THREE.AnimationMixer(this.skinned);
     this.actions = {};
     for (const [k, clip] of Object.entries(rig.clips)) this.actions[k] = this.mixer.clipAction(clip);
@@ -215,6 +218,20 @@ export class Character {
     }
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => { if (fx.done && !fx.persistent) fx.obj.removeFromParent(); return !fx.done || fx.persistent; });
+  }
+
+  // Free the GPU resources this person owns (once they're out of the scene):
+  // skeleton textures, gun, vest and props added to `meshes`, wound stains,
+  // tinted materials. The body's geometry and textures are shared with the rig.
+  dispose() {
+    this.mixer.stopAllAction();
+    this.mixer.uncacheRoot(this.mixer.getRoot());
+    this.model.traverse(o => { if (o.isSkinnedMesh) o.skeleton.dispose(); });
+    const free = m => { m.geometry?.dispose(); for (const mat of [].concat(m.material)) mat?.dispose(); };
+    for (const m of this.meshes) if (!this.baseMeshes.has(m)) free(m);
+    for (const e of this.effects) e.obj.traverse(o => { if (o.isMesh) free(o); }); // wound stains (their texture is shared)
+    if (this.flash) { this.flash.material.map?.dispose(); this.flash.material.dispose(); }
+    for (const mat of this.ownMaterials) mat.dispose();
   }
 
   // --- face ------------------------------------------------------------------
