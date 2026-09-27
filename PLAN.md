@@ -256,11 +256,12 @@ Direction (confirmed 2026-09-27: recorded versions all preferred): realism comes
 recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
+0. Your own brass in the lot/judgment scenes too (done in the office).
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
-5. Office: a sound of your car door and radio chatter while you walk in; sirens arriving in the distance during the fight.
+5. Office sounds: your car door, radio chatter while you walk in, sirens arriving during the fight - blocked: no realistic free recordings found yet (the CC0 sets have only arcade-style sirens; Andrew rejected generated sounds).
 6. Office: photo-scanned textures (CC0, Poly Haven / ambientCG) - those sites are blocked in this cloud environment; possible once Andrew allows dl.polyhaven.org / ambientcg.com in the environment's network settings.
 7. Office: a suspect who leans out around a door frame or pillar to shoot (needs a lean/crouch animation clip; the current peeker pops up over waist-high cover).
 
@@ -488,3 +489,9 @@ recording (with credits) rather than pure synthesis.
   faint by day; off once you're inside or the run ends
   (CONFIG.office3d.police). Two lights always in the scene, so no shader
   recompiles. Office regression (t22c) passes.
+- 2026-09-27 (hourly realism): Office: your own spent brass on every shot:
+  thrown out to the right from your gun, it tumbles through the bottom-right
+  corner of the picture and lands on the floor beside you, where it stays
+  until the next run (CONFIG.office3d.myBrass). Office regression passes.
+  The queued sound item (car door, radio, sirens) is blocked on realistic
+  free recordings.

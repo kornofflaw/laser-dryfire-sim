@@ -274,6 +274,10 @@ export const CONFIG = {
     // bounces and stays on the floor until the next run.
     gunSmoke: { time: 1.8, size: [0.18, 0.95], rise: 0.3, opacity: 0.8 },
     casing: { speed: [1.6, 2.6], up: [1.0, 1.8], bounce: 0.32 },
+    // Your own brass on every shot: from the ejection port `at` (right, up,
+    // back from your eyes, m; -z = ahead), thrown right / up (m/s ranges) and
+    // a little back past you.
+    myBrass: { at: [0.16, -0.22, -0.45], right: [2.0, 3.0], up: [1.6, 2.4], back: 0.6 },
     // A miss that passes within nearMiss metres of a suspect's chest: behind
     // a cubicle he ducks (and doesn't fire) for duckTime seconds, then comes
     // back up; out in the open he sidesteps away from the round.

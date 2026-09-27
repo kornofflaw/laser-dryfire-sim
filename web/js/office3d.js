@@ -849,11 +849,23 @@ export class OfficeView {
     }
   }
 
+  // Your spent case: thrown out to the right and up from your gun, it
+  // tumbles past the edge of the picture and lands on the floor.
+  myBrass(now) {
+    const B = O().myBrass, q = this.camera.quaternion;
+    const port = new THREE.Vector3(...B.at).applyQuaternion(q).add(this.camera.position);
+    const v = new THREE.Vector3(rand(...B.right), rand(...B.up), B.back).applyQuaternion(q);
+    const fx = brassCase(this.scene, port, v, now, O().casing.bounce);
+    this.casings.push(fx.obj);
+    this.fx.push(fx);
+  }
+
   // Reaction (called by Range.onShot): blood/reaction on people, dust on walls.
   onShot(score) {
     if (!this.ready) return;
     const now = performance.now() / 1000;
     this.flashMuzzle();
+    this.myBrass(now);
     for (const g of score.glass || []) this.breakGlass(g.pane, g.point, score.dir);
     if (!score.point) return;
     if (score.person && score.armor) {
