@@ -559,3 +559,8 @@ he reports a problem.
   overhead frame, held to one side behind a wall until its popper falls, then
   it swings as a damped pendulum and settles hanging straight. New stage
   "Swinger" (CONFIG.range3d.swinger; courses.js swing: { by }).
+- Steel sounds from where the steel is (3D range): the ring arrives late by
+  its distance at the speed of sound (25 yd is ~70 ms after the shot), is a
+  little quieter the farther the plate, and comes from its side (stereo pan
+  by where it is on screen). CONFIG.sound.steelRing speed / near / falloff /
+  pan.

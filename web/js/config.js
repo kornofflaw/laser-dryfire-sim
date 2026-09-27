@@ -558,7 +558,11 @@ export const CONFIG = {
     // that size rings at steelHz / r^pitch for r^decay times as long (thicker
     // big steel keeps this gentler than thin-plate physics' r^2). r is clamped
     // to `range`. A popper rings like a plate popperSize x its height.
-    steelRing: { ref: 0.2032, pitch: 1, decay: 0.7, range: [0.5, 2.5], popperSize: 0.4 },
+    // On the 3D range the ring comes from where the steel is: it arrives
+    // distance / speed s late (sound at ~343 m/s: 25 yd is ~70 ms), is
+    // quieter past `near` m ((near / distance)^falloff), and is panned left
+    // or right by where the plate is on screen (pan = the far edge).
+    steelRing: { ref: 0.2032, pitch: 1, decay: 0.7, range: [0.5, 2.5], popperSize: 0.4, speed: 343, near: 7, falloff: 0.5, pan: 0.7 },
     indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
     indoorEchoMix: 0.45,    // echo level relative to the shot
     // Fire alarm horn (office option): the standard evacuation pattern ("temporal

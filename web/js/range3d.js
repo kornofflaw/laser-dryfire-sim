@@ -909,13 +909,13 @@ export class Range3DView {
         const r = this.steel.tileHit(o.userData.tile, h.uv, performance.now() / 1000);
         if (!r) continue;
         const zone = r.face === 'blank' ? 'Miss' : 'Tile';
-        return { zone, points: CONFIG.points[zone], targetId: `tile-${r.tile}`, kind: 'tile', ...r, point: h.point, dir, size: R().flipGrid.plate };
+        return { zone, points: CONFIG.points[zone], targetId: `tile-${r.tile}`, kind: 'tile', ...r, point: h.point, dir, size: R().flipGrid.plate, dist: h.distance };
       }
       if (o.userData.steel != null && this.steel) {
         const i = o.userData.steel;
         const id = this.steel.idOf ? this.steel.idOf(i) : `${this.steel.name}-${i}`;
         const size = this.steel.items?.[i]?.size ?? 2 * CONFIG.star.plateRadius; // for the ring's pitch
-        const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: id, kind: 'steel', steel: i, point: h.point, dir, size };
+        const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: id, kind: 'steel', steel: i, point: h.point, dir, size, dist: h.distance };
         // Too low on a popper: it rings but doesn't go down - a miss.
         if (this.steel.holdsLow?.(i, h.point)) return { ...s, zone: 'Miss', points: 0, noFall: true };
         if (this.kind === 'star') s.plate = i; // range.js knocks it off the star's physics

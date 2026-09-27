@@ -261,7 +261,7 @@ function shoot(nx, ny, tMs, source) {
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
   shotPop({ indoor: range.layout === 'office3d', outdoor: range.layout !== 'office3d' }); // the office echoes; outside, a recorded echo
-  if (score.zone === 'Steel' || score.zone === 'Tile' || score.noFall) steelPing(score.size); // bigger plates ring lower and longer
+  if (score.zone === 'Steel' || score.zone === 'Tile' || score.noFall) steelPing(score.size, { dist: score.dist, pan: nx * 2 - 1 }); // bigger plates ring lower and longer; far steel later and quieter
   else if (score.zone === 'NS' || score.wrongDot || score.wrongTile) penaltyBuzz();
   else if (['A', 'C', 'D', 'Head'].includes(score.zone) && score.kind !== 'actor') hitDing(); // people react instead of dinging
 }

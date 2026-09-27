@@ -140,27 +140,38 @@ export function shotPop(opts = {}) {
 
 // Steel "ping": a few inharmonic partials with long, uneven decays, which is
 // what makes struck plate steel sound metallic rather than like a beep.
-export function steelPing(size) {
+export function steelPing(size, where = {}) {
   if (forwarded('steelPing', arguments)) return;
   if (!ctx) return;
   // Size ratio to an 8" plate: bigger steel rings lower and longer.
   const SR = CONFIG.sound.steelRing;
   const r = Math.min(SR.range[1], Math.max(SR.range[0], (size || SR.ref) / SR.ref));
-  const clank = useRec('steel') && playSample('steel', CONFIG.sound.samples.steel, { rate: 1 / Math.sqrt(r) });
+  // Far steel: the ring arrives late and quieter, from its side.
+  const dist = where.dist || 0;
+  const delay = dist / SR.speed, level = Math.pow(SR.near / Math.max(SR.near, dist), SR.falloff);
+  const pan = Math.max(-1, Math.min(1, (where.pan || 0) * SR.pan));
+  const clank = useRec('steel') && playSample('steel', CONFIG.sound.samples.steel * level, { rate: 1 / Math.sqrt(r), delay, pan });
   if (!useSynth('steel') && clank) return;
   const base = CONFIG.sound.steelHz / Math.pow(r, SR.pitch) * (0.96 + Math.random() * 0.08);
   const long = Math.pow(r, SR.decay);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
-  const t0 = ctx.currentTime;
+  const t0 = ctx.currentTime + delay;
+  let out = ctx.destination;
+  if (pan && ctx.createStereoPanner) {
+    const p = ctx.createStereoPanner();
+    p.pan.value = pan;
+    p.connect(out);
+    out = p;
+  }
   for (const [ratio, amp, d] of partials) {
     const decay = d * long;
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.frequency.value = base * ratio;
     g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(amp * 0.5 * CONFIG.sound.volume, t0 + 0.002);
+    g.gain.linearRampToValueAtTime(amp * 0.5 * level * CONFIG.sound.volume, t0 + 0.002);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
-    osc.connect(g).connect(ctx.destination);
+    osc.connect(g).connect(out);
     osc.start(t0);
     osc.stop(t0 + decay + 0.02);
   }
@@ -698,6 +709,6 @@ function playSample(name, level, opts = {}) {
     node = node.connect(lp);
   }
   node.connect(g).connect(opts.out || ctx.destination);
-  src.start();
+  src.start(ctx.currentTime + (opts.delay || 0));
   return true;
 }
