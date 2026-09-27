@@ -28,6 +28,8 @@ button:disabled { opacity: 0.4; }
 .panel table.shots th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; padding: 0 10px 0 0; }
 .panel table.shots td { text-align: right; padding: 0 10px 0 0; }
 .panel table.shots td:last-child, .panel table.shots th:last-child { text-align: left; font-weight: 700; }
+.panel table.sheet td, .panel table.sheet th { text-align: left; }
+.panel table.sheet td:last-child, .panel table.sheet th:last-child { text-align: right; }
 .go { color: var(--go); font-weight: 700; } .bad { color: var(--bad); } .wait { color: #ffd33d; }
 .muted { color: var(--muted); } .small { font-size: 12px; } kbd { display: none; }
 #setup label { display: block; margin: 10px 0; }

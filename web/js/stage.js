@@ -29,7 +29,7 @@ export class StageRunner extends DrillRunner {
 
   clearRun() {
     super.clearRun();
-    this.paperHits = {};        // id -> [points, ...]
+    this.paperHits = {};        // id -> [{ zone, points }, ...]
     this.down = new Set();      // steel ids down
     this.nsHits = 0;
   }
@@ -53,7 +53,7 @@ export class StageRunner extends DrillRunner {
     const id = score.targetId;
     if (score.zone === 'NS') this.nsHits++;
     else if (score.zone === 'Steel' && id) this.down.add(id);
-    else if (isHit(score.zone) && this.papers.includes(id)) (this.paperHits[id] ??= []).push(score.points);
+    else if (isHit(score.zone) && this.papers.includes(id)) (this.paperHits[id] ??= []).push({ zone: score.zone, points: score.points });
     if (this.engaged) this.finish(true);
     else if (this.course.maxShots && this.shots >= this.course.maxShots) this.finish(false);
   }
@@ -64,26 +64,38 @@ export class StageRunner extends DrillRunner {
       this.papers.every(id => (this.paperHits[id]?.length || 0) >= this.perPaper);
   }
 
-  // Stage points and the misses they include.
+  // Stage points and the misses they include, and the score sheet: one row
+  // per target (its best `perPaper` hits as letters, or steel down / miss),
+  // and the A / C / D totals of the hits that count.
   tally() {
-    const S = CONFIG.stage;
+    const S = CONFIG.stage, P = CONFIG.points;
+    const letter = z => (z === 'Head' ? 'A' : z); // a head hit scores as an A
     let points = 0, mikes = 0;
+    const counted = { A: 0, C: 0, D: 0 }, sheet = [];
     for (const id of this.papers) {
-      const best = [...(this.paperHits[id] || [])].sort((a, b) => b - a).slice(0, this.perPaper);
-      points += best.reduce((a, b) => a + b, 0);
-      mikes += this.perPaper - best.length;
+      const best = [...(this.paperHits[id] || [])].sort((a, b) => b.points - a.points).slice(0, this.perPaper);
+      const miss = this.perPaper - best.length;
+      const pts = best.reduce((a, b) => a + b.points, 0);
+      for (const b of best) counted[letter(b.zone)] = (counted[letter(b.zone)] || 0) + 1;
+      sheet.push({ id, marks: [...best.map(b => letter(b.zone)), ...Array(miss).fill('M')], points: pts + miss * S.missPenalty });
+      points += pts;
+      mikes += miss;
     }
-    points += this.down.size * CONFIG.points.Steel;
+    for (const id of this.steel) {
+      const down = this.down.has(id);
+      sheet.push({ id, marks: [down ? 'down' : 'M'], points: down ? P.Steel : S.missPenalty });
+    }
+    points += this.down.size * P.Steel;
     mikes += this.steel.length - this.down.size;
-    points += mikes * S.missPenalty + this.nsHits * CONFIG.points.NS;
-    return { points: Math.max(0, points), mikes };
+    points += mikes * S.missPenalty + this.nsHits * P.NS;
+    return { points: Math.max(0, points), mikes, sheet, counted };
   }
 
   finish(complete) {
     const d = this.course;
     const s = this.shotTimes;
     const time = s.length ? s[s.length - 1] : 0;
-    const { points, mikes } = this.tally();
+    const { points, mikes, sheet, counted } = this.tally();
     const madePar = complete && s.length > 0 && time <= d.parTime;
     const problems = [];
     if (mikes) problems.push(`${mikes} miss${mikes > 1 ? 'es' : ''} (-${mikes * -CONFIG.stage.missPenalty})`);
@@ -100,7 +112,8 @@ export class StageRunner extends DrillRunner {
       shots: s.length,
       hits: this.hits,
       points,
-      counts: { ...this.counts, Miss: mikes, NS: this.nsHits },
+      counts: { ...this.counts, ...counted, Miss: mikes, NS: this.nsHits },
+      sheet,
       steelDown: this.down.size,
       steelTotal: this.steel.length,
       hitFactor: time > 0.0001 ? points / time : 0,
@@ -130,11 +143,13 @@ export class StageRunner extends DrillRunner {
     const r = this.result;
     if (r && r.course === d.name) {
       const verdict = r.passed ? '<span class="go">CLEAN</span>' : r.complete ? '<span class="bad">PENALTIES</span>' : '<span class="bad">INCOMPLETE</span>';
+      // Score sheet, as the RO fills it in: each target, then the totals.
+      const rows = (r.sheet || []).map(t => `<tr${t.marks.includes('M') ? ' class="bad"' : ''}><td>${t.id}</td><td>${t.marks.join(' ')}</td><td>${t.points}</td></tr>`).join('');
       const lines = [`<b>${d.name}</b> — ${verdict}`,
-        `Time: ${f2(r.time)}s   ${r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>'}`,
-        `Points: ${r.points}   Hit factor: <b>${f2(r.hitFactor)}</b>`,
-        `A: ${r.counts.A}  C: ${r.counts.C}  D: ${r.counts.D}  M: ${r.counts.Miss}  NS: ${r.counts.NS}` +
-          (r.steelTotal ? `   Steel: ${r.steelDown}/${r.steelTotal}` : '')];
+        `<table class="shots sheet"><tr><th>target</th><th>hits</th><th>pts</th></tr>${rows}</table>` +
+        `A ${r.counts.A}  C ${r.counts.C}  D ${r.counts.D}  M ${r.counts.Miss}  NS ${r.counts.NS}`,
+        `Points <b>${r.points}</b> · time <b>${f2(r.time)}</b> · hit factor <b>${f2(r.hitFactor)}</b>`,
+        r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>'];
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;
     }
