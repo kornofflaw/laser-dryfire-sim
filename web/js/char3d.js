@@ -188,6 +188,15 @@ export class Character {
     const wantW = this.pose && !this.fall ? 1 : 0;
     this.poseWeight += (wantW - this.poseWeight) * Math.min(1, dt * 8);
     if (this.pose && this.poseWeight > 0.01) this.applyPose(this.poseWeight);
+    // Startle (this.flinchT, seconds): head and shoulders jerk down and recover.
+    if (this.flinchT != null && now >= this.flinchT) {
+      const Fl = CONFIG.people.flinch, k = (now - this.flinchT) / Fl.time;
+      if (k < 1) {
+        const e = Math.sin(Math.PI * Math.min(1, k * 1.6)) * (1 - k * 0.3);
+        this.tiltBone('Spine1', -Fl.spine * e, 0);
+        this.tiltBone('Head', -Fl.head * e, 0);
+      } else this.flinchT = null;
+    }
 
     // Hit reactions (world-space tilts, snap then recover).
     const R = CONFIG.knife3d.react;
@@ -288,7 +297,7 @@ export class Character {
     ff.addScaledVector(fu, -ff.dot(fu)).normalize();
     const nudge = (b, d) => { const p = b.getWorldPosition(W()).add(d); b.position.copy(b.parent.worldToLocal(p)); };
 
-    const mood = this.mood ?? ((this.pose === 'handsUp' || this.role === 'hostage' || this.role === 'victim') ? 'afraid'
+    const mood = this.mood ?? ((this.pose === 'handsUp' || this.pose === 'cower' || this.role === 'hostage' || this.role === 'victim') ? 'afraid'
       : (this.role === 'gunman' || this.pose === 'aim') ? 'angry' : null);
     // Eyelids: blink now and then; half shut once down.
     let lid = this.down ? 0.7 : 0;
@@ -398,6 +407,18 @@ export class Character {
       }
       this.tiltBone('Spine1', F.struggle * 0.5 * Math.sin(t * 2.3) * w, F.struggle * Math.sin(t * 1.7 + 1) * w);
       this.tiltBone('Head', F.struggle * 0.6 * Math.sin(t * 2.9 + 2) * w, F.struggle * 1.4 * Math.sin(t * 1.3) * w);
+    } else if (this.pose === 'cower') {
+      // Hunched, head down, arms up protecting the head, trembling.
+      const t = this.now || 0, F = CONFIG.people, K = F.cower;
+      this.tiltBone('Spine1', -K.hunch * w, 0);
+      this.tiltBone('Head', -K.duck * w, 0);
+      this.obj.updateMatrixWorld(true);
+      const head = P('Head');
+      for (const [side, s] of [['Left', -1], ['Right', 1]]) {
+        const shake = F.tremble * (Math.sin(t * 47 + s) * 0.6 + Math.sin(t * 29.3 + 2 * s) * 0.4);
+        const hand = head.clone().addScaledVector(fwd, K.handsFwd).addScaledVector(right, s * K.handsApart + shake).addScaledVector(up, K.handsUp + shake);
+        this.solveArm(side, hand, right.clone().multiplyScalar(s).addScaledVector(up, -1), w);
+      }
     } else if (this.pose === 'offer') {
       const sh = P('RightArm');
       const hand = sh.clone().addScaledVector(fwd, 0.42).addScaledVector(up, -0.22).addScaledVector(right, 0.1);

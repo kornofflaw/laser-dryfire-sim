@@ -117,8 +117,14 @@ export class Judge3DView extends Lot3DView {
     const walking = !!a.vx && a.downAt == null;
     // Facing: turned away, along the walk, or at the shooter.
     const toYou = Math.atan2(-o.position.x, -o.position.z);
+    // Reacting to gunfire (onShot): flinch, then cower for a while.
+    const R = J().react;
+    const reacting = p.startle != null && now >= p.startle && now < p.cowerUntil && !char.down;
+    if (reacting && !p.flinched) { char.flinchT = p.startle; p.flinched = true; }
+    const cowers = reacting && !walking && ['empty', 'back', 'phone'].includes(a.pose);
     let yaw = toYou;
-    if (a.pose === 'back') yaw = toYou + Math.PI;
+    if (cowers) yaw = toYou + p.cowerTurn * R.turn;
+    else if (a.pose === 'back') yaw = toYou + Math.PI;
     else if (walking && a.pose === 'empty') yaw = a.vx > 0 ? Math.PI / 2 : -Math.PI / 2;
     if (p.yaw == null) p.yaw = yaw;
     const d = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw));
@@ -127,7 +133,7 @@ export class Judge3DView extends Lot3DView {
 
     // Motion and hands.
     char.play(walking ? 'walk' : a.pose === 'phone' ? 'phone' : p.idle);
-    char.pose = { gun: 'aim', surrender: 'handsUp', wallet: 'offer' }[a.pose] || null;
+    char.pose = cowers ? 'cower' : { gun: 'aim', surrender: 'handsUp', wallet: 'offer' }[a.pose] || null;
     if (a.pose === 'surrender' && p.hadGun && !p.droppedGun) this.dropGun(p);
     if (a.pose === 'gun') p.hadGun = true;
     if (a.downAt != null && !char.fall) char.goDown(now, 'back');
@@ -136,6 +142,18 @@ export class Judge3DView extends Lot3DView {
     char.gun.visible = a.pose === 'gun' && !char.down;
     p.phone.visible = a.pose === 'phone';
     p.wallet.visible = a.pose === 'wallet';
+  }
+
+  // A shot: everyone standing flinches a moment later (their own reaction
+  // time) and bystanders cower until a few seconds after the last shot.
+  startle(now) {
+    const R = J().react, r = ([a, b]) => a + Math.random() * (b - a);
+    for (const p of this.people.values()) {
+      if (p.char.down) continue;
+      const already = p.startle != null && now < p.cowerUntil;
+      if (!already) { p.startle = now + r(R.delay); p.flinched = false; p.cowerTurn = Math.random() < 0.5 ? -1 : 1; }
+      p.cowerUntil = now + r(R.cower);
+    }
   }
 
   // Surrendering: the pistol falls at their feet.
@@ -201,7 +219,9 @@ export class Judge3DView extends Lot3DView {
   }
 
   onShot(score) {
-    if (!this.ready || !score.point) return;
+    if (!this.ready) return;
+    this.startle(performance.now() / 1000);
+    if (!score.point) return;
     if (score.char) {
       score.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
       return;

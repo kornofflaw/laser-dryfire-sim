@@ -209,6 +209,11 @@ export const CONFIG = {
     // figure-eight (sway, radians) with a fine tremor on top. Rifles (shoulder
     // + two hands) wander less; a gun held to a hostage's head only trembles.
     aimSway: { sway: 0.014, tremor: 0.0025, rifle: 0.55, hostage: 0.3 },
+    // Startled by a shot: head and shoulders jerk down for `time` s (radians).
+    flinch: { time: 0.35, head: 0.3, spine: 0.12 },
+    // Cowering: hunched forward, head down, hands up over the head
+    // (metres from the head bone), trembling (tremble).
+    cower: { hunch: 0.35, duck: 0.35, handsFwd: 0.17, handsApart: 0.09, handsUp: 0.07 },
   },
 
   // ---- 3D people's faces (char3d.js, Rocketbox face bones) ------------------------
@@ -304,6 +309,12 @@ export const CONFIG = {
     frontStep: 0.9,         // metres a person standing in front of another is closer
     turnRate: 8,            // rad/s people turn (turning around ~0.4 s)
     aimJitter: 0.3,         // metres: where each armed person aims around the shooter
+    // Bystanders react to gunfire: after `delay` s they flinch; people just
+    // standing, turned away or on the phone then cower for `cower` s (after
+    // the last shot), turned `turn` rad away from you. Someone showing a gun,
+    // a wallet or surrendering keeps showing it (that's what you judge);
+    // walkers flinch and keep walking.
+    react: { delay: [0.1, 0.35], cower: [2.5, 4.5], turn: 0.6 },
   },
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
