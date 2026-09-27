@@ -89,6 +89,8 @@ export class Character {
 
     this.pose = null;          // 'aim' | 'handsUp' | 'hostage' | 'lying' | null
     this.aimAt = new THREE.Vector3();
+    this.aimPoint = new THREE.Vector3(); // aimAt plus the hold's wander (aimSway)
+    this.swayPhase = Math.random() * 100;
     this.hostage = null;       // Character held (for 'hostage')
     this.poseWeight = 0;       // eases poses in/out
     this.impulses = [];
@@ -143,6 +145,28 @@ export class Character {
     return !!this.vest && ['Spine', 'Spine1', 'Spine2'].includes(bone?.name);
   }
 
+  // Where the gun actually points this frame: aimAt moved by a slow
+  // figure-eight sway plus tremor, sideways and up/down from the line of aim.
+  updateAimPoint(now) {
+    const S = CONFIG.people.aimSway;
+    const k = this.weapon === 'rifle' ? S.rifle : 1;
+    this.aimPoint.copy(this.aimAt).add(this.swayOffset(now, k));
+  }
+  swayOffset(now, k) {
+    const S = CONFIG.people.aimSway, p = this.swayPhase, t = now + p;
+    const from = this.bones.RightArm?.getWorldPosition(new THREE.Vector3()) ?? this.obj.position;
+    const toT = (this.pose === 'hostage' && this.hostage ? this.hostageHead() : this.aimAt).clone().sub(from);
+    const dist = Math.max(0.3, toT.length());
+    const dir = toT.normalize();
+    const side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+    const vert = new THREE.Vector3().crossVectors(side, dir);
+    const kk = this.pose === 'hostage' ? S.hostage : k;
+    // Figure-eight (1 : 2 frequency) plus two fast tremor terms.
+    const sx = Math.sin(t * 0.9) * S.sway + Math.sin(t * 11.3 + p) * S.tremor;
+    const sy = Math.sin(t * 1.8 + 0.7) * S.sway * 0.6 + Math.sin(t * 13.7 + 2 * p) * S.tremor;
+    return side.multiplyScalar(sx * dist * kk).addScaledVector(vert, sy * dist * kk);
+  }
+
   // Fire: muzzle flash for a moment.
   fire(now) { this.flashT = now; }
 
@@ -159,6 +183,7 @@ export class Character {
     for (const [b, q] of this.animQ) q.copy(b.quaternion);
     this.obj.updateMatrixWorld(true);
 
+    this.updateAimPoint(now);
     // Procedural pose, eased in.
     const wantW = this.pose && !this.fall ? 1 : 0;
     this.poseWeight += (wantW - this.poseWeight) * Math.min(1, dt * 8);
@@ -205,7 +230,7 @@ export class Character {
       const hand = this.bones.RightHand;
       if (hand) {
         hand.getWorldPosition(this.gun.position);
-        const target = this.pose === 'hostage' && this.hostage ? this.hostageHead() : this.aimAt;
+        const target = this.pose === 'hostage' && this.hostage ? this.hostageHead().add(this.swayOffset(now, 0.5)) : this.aimPoint;
         // Mid-draw the muzzle comes up from pointing at the ground.
         const e = this.pose === 'aim' && this.weapon !== 'rifle' ? this.drawProgress() : 1;
         if (e < 1) {
@@ -317,13 +342,13 @@ export class Character {
       // Rifle at the shoulder: firing hand at the grip just ahead of the
       // shoulder, support hand out on the handguard.
       const sR = P('RightArm');
-      const dir = this.aimAt.clone().sub(sR).normalize();
+      const dir = this.aimPoint.clone().sub(sR).normalize();
       const grip = sR.clone().addScaledVector(dir, 0.2).addScaledVector(up, -0.05).addScaledVector(right, 0.08);
       this.solveArm('Right', grip, up.clone().multiplyScalar(-1).addScaledVector(right, -0.8), w);
       this.solveArm('Left', grip.clone().addScaledVector(dir, 0.33).addScaledVector(up, -0.02), up.clone().multiplyScalar(-1).addScaledVector(right, 0.4), w);
     } else if (this.pose === 'aim') {
       const sR = P('RightArm');
-      const dir = this.aimAt.clone().sub(sR).normalize();
+      const dir = this.aimPoint.clone().sub(sR).normalize();
       const grip = sR.clone().addScaledVector(dir, 0.58);
       // Draw: hand to the holster on the right hip, then up and out to the
       // target; the support hand meets the gun near the end.

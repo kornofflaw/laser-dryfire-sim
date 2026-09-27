@@ -191,6 +191,10 @@ export const CONFIG = {
   people: {
     tremble: 0.012,         // metres of hand shake with hands up (fear)
     struggle: 0.16,         // radians a hostage twists and leans against the hold
+    // Nobody holds a gun perfectly still: the muzzle wanders in a slow
+    // figure-eight (sway, radians) with a fine tremor on top. Rifles (shoulder
+    // + two hands) wander less; a gun held to a hostage's head only trembles.
+    aimSway: { sway: 0.014, tremor: 0.0025, rifle: 0.55, hostage: 0.3 },
   },
 
   // ---- 3D people's faces (char3d.js, Rocketbox face bones) ------------------------
