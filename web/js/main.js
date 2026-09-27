@@ -51,7 +51,7 @@ const settings = Object.assign({
   flipVariable: false, // flip grid: vary each time up and pause
   volGun: 1,          // gunshot volume (Setup slider, 1 = normal)
   volAmb: 1,          // background sound volume (Setup slider)
-  sounds: {},         // Sound choices (compare): overrides of SOUND_DEFAULTS
+  soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
@@ -796,13 +796,14 @@ for (const [id, key] of [['#vol-gun', 'volGun'], ['#vol-amb', 'volAmb']]) {
   };
 }
 // Sound choices (compare recorded / generated versions); ▶ Test buttons.
-const SOUND_DEFAULTS = { gun: 'mix', gunTake: -1, steel: 'mix', step: 'rec', glass: 'mix', distant: 'rec' };
+// Andrew (2026-09-27): the recorded versions are all better, so R is the default.
+const SOUND_DEFAULTS = { gun: 'rec', gunTake: -1, steel: 'rec', step: 'rec', glass: 'rec', distant: 'rec' };
 const SOUND_SELECTS = { gun: '#snd-gun', gunTake: '#snd-gun-take', steel: '#snd-steel', step: '#snd-step', glass: '#snd-glass', distant: '#snd-distant' };
-const soundChoices = () => ({ ...SOUND_DEFAULTS, ...settings.sounds });
+const soundChoices = () => ({ ...SOUND_DEFAULTS, ...settings.soundPicks });
 setSoundChoices(soundChoices());
 for (const [key, id] of Object.entries(SOUND_SELECTS)) {
   $(id).onchange = e => {
-    settings.sounds = { ...settings.sounds, [key]: key === 'gunTake' ? Number(e.target.value) : e.target.value };
+    settings.soundPicks = { ...settings.soundPicks, [key]: key === 'gunTake' ? Number(e.target.value) : e.target.value };
     persist();
     setSoundChoices(soundChoices());
   };
@@ -992,6 +993,7 @@ const remote = displayMode && 'BroadcastChannel' in window ? {
       review: { open: review.isOpen, has: review.hasRuns },
       calibrating: calibration.active,
       volumes: { gun: settings.volGun, amb: settings.volAmb }, // the Controller plays sounds at these too
+      sounds: soundChoices(), // ... and with these sound choices
     });
     if (state === this.sent && now - this.sentAt < 2000) return;
     this.sent = state;

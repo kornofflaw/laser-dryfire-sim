@@ -7,7 +7,7 @@ let ctx = null;
 //   'rec' recorded only, 'synth' generated only, 'mix' recorded + generated.
 // gunTake: which recorded pistol shot (-1 = random). A recording that hasn't
 // loaded falls back to the generated sound.
-const choice = { gun: 'mix', gunTake: -1, steel: 'mix', step: 'rec', glass: 'mix', distant: 'rec' };
+const choice = { gun: 'rec', gunTake: -1, steel: 'rec', step: 'rec', glass: 'rec', distant: 'rec' }; // main.js sets the saved picks
 export function setSoundChoices(c = {}) { Object.assign(choice, c); }
 const useRec = k => choice[k] !== 'synth';
 const useSynth = k => choice[k] !== 'rec';

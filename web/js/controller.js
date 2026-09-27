@@ -28,7 +28,7 @@ setInterval(() => {
 $('#open-display').onclick = () => window.open('index.html?display', 'dryfire-display');
 
 ch.onmessage = ({ data: m }) => {
-  if (m.t === 'state') { state = m; lastStateAt = performance.now(); if (m.volumes) audio.setVolumes(m.volumes); render(); }
+  if (m.t === 'state') { state = m; lastStateAt = performance.now(); if (m.volumes) audio.setVolumes(m.volumes); if (m.sounds) audio.setSoundChoices(m.sounds); render(); }
   else if (m.t === 'sound' && typeof audio[m.name] === 'function') audio[m.name](...(m.args || []));
 };
 
