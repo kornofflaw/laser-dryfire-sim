@@ -14,7 +14,7 @@
 //   timerHTML(now), panelHTML(now), onComplete(fn), result
 
 import { CONFIG } from './config.js';
-import { startBeep, parBeep } from './audio.js';
+import { startBeep, parBeep, say } from './audio.js';
 
 export const State = { Idle: 'Idle', Delay: 'Delay', Running: 'Running', Done: 'Done' };
 
@@ -69,14 +69,23 @@ export class DrillRunner extends Runner {
     if (this.busy) return;
     this.clearRun();
     this.result = null;
-    const T = CONFIG.timer;
-    this.beepAt = nowMs + (T.minDelay + Math.random() * (T.maxDelay - T.minDelay)) * 1000;
+    const T = CONFIG.timer, C = T.commands;
+    // Range officer (Setup): "Make ready" ... "Are you ready?" ... "Standby",
+    // then the random delay to the beep, as at a match.
+    this.calls = [];
+    let t = nowMs;
+    if (C.on) {
+      for (const [text, gap] of C.say) { this.calls.push({ at: t, text }); t += gap * 1000; }
+    }
+    this.standbyAt = t; // shots before this don't count (still making ready)
+    this.beepAt = t + (T.minDelay + Math.random() * (T.maxDelay - T.minDelay)) * 1000;
     this.state = State.Delay;
   }
 
   cancel() { super.cancel(); this.clearRun(); }
 
   update(nowMs) {
+    while (this.state === State.Delay && this.calls?.length && nowMs >= this.calls[0].at) say(this.calls.shift().text, { rate: 1.0 });
     if (this.state === State.Delay && nowMs >= this.beepAt) {
       startBeep();
       this.runStart = nowMs;
@@ -103,7 +112,7 @@ export class DrillRunner extends Runner {
   }
 
   onShot(score) {
-    if (this.state === State.Delay) { this.early++; return; }
+    if (this.state === State.Delay) { if (score.t >= this.standbyAt) this.early++; return; }
     if (this.state !== State.Running) return;
 
     // A camera frame can be captured a hair before the beep frame; clamp to 0.
@@ -189,6 +198,7 @@ export class DrillRunner extends Runner {
       case State.Idle:
         return head + `Press [Space] to start\nPar: ${d.parTime.toFixed(1)}s`;
       case State.Delay:
+        if (performance.now() < this.standbyAt) return head + `<span class="wait">MAKE READY…</span>\nlisten for "Standby"`;
         return head + `<span class="wait">STAND BY…</span>\nwait for the beep` +
           (this.early ? `\n<span class="bad">Early shot! (${this.early})</span>` : '');
       case State.Running:

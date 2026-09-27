@@ -17,7 +17,7 @@
 import { CONFIG } from './config.js';
 import { DrillRunner, State, isHit, f2 } from './run.js';
 import { stageTargets } from './courses.js';
-import { startBeep, parBeep } from './audio.js';
+import { startBeep, parBeep, say } from './audio.js';
 
 export class StageRunner extends DrillRunner {
   setCourse(course) {
@@ -35,6 +35,7 @@ export class StageRunner extends DrillRunner {
   }
 
   update(nowMs) {
+    while (this.state === State.Delay && this.calls?.length && nowMs >= this.calls[0].at) say(this.calls.shift().text, { rate: 1.0 });
     if (this.state === State.Delay && nowMs >= this.beepAt) {
       startBeep();
       this.runStart = nowMs;

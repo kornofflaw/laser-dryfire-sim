@@ -54,9 +54,13 @@ const settings = Object.assign({
   flipVariable: false, // flip grid: vary each time up and pause
   volGun: 1,          // gunshot volume (Setup slider, 1 = normal)
   volAmb: 1,          // background sound volume (Setup slider)
+  roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
+  paste: true,        // 3D range: paste holes between runs
   soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
 }, load(CONFIG.storage.settings, {}));
 CONFIG.post.quality = settings.quality; // 3D graphics (read by post3d.js)
+CONFIG.timer.commands.on = settings.roCommands;
+CONFIG.range3d.paste.on = settings.paste;
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
 if (typeof settings.dist3d === 'number') {
@@ -864,7 +868,11 @@ $('#test-steel-big').onclick = () => steelPing(CONFIG.range3d.steel.popper.heigh
 $('#test-step').onclick = () => { for (let i = 0; i < 6; i++) setTimeout(() => footstep(0.3 + i * 0.14), i * CONFIG.knife.strideTime * 1000); };
 $('#test-glass').onclick = () => glassBreak();
 $('#test-distant').onclick = () => distantShot();
+$('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = e.target.checked; persist(); };
+$('#opt-paste').onchange = e => { settings.paste = CONFIG.range3d.paste.on = e.target.checked; persist(); };
 function refreshSound() {
+  $('#opt-ro').checked = settings.roCommands;
+  $('#opt-paste').checked = settings.paste;
   const c = soundChoices();
   for (const [key, id] of Object.entries(SOUND_SELECTS)) $(id).value = String(c[key]);
   const M = CONFIG.sound.mix;

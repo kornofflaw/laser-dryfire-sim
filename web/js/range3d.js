@@ -439,12 +439,34 @@ export class Range3DView {
     return card;
   }
 
+  // Between runs: paste the holes (tan pasters, white on a no-shoot), as a
+  // range does between shooters; a fresh target once it's covered in them
+  // (CONFIG.range3d.paste), or always fresh with pasting off.
   resetCard(c) {
-    c.color.reset();
-    c.alpha.reset();
+    const P = R().paste, holes = c.holes || [];
+    c.jolt = null;
+    if (!holes.length) return;
+    if (P.on && (c.pasted || 0) + holes.length <= P.limit) {
+      const g = c.color.g, s = P.sizeCm * c.pxPerCm, white = c.meta.kind === 'noshoot';
+      for (const h of holes) {
+        g.save();
+        g.translate(h.x, h.y);
+        g.rotate((Math.random() - 0.5) * 0.5);
+        g.fillStyle = 'rgba(0,0,0,0.18)'; // the paster's edge casts a hair of shadow
+        g.fillRect(-s / 2 + 0.6, -s / 2 + 0.8, s, s);
+        g.fillStyle = white ? '#eeeeea' : P.colors[Math.floor(Math.random() * P.colors.length)];
+        g.fillRect(-s / 2, -s / 2, s, s);
+        g.restore();
+      }
+      c.pasted = (c.pasted || 0) + holes.length;
+    } else {
+      c.color.reset();
+      c.pasted = 0;
+    }
+    c.holes = [];
+    c.alpha.reset(); // pasted over or fresh: no through-holes
     c.colorTex.needsUpdate = true;
     c.alphaTex.needsUpdate = true;
-    c.jolt = null;
   }
 
   // A cardboard target on stakes in a stand. opts: z (m), id, noShoot, dy
@@ -976,6 +998,7 @@ function rock(c, now, ry, rx) {
 function punchHole(t, uv) {
   const x = uv.x * t.alpha.canvas.width, y = (1 - uv.y) * t.alpha.canvas.height;
   const r = Math.max(1.5, R().holeRadiusCm * t.pxPerCm);
+  (t.holes ||= []).push({ x, y }); // pasted over between runs (resetCard)
   const jag = (g, rad, n) => {
     g.beginPath();
     for (let i = 0; i <= n; i++) {

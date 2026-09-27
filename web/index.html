@@ -57,6 +57,7 @@
       <label>Background volume <output id="vol-amb-val"></output>
         <input type="range" id="vol-amb"></label>
       <p class="note">Background = wind, traffic, the office hum and distant shots in the 3D scenes. 0% turns it off.</p>
+      <label class="check"><input type="checkbox" id="opt-ro"> Range officer commands before the beep ("Make ready… Are you ready? Standby")</label>
     </section>
 
     <section>
@@ -157,6 +158,7 @@
       </div>
       <div id="range3d-row" hidden>
         <label class="check"><input type="checkbox" id="opt-real3d"> Photo-realistic 3D (range targets, and judgment scenes with real people)</label>
+        <label class="check"><input type="checkbox" id="opt-paste"> Paste the holes between runs (a fresh target once it's covered)</label>
         <label id="dist3d-label">Distance to the <span id="dist3d-kind">targets</span> <output id="dist3d-val"></output>
           <input type="range" id="dist3d" min="3" max="25" step="1">
         </label>

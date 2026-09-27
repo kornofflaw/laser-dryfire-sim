@@ -255,7 +255,19 @@ Still liked: the deeper gunshot synth underneath (Andrew: "gunshots are deeper")
 Direction (confirmed 2026-09-27: recorded versions all preferred): realism comes from recordings; new sounds should start from a free
 recording (with credits) rather than pure synthesis.
 
-## Realism queue (hourly realism pass takes the top item)
+## Range & drills realism queue (hourly pass takes the top item; focus since 2026-09-27)
+Andrew: "shift focus to the drills and shooting range type stuff, we want that
+all to be refined... more realism". Office / knife / judgment scenes only when
+he reports a problem.
+1. Shot timer review like a real timer (AMG / CED): after the run, step through each shot (number, time, split) on the timer panel, plus first shot and total.
+2. Standard drills with their real par times: Blake Drill, 5x5, FAST (head box + body with a reload break), Rhythm drill, 1-reload-1, Doubles at 3 distances.
+3. USPSA-style results: the hits as letters (A A C A D ...), points, hit factor and a "stage score sheet" for stages.
+4. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
+5. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
+6. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
+7. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
+
+## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
@@ -499,3 +511,17 @@ recording (with credits) rather than pure synthesis.
   on every shot, bouncing on the asphalt, left lying until the next run
   (CONFIG.knife3d.myBrass). brassCase moved to char3d.js (shared). Office,
   knife (k10) and judgment (j3) regressions pass.
+- 2026-09-27 (Andrew: focus on drills and the range, more realism):
+  - Range officer commands before the beep (Setup, on by default): "Make
+    ready." ... "Are you ready?" ... "Standby." then the random 1-4 s delay
+    to the beep, as at a USPSA match. Shots while making ready don't count
+    as early; after "Standby" they do. Drills and stages (CONFIG.timer.commands).
+  - Scoring by the whole 9 mm hole: a hole that touches a scoring line scores
+    the higher zone, and one that breaks the edge of the target counts
+    (USPSA rule; CONFIG.uspsa.holeRadiusCm), 2D and 3D targets alike.
+  - 3D range: between runs the holes are pasted over with tan pasters (white
+    on no-shoots) instead of the target going back to new; a fresh target
+    once it carries 60 pasters (Setup "Paste the holes between runs";
+    CONFIG.range3d.paste).
+  - The hourly routine now works through the new "Range & drills realism
+    queue".

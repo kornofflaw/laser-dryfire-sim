@@ -40,6 +40,7 @@ export const CONFIG = {
     cZone: [[-11, 19], [11, 19], [17, 13], [17, -26], [11, -32], [-11, -32], [-17, -26], [-17, 13]],
     aZone: { x0: -7.5, x1: 7.5, y0: -12, y1: 16 },
     head: { x0: -7.5, x1: 7.5, y0: 23, y1: 38 },
+    holeRadiusCm: 0.45,     // 9 mm: a hole touching a line scores the higher zone
   },
   // Steel = a Texas Star plate. Tile = a flip-grid plate. Dot = a Dot Torture dot. NS = hitting a
   // no-shoot (bystander) in a scenario: a -10 penalty, as in USPSA.
@@ -68,8 +69,11 @@ export const CONFIG = {
 
   // ---- Shot timer ----------------------------------------------------------
   timer: {
-    minDelay: 1.5,          // random start delay (seconds)
+    minDelay: 1.0,          // random start delay after "Standby" (seconds; USPSA: 1-4)
     maxDelay: 4.0,
+    // Range officer commands before the delay (Setup): [what's said, seconds
+    // until the next]. Shots before the last one don't count as early.
+    commands: { on: true, say: [['Make ready.', 2.6], ['Are you ready?', 1.6], ['Standby.', 0.6]] },
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
   },
 
@@ -444,6 +448,9 @@ export const CONFIG = {
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay
     holeRadiusCm: 0.45,     // 9 mm bullet hole
+    // Between runs the holes are pasted over (Setup): pasters sizeCm square
+    // in these tans; a fresh target once `limit` pasters are on it.
+    paste: { on: true, sizeCm: 1.9, limit: 60, colors: ['#a97d48', '#a2773f', '#b0844f'] },
     // A hit rocks the target on its stand (a damped spring, radians). A hit
     // off to one side twists it more (twist x offset from centre, -1..1); a
     // high hit pushes the top back more (push + tilt x height, -1..1). A round

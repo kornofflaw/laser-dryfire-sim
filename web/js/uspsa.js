@@ -15,15 +15,32 @@ export function toCm(px, py, cx, cy, h) {
   return [(px - cx) * k, -(py - cy) * k];
 }
 
-// Returns 'Head' | 'A' | 'C' | 'D' | null (off the target).
-export function classifyUspsa(x, y) {
-  if (!pointInPoly(x, y, U.outline)) return null;
-  const hd = U.head;
-  if (x >= hd.x0 && x <= hd.x1 && y >= hd.y0 && y <= hd.y1) return 'Head';
-  const a = U.aZone;
-  if (x >= a.x0 && x <= a.x1 && y >= a.y0 && y <= a.y1) return 'A';
-  if (pointInPoly(x, y, U.cZone)) return 'C';
+// Returns 'Head' | 'A' | 'C' | 'D' | null (off the target). (x, y) is the
+// centre of the hole; as in USPSA, a hole that touches a scoring line scores
+// the higher zone, and one that breaks the edge of the target counts: the
+// hole's radius (CONFIG.uspsa.holeRadiusCm, 9 mm = 0.45) reaches across.
+export function classifyUspsa(x, y, r = U.holeRadiusCm) {
+  if (!nearPoly(x, y, U.outline, r)) return null;
+  if (nearRect(x, y, U.head, r)) return 'Head';
+  if (nearRect(x, y, U.aZone, r)) return 'A';
+  if (nearPoly(x, y, U.cZone, r)) return 'C';
   return 'D';
+}
+
+// Inside a box / polygon, or within r of its edge.
+function nearRect(x, y, b, r) {
+  const dx = Math.max(b.x0 - x, 0, x - b.x1), dy = Math.max(b.y0 - y, 0, y - b.y1);
+  return dx * dx + dy * dy <= r * r;
+}
+function nearPoly(x, y, pts, r) {
+  if (pointInPoly(x, y, pts)) return true;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [ax, ay] = pts[j], [bx, by] = pts[i];
+    const ex = bx - ax, ey = by - ay;
+    const k = Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey)));
+    if (Math.hypot(x - ax - ex * k, y - ay - ey * k) <= r) return true;
+  }
+  return false;
 }
 
 // Draw the target with its centre at (cx, cy) and height h px.
