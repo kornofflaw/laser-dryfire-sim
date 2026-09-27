@@ -489,6 +489,9 @@ export const CONFIG = {
     // Yardage markers down both sides of the bay (stake height m, sign w x h
     // m, x from the centre line, turn radians toward the shooter).
     markers: { yards: [5, 10, 15, 20, 25], x: 6.7, height: 0.6, sign: [0.3, 0.2], turn: 0.35 },
+    // Stage props: plywood walls (w x h m, raised `lift` off the ground,
+    // `thick` m, colour tint on the wood photo) and 55-gallon plastic barrels.
+    props: { wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] }, barrel: { r: 0.29, h: 0.88, color: '#24569e' } },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render

@@ -260,7 +260,6 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 2. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
-3. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
 4. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
 5. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
 
@@ -552,3 +551,7 @@ he reports a problem.
 - Hard cover: stage paper can be partly painted flat black (hard: { side,
   cm }); hits there stop and can't score (a miss, a hole in the paint). New
   stage "Hard Cover" (3 paper with hard cover + a popper).
+- Stage props: plywood walls on 2x4 legs (with an optional shooting port
+  cut in them) and blue 55-gallon barrels; they stop rounds (a miss). New
+  stage "Through the Port" (2 paper + 2 plates seen through a port in a wall
+  in front of you); a barrel dresses "Paper and Steel" (CONFIG.range3d.props).

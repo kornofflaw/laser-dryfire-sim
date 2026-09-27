@@ -646,6 +646,67 @@ export class Range3DView {
       this.layoutGroup.add(this.steel.group);
       this.addSolids(this.steel.solids);
     }
+    for (const pr of def.props || []) this.addProp(pr);
+  }
+
+  // Stage props (courses.js): a plywood 'wall' (optionally with a shooting
+  // 'port' cut in it) on 2x4 legs, or a 55-gallon 'barrel'. They stop rounds.
+  addProp(pr) {
+    const z = -pr.yd * YARD, P = R().props;
+    const group = new THREE.Group();
+    group.position.set(pr.x, 0, z);
+    const parts = [];
+    if (pr.type === 'wall') {
+      const w = pr.w ?? P.wall.w, h = pr.h ?? P.wall.h, lift = P.wall.lift;
+      const shape = new THREE.Shape();
+      shape.moveTo(-w / 2, 0); shape.lineTo(w / 2, 0); shape.lineTo(w / 2, h); shape.lineTo(-w / 2, h); shape.closePath();
+      if (pr.port) {
+        const [px, py, pw, ph] = [pr.port.x ?? 0, pr.port.y - lift, pr.port.w, pr.port.h];
+        const hole = new THREE.Path();
+        hole.moveTo(px - pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py + ph / 2); hole.lineTo(px - pw / 2, py + ph / 2); hole.closePath();
+        shape.holes.push(hole);
+      }
+      if (!this.plywood) {
+        const t = new THREE.CanvasTexture(plywoodCanvas());
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(1 / 1.22, 1 / 2.44); // one 4 x 8 ft sheet per repeat (UVs are metres)
+        t.anisotropy = 8;
+        this.plywood = new THREE.MeshStandardMaterial({ map: t, roughness: 0.88, color: new THREE.Color().setRGB(...P.wall.tint) });
+      }
+      const panel = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: P.wall.thick, bevelEnabled: false }), this.plywood);
+      panel.position.set(0, lift, -P.wall.thick / 2);
+      parts.push(panel);
+      // 2x4 legs and braces behind it.
+      for (const sx of [-1, 1]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.089, h + lift, 0.038), this.mats.wood);
+        leg.position.set(sx * (w / 2 - 0.05), (h + lift) / 2, -P.wall.thick - 0.02);
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(0.089, 0.038, 0.9), this.mats.wood);
+        foot.position.set(sx * (w / 2 - 0.05), 0.02, -0.45);
+        parts.push(leg, foot);
+      }
+    } else if (pr.type === 'barrel') {
+      this.barrelMat ??= new THREE.MeshStandardMaterial({ color: P.barrel.color, roughness: 0.55 });
+      const r = P.barrel.r, h = P.barrel.h;
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 28), this.barrelMat);
+      body.position.y = h / 2;
+      parts.push(body);
+      for (const y of [h * 0.33, h * 0.66, h - 0.015]) { // ribs and the lid's rim
+        const rib = new THREE.Mesh(new THREE.TorusGeometry(r + 0.004, 0.012, 6, 28), this.barrelMat);
+        rib.rotation.x = Math.PI / 2;
+        rib.position.y = y;
+        parts.push(rib);
+      }
+    }
+    for (const m of parts) {
+      m.castShadow = m.receiveShadow = true;
+      m.userData.surface = 'wood';
+      group.add(m);
+    }
+    group.rotation.y = pr.turn || 0;
+    this.layoutGroup.add(group);
+    group.updateMatrixWorld(true);
+    this.addSolids(parts);
   }
 
   // Pop-ups: one hinged face per lane of the PopupBank, behind a low dirt
@@ -920,6 +981,37 @@ const PX_PER_CM = 12;
 function cmToPx(x, y, k) {
   const U = Ucfg();
   return [(x + U.width / 2) * k, (U.height / 2 - y) * k];
+}
+
+// A 4 x 8 ft sheet of weathered plywood: pale veneer with long soft grain,
+// a few patches (football plugs), grime toward the bottom, the sheet's
+// edges dark (seams where sheets meet).
+function plywoodCanvas() {
+  const W = 256, H = 512, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d'), rnd = mulberry(77);
+  g.fillStyle = '#cdb28a';
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 160; i++) { // grain: long wavy streaks
+    let x = rnd() * W;
+    g.strokeStyle = `rgba(${rnd() < 0.6 ? '120,85,50' : '235,215,180'},${0.04 + rnd() * 0.08})`;
+    g.lineWidth = 0.6 + rnd() * 2.2;
+    g.beginPath(); g.moveTo(x, 0);
+    for (let y = 0; y <= H; y += 24) { x += (rnd() - 0.5) * 3; g.lineTo(x, y); }
+    g.stroke();
+  }
+  for (let i = 0; i < 5; i++) { // patches
+    const x = rnd() * W, y = rnd() * H;
+    g.fillStyle = 'rgba(214,190,150,0.55)';
+    g.beginPath(); g.ellipse(x, y, 7, 16, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(110,80,50,0.35)'; g.lineWidth = 1; g.stroke();
+  }
+  const grime = g.createLinearGradient(0, H, 0, H * 0.75);
+  grime.addColorStop(0, 'rgba(95,75,55,0.3)'); grime.addColorStop(1, 'rgba(95,75,55,0)');
+  g.fillStyle = grime; g.fillRect(0, H * 0.75, W, H * 0.25);
+  g.fillStyle = 'rgba(60,45,30,0.55)'; // sheet edges
+  g.fillRect(0, 0, 2, H); g.fillRect(0, 0, W, 2);
+  return c;
 }
 
 // Hard cover on a target: { side: 'left' | 'right' | 'top' | 'bottom', cm }

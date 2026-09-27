@@ -114,6 +114,9 @@ const FLIP = [
 // dy raises (+) or lowers (-) one, in metres. Plates may set h (stand height).
 // Paper may carry hard cover: hard: { side: 'left'|'right'|'top'|'bottom', cm }
 // paints that many cm in from that edge black; hits there can't score.
+// props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
+// (port = an opening to shoot through, y = its centre height, m) and
+// { type: 'barrel', x, yd }. They stop rounds.
 // Every paper needs 2 hits and every piece of steel has to fall (CONFIG.stage).
 const STAGES = [
   { name: 'Mini Poppers', category: 'Steel', parTime: 5.0, maxShots: 10,
@@ -128,7 +131,7 @@ const STAGES = [
       { type: 'popper', x: 0.8, yd: 13 },
       { type: 'paper', x: 1.8, yd: 7 },
       { type: 'plate', x: 3.8, yd: 10 },
-    ] } },
+    ], props: [{ type: 'barrel', x: 0.1, yd: 9 }] } },
   { name: 'No-Shoots', category: 'Stages', parTime: 8.0, maxShots: 14,
     desc: 'Three paper, each partly behind a white no-shoot, plus a mini popper. Hitting a no-shoot costs 10.',
     stage: { items: [
@@ -148,6 +151,17 @@ const STAGES = [
       { type: 'paper', x: 2.3, yd: 8, hard: { side: 'left', cm: 14 } },
       { type: 'popper', x: 1.2, yd: 16 },
     ] } },
+  { name: 'Through the Port', category: 'Stages', parTime: 7.0, maxShots: 12,
+    desc: 'Shoot through a port in a plywood wall: two paper and two plates behind it. Rounds that hit the wall are misses.',
+    stage: {
+      items: [
+        { type: 'paper', x: -0.9, yd: 8 },
+        { type: 'plate', x: -0.35, yd: 12 },
+        { type: 'plate', x: 0.35, yd: 12 },
+        { type: 'paper', x: 0.9, yd: 8 },
+      ],
+      props: [{ type: 'wall', x: 0, yd: 1.7, w: 3.2, h: 2.2, port: { x: 0, y: 1.55, w: 0.62, h: 0.46 } }],
+    } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
     stage: { items: [
