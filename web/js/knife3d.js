@@ -284,6 +284,90 @@ export class Lot3DView {
     this.lampMat.emissive.set(S.lampColor);
     if (this.storeFront) this.storeFront.emissiveIntensity = S.store;
     this.setHeadlights(on);
+    if (this.raining) { this.raining = false; this.setRain(true); } // keep the rain look (overcast by day)
+  }
+
+  // Rain (Setup): wet, darker asphalt with glassy puddles, falling streaks,
+  // and by day an overcast sky. Works with setNight (night stays night).
+  setRain(on) {
+    if (!this.ready || !!this.raining === !!on) return;
+    this.raining = !!on;
+    const R = V().rain, g = this.ground.material;
+    this.dry ??= { rough: g.roughnessMap, roughness: g.roughness, color: g.color.clone(), bumps: g.normalScale.x };
+    if (on) {
+      this.wetRough ??= puddleTexture();
+      this.wetRough.repeat.set(240 / R.puddleScale, 240 / R.puddleScale);
+      g.roughnessMap = this.wetRough;
+      g.roughness = R.wet;
+      g.color.copy(this.dry.color).multiplyScalar(R.darken);
+      g.normalScale.setScalar(R.wetBumps);
+    } else {
+      g.normalScale.setScalar(this.dry.bumps);
+      g.roughnessMap = this.dry.rough;
+      g.roughness = this.dry.roughness;
+      g.color.copy(this.dry.color);
+    }
+    g.needsUpdate = true;
+    if (on && !this.rain) this.rain = rainStreaks(R);
+    if (on && !this.glints) {
+      // One reflection streak per lamp, laid flat on the ground.
+      const mat = new THREE.MeshBasicMaterial({ map: glintTexture(), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: true });
+      this.glints = this.lamps.map(L => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat.clone());
+        m.rotation.order = 'YXZ';
+        m.renderOrder = 2;
+        m.userData.lamp = L;
+        this.scene.add(m);
+        return m;
+      });
+    }
+    for (const m of this.glints || []) m.visible = on;
+    if (this.rain) this.rain.visible = on;
+    if (on && this.rain && !this.rain.parent) this.scene.add(this.rain);
+    // Daytime rain: overcast. At night the night look stays.
+    if (!this.night) {
+      const D = on ? R.day : { sky: ['#1b2640', '#5d5f7a', '#d8956a'], env: V().envIntensity, hemi: V().hemiIntensity, sun: V().sunIntensity, fog: V().fogColor, fogDensity: V().fogDensity };
+      const u = this.skyMat.uniforms;
+      u.top.value.set(D.sky[0]); u.mid.value.set(D.sky[1]); u.horizon.value.set(D.sky[2]);
+      this.scene.environmentIntensity = D.env;
+      this.hemi.intensity = D.hemi;
+      this.sun.intensity = D.sun;
+      this.scene.fog.color.set(D.fog);
+    }
+    this.scene.fog.density = !on ? V().fogDensity : this.night ? R.nightFog : R.day.fogDensity;
+  }
+
+  // Move the rain streaks (called every frame; they follow the camera).
+  updateRain(dt) {
+    if (!this.raining || !this.rain) return;
+    const R = V().rain, pos = this.rain.geometry.attributes.position, a = pos.array;
+    const [W, D, H] = R.area, c = this.camera.position;
+    const fall = R.speed * dt, drift = R.wind * dt;
+    for (let i = 0; i < a.length; i += 6) {
+      a[i + 1] -= fall; a[i + 4] -= fall; a[i] += drift; a[i + 3] += drift;
+      if (a[i + 4] < 0) { // hit the ground: start again at the top, somewhere new
+        const x = (Math.random() - 0.5) * W, z = -Math.random() * D, y = H * (0.8 + Math.random() * 0.2);
+        a[i] = x; a[i + 1] = y; a[i + 2] = z;
+        a[i + 3] = x + R.wind / R.speed * R.length; a[i + 4] = y - R.length; a[i + 5] = z;
+      }
+    }
+    pos.needsUpdate = true;
+    this.rain.position.set(c.x, 0, c.z + 2);
+    // Lamp reflections: where the lamp mirrors in the wet ground as seen from
+    // the camera (between you and the lamp), stretched toward you.
+    const G = R.glint, lampPos = new THREE.Vector3();
+    for (const m of this.glints || []) {
+      const L = m.userData.lamp;
+      L.glow.getWorldPosition(lampPos);
+      const k = c.y / (c.y + lampPos.y);
+      const px = c.x + (lampPos.x - c.x) * k, pz = c.z + (lampPos.z - c.z) * k;
+      m.position.set(px, 0.012, pz);
+      m.rotation.set(-Math.PI / 2, Math.atan2(c.x - px, c.z - pz), 0);
+      const dist = Math.hypot(c.x - px, c.z - pz);
+      m.scale.set(G.width, Math.min(G.length, dist * 0.9), 1);
+      m.material.color.copy(L.glow.material.color);
+      m.material.opacity = this.night ? G.night : G.day;
+    }
   }
 
   // One parked car (the nearest) with its low beams on.
@@ -452,6 +536,7 @@ export class Lot3DView {
     this.lastT = now;
     // The man: clip, hit reactions, fall (char3d.js Character).
     this.char?.update(dt, now);
+    this.updateRain(dt);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => {
       if (fx.done) fx.obj.removeFromParent();
@@ -606,6 +691,72 @@ function asphaltTextures() {
   r.putImageData(ri, 0, 0);
   nn.putImageData(ni, 0, 0);
   return { map: new THREE.CanvasTexture(mc), rough: new THREE.CanvasTexture(rc), normal: new THREE.CanvasTexture(nc) };
+}
+
+// Wet asphalt roughness: mostly damp (mid grey = the material's `wet`
+// roughness), with smooth, near-mirror puddles where low-frequency noise dips.
+function puddleTexture() {
+  const N = 256, [c, g] = canvas2d(N), img = g.createImageData(N, N), rnd = mulberry(11);
+  const cell = 32, G = N / cell + 1, v = new Float32Array(G * G).map(() => rnd());
+  const s = t => t * t * (3 - 2 * t);
+  const at = (i, j) => v[(j % (G - 1)) * G + (i % (G - 1))];
+  const P = V().rain;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const gx = x / cell, gy = y / cell, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = s(gx - x0), fy = s(gy - y0);
+    const a = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * fx, b = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * fx;
+    const n = a + (b - a) * fy;
+    // Below 0.3: puddle (roughness P.puddles), blending up to damp over 0.3-0.4.
+    const k = Math.min(1, Math.max(0, (n - 0.3) / 0.1));
+    const rough = P.puddles / P.wet * (1 - k) + 1 * k; // multiplied by material.roughness (= wet)
+    const val = Math.min(255, rough * 255 * (0.92 + rnd() * 0.16));
+    const p = (y * N + x) * 4;
+    img.data[p] = img.data[p + 1] = img.data[p + 2] = val; img.data[p + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+// A lamp's reflection in wet asphalt: bright core fading along its length,
+// broken up by the rough surface.
+function glintTexture() {
+  const W = 64, H = 256, [c, g] = [document.createElement('canvas'), null];
+  c.width = W; c.height = H;
+  const x = c.getContext('2d'), img = x.createImageData(W, H), rnd = mulberry(5);
+  // Ripples: each row brighter or darker, and its centre shifted a little.
+  const rows = [], shift = [];
+  let r = 0.7, s = 0;
+  for (let j = 0; j < H; j++) {
+    r += (rnd() - 0.5) * 0.5; r = Math.min(1, Math.max(0.15, r)); rows.push(r);
+    s += (rnd() - 0.5) * 0.12; s *= 0.9; shift.push(s);
+  }
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const u = (i / (W - 1)) * 2 - 1 - shift[j], v = j / (H - 1);
+    const across = Math.exp(-u * u * 14), along = Math.pow(Math.sin(Math.PI * v), 0.6);
+    const a = across * along * rows[j] * (0.7 + rnd() * 0.3) * 255;
+    const p = (j * W + i) * 4;
+    img.data[p] = img.data[p + 1] = img.data[p + 2] = a; img.data[p + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Falling rain: thin streaks (line segments) in a box that follows the camera.
+function rainStreaks(R) {
+  const n = R.drops, a = new Float32Array(n * 6), [W, D, H] = R.area;
+  for (let i = 0; i < n; i++) {
+    const x = (Math.random() - 0.5) * W, z = -Math.random() * D, y = Math.random() * H;
+    a.set([x, y, z, x + R.wind / R.speed * R.length, y - R.length, z], i * 6);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(a, 3));
+  const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: R.color, transparent: true, opacity: R.opacity, depthWrite: false, fog: true }));
+  lines.frustumCulled = false;
+  lines.renderOrder = 3;
+  return lines;
 }
 
 // Alpha mask for worn paint.

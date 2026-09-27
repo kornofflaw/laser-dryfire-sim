@@ -17,6 +17,7 @@ const mix = { gun: 1, amb: 1 };
 export function setVolumes(v = {}) {
   if (typeof v.gun === 'number') mix.gun = v.gun;
   if (typeof v.amb === 'number') mix.amb = v.amb;
+  if (rain && ctx) rain.gain.gain.setTargetAtTime(CONFIG.sound.rain * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.05);
   if (alarm && ctx) alarm.gain.gain.setTargetAtTime(CONFIG.sound.alarm.level * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.05);
   if (amb && ctx) { // follow the slider now
     const g = amb.gain.gain, t = ctx.currentTime;
@@ -546,6 +547,36 @@ export function fireAlarm(on) {
   alarm = { src, gain: g };
 }
 
+// Rain in the parking lot (Rain option): a recorded rain loop (CC0, see
+// CREDITS.md), fetched the first time it's wanted. Follows the Background slider.
+let rain = null, rainBuf = null, rainWanted = false, rainLoading = false;
+export function setRain(on) {
+  rainWanted = !!on;
+  if (!on) {
+    if (rain) { const r = rain; rain = null; r.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.4); setTimeout(() => { try { r.src.stop(); } catch { /* gone */ } }, 2000); }
+    return;
+  }
+  if (!ctx || rain) return;
+  if (!rainBuf) {
+    if (rainLoading) return;
+    rainLoading = true;
+    fetch(new URL('../assets/sounds/rain_0.wav', import.meta.url))
+      .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+      .then(decode)
+      .then(buf => { rainBuf = buf; })
+      .catch(() => { /* no rain sound */ })
+      .finally(() => { rainLoading = false; if (rainBuf && rainWanted) setRain(true); });
+    return;
+  }
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = rainBuf; src.loop = true;
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.setTargetAtTime(CONFIG.sound.rain * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.5);
+  src.connect(g).connect(ctx.destination);
+  src.start(0, Math.random() * rainBuf.duration);
+  rain = { src, gain: g };
+}
+
 // A shot from another bay: a real far-off pistol ('rec') or low-passed noise
 // ('synth'). into: the ambience bed (default: the speakers, for the Test button).
 export function distantShot(into) {
@@ -562,6 +593,12 @@ export function distantShot(into) {
   g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
   src.connect(lp).connect(g).connect(into || ctx.destination);
   src.start(t0);
+}
+
+// Decode a sound file. Newer browsers also return a promise, which rejects
+// alongside the error callback; swallow that one so a bad file isn't a page error.
+function decode(bytes) {
+  return new Promise((res, rej) => { ctx.decodeAudioData(bytes, res, rej)?.catch?.(() => {}); });
 }
 
 // ---- Recorded sounds -------------------------------------------------------------
@@ -582,7 +619,7 @@ function loadSamples() {
     for (let i = 0; i < n; i++) {
       fetch(new URL(`${name}_${i}.wav`, base))
         .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
-        .then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+        .then(decode)
         .then(buf => { samples[name][i] = buf; })
         .catch(() => { /* keep the generated sound */ });
     }

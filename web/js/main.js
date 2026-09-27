@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot, setRain } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
@@ -43,6 +43,7 @@ const settings = Object.assign({
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
   blood: true,        // 3D blood effects
   lotNight: false,    // parking lot at night (knife attack, 3D judgment scenes)
+  lotRain: false,     // parking lot in the rain (wet asphalt, rain, rain sound)
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
   screenIn: CONFIG.lifeSize.screenWidthIn.default,
@@ -67,6 +68,7 @@ const log = new RunLog();
 const camera = new LaserCamera();
 let lastInput = 'mouse';
 let lastAmbience;          // the scene's background sound, set when it changes
+let lastRain = false;      // rain sound on (parking lot + Rain option)
 
 // One runner per course type; `active()` is the one for the selected course.
 const runners = {
@@ -120,6 +122,7 @@ function ensure3D(type) {
     }
     view.blood = settings.blood;
     view.setNight?.(settings.lotNight);
+    view.setRain?.(settings.lotRain);
     resize3D();
     if (type === 'office3d') runner.opts = settings.office;
     runner.onComplete(runDone);
@@ -162,6 +165,7 @@ function ensureJudge3D() {
     await view.init({ cars: settings.cars3d });
     view.blood = settings.blood;
     view.setNight?.(settings.lotNight);
+    view.setRain?.(settings.lotRain);
     resize3D();
   })().catch(e => { judge3dError = `Could not load the 3D scene (${e.message}). Turn the 3D range off in Setup.`; console.error(e); });
   return judge3dLoading;
@@ -376,6 +380,8 @@ function frame(now) {
   // Background sound for the scene on screen (none for 2D courses).
   const amb = range.layout === 'office3d' ? 'office' : (range.layout === 'lot3d' || range.layout === 'scene3d') ? 'lot' : range.layout.startsWith('range3d') ? 'range' : null;
   if (amb !== lastAmbience) { lastAmbience = amb; setAmbience(amb); }
+  const rain = amb === 'lot' && settings.lotRain;
+  if (rain !== lastRain) { lastRain = rain; setRain(rain); }
   if (v3) v3.autoReset = range.autoResetStar; // free practice: steel stands back up
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
   if (v3?.ready) v3.render(now);
@@ -829,6 +835,11 @@ function refreshSound() {
   }
 }
 
+$('#opt-rain').onchange = e => {
+  settings.lotRain = e.target.checked;
+  persist();
+  for (const v of new Set(Object.values(views3d))) v.setRain?.(settings.lotRain);
+};
 $('#opt-night').onchange = e => {
   settings.lotNight = e.target.checked;
   persist();
@@ -845,6 +856,7 @@ function refreshSetup() {
   const c = course();
   $('#opt-blood').checked = settings.blood;
   $('#opt-night').checked = settings.lotNight;
+  $('#opt-rain').checked = settings.lotRain;
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
   $('#range3d-row').hidden = !l3;

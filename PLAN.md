@@ -256,11 +256,10 @@ Direction (confirmed 2026-09-27: recorded versions all preferred): realism comes
 recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. Parking lot: wet-asphalt / rain option (reflections, rain sound; rain from a free recording).
-2. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
-3. Judgment scenes: bystanders react to gunfire (flinch, duck, run for cover) instead of standing still.
-4. 3D range: time-of-day option (morning / midday / evening sun and shadows).
-5. Office: suspects' shots crack past you (a recorded bullet snap for near misses).
+1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
+2. Judgment scenes: bystanders react to gunfire (flinch, duck, run for cover) instead of standing still.
+3. 3D range: time-of-day option (morning / midday / evening sun and shadows).
+4. Office: suspects' shots crack past you (a recorded bullet snap for near misses).
 
 ---
 
@@ -376,6 +375,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27: Andrew: "the recorded sounds are all better" -> every sound defaults to R (recorded only): gunshot (random take; indoors adds the room echo), steel clank, footsteps, glass, distant shots. Picks saved under a new key (soundPicks) so earlier test picks don't override; the Controller gets the picks in the state message. G versions stay as the fallback and in Setup to compare.
 - 2026-09-27 (realism pass): office option "Fire alarm going" (Setup, also on the Controller; off by default): red horn-strobes on the lobby, hall, back and side walls flash together once a second (bright lens + a soft flash on the walls; the two flash lights are only created when the alarm is first used), and the horn sounds the standard evacuation pattern (3 blasts, pause) for the whole run, stopping on finish / cancel / leaving the office. Horn is generated (an electronic tone), scaled by the Background slider. CONFIG.office3d.alarm, CONFIG.sound.alarm.
 - 2026-09-27 (realism pass): armed people's guns wander like a real hold (char3d.js updateAimPoint / swayOffset, CONFIG.people.aimSway): slow figure-eight sway + fine tremor, measured ~6 mrad mean / ~12 mrad max for pistols, rifles steadier, a gun held to a hostage's head only trembles. (Breathing, weight shifts and blinks were already there: the mocap idle clip plays under every pose, faces blink.) Test note: t22b's final hostage-taker head shot is timing-flaky in headless (misses ~half the time with or without this change: it aims from the last rendered frame); not a game bug.
+- 2026-09-27 (realism pass): parking lot Rain option (Setup, next to Night; also on the Controller; knife attack + 3D judgment scenes): wet darker asphalt with glassy puddles (puddle roughness texture, flatter bumps), 4000 falling streaks around the camera, overcast sky by day (lighter fog at night), rippled lamp reflections on the wet ground between you and each lamp (knife3d.js setRain / updateRain, CONFIG.knife3d.rain), and a recorded CC0 heavy-rain loop (web/assets/sounds/rain_0.wav, 1.3 MB, loaded only when rain is on; CONFIG.sound.rain, follows the Background slider). Also: sound decoding no longer leaves an uncaught page error when a file can't be decoded (audio.js decode()).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

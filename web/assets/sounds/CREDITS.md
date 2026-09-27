@@ -13,3 +13,7 @@ Small mono WAV files, trimmed, level-normalised and (Kenney) resampled to
 
 Kenney: https://kenney.nl/assets/impact-sounds (taken from the CC0 copy in
 https://github.com/smartpage/strongerfx-mcp history).
+
+| Files | Source | Licence |
+|---|---|---|
+| `rain_0.wav` | "Heavy rain_clear recording" by dersinnsspace, https://freesound.org/people/dersinnsspace/sounds/435221, from the 30 s AAC loop in the ambiently demo (https://github.com/abhinandansharma/ambiently, demo/public/sounds/rain-heavy.m4a, listed in its CREDITS.json as CC0). Changes: mono, 24 kHz, cut to 28 s with a 1 s crossfade so it loops seamlessly, normalised. | CC0 1.0 |

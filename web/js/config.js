@@ -184,6 +184,20 @@ export const CONFIG = {
       headlight: 40, headlightRange: 28,
     },
     carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
+    // Rain (Setup): wet asphalt (roughness x wet, colour x darken, glassy
+    // puddles where the ground dips), falling streaks around the camera, and
+    // by day an overcast sky. drops: streak count in a box `area` (x, depth,
+    // height, m) in front of the camera; speed m/s; length m.
+    rain: {
+      drops: 4000, area: [34, 40, 14], speed: 9, length: 0.4, wind: 0.8, opacity: 0.32, color: '#b8c2cc',
+      wet: 0.3, darken: 0.62, puddles: 0.12, puddleScale: 14, // metres per puddle-texture tile
+      wetBumps: 0.3,        // asphalt bump strength when wet (dry 0.6): water fills the texture
+      nightFog: 0.014,      // fog density in the rain at night (by day: day.fogDensity)
+      // Lamp reflections on the wet ground: a streak where each lamp mirrors
+      // in the water (between you and the lamp), stretched toward you.
+      glint: { width: 0.7, length: 11, night: 0.9, day: 0.2 },
+      day: { sky: ['#5f6670', '#7c838c', '#9aa0a6'], env: 0.3, hemi: 0.45, sun: 0.25, fog: '#7d838a', fogDensity: 0.02 },
+    },
   },
 
   // ---- 3D office active-shooter scenario (office3d.js) ------------------------------
@@ -412,6 +426,7 @@ export const CONFIG = {
     // three": on/off times in s, repeating), a harsh electronic horn tone.
     // Scales with the Background volume slider.
     alarm: { level: 0.2, hz: 520, pattern: [0.5, 0.5, 0.5, 0.5, 0.5, 1.5] },
+    rain: 0.55,             // recorded rain loop in the parking lot (Rain option), x Background volume
     // Recorded sounds (web/assets/sounds, credits in CREDITS.md), layered with
     // or replacing the generated ones; the generated sound plays if a file
     // hasn't loaded. Levels are relative to CONFIG.sound.volume.

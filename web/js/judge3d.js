@@ -162,6 +162,7 @@ export class Judge3DView extends Lot3DView {
     const dt = Math.min(0.05, this.lastT ? Math.max(0, now - this.lastT) : 0.016);
     this.lastT = now;
     this.sync(now, dt);
+    this.updateRain(dt);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => { if (fx.done) fx.obj.removeFromParent(); return !fx.done; });
     this.renderer.render(this.scene, this.camera);

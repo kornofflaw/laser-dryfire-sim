@@ -54,6 +54,7 @@ export const SETUP_CONTROLS = [
   { id: 'dist3d', kind: 'range', label: 'Distance', out: 'dist3d-val' },
   { id: 'cars3d', kind: 'range', label: 'Parked cars', out: 'cars3d-val' },
   { id: 'opt-night', kind: 'check', label: 'Night' },
+  { id: 'opt-rain', kind: 'check', label: 'Rain' },
   { id: 'opt-blood', kind: 'check', label: 'Blood effects' },
   { id: 'opt-life', kind: 'check', label: 'Life-size 3D' },
   { id: 'life-screen', kind: 'range', label: 'Projected image width', out: 'life-screen-val' },
