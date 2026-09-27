@@ -20,7 +20,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
-import { People } from './people3d.js';
+import { People, CAST } from './people3d.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Post } from './post3d.js';
 import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView } from './interior3d.js';
@@ -29,7 +29,7 @@ import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -464,6 +464,7 @@ export class OfficeView {
     const id = pick(free.length ? free : pool);
     this.usedCast.push(id);
     const p = new Character(this.cast.rig(id), { role });
+    p.sex = CAST[id]?.sex; // for their voice when hit
     p.viewer = this.camera.position; // eyes follow you
     this.scene.add(p.obj);
     if (opts.gun) this.scene.add(p.addGun(opts.gun === true ? 'pistol' : opts.gun));
@@ -616,7 +617,11 @@ export class OfficeView {
       score.person.impulses.push({ kind: 'chest', t0: now, side: 1, scale: 0.45 });
       this.fx.push(dust(this.scene, score.point));
       armorThud();
-    } else if (score.person) score.person.hit(score.point, score.dir, now, this.scene, this.drops, this.blood);
+      hitCry(score.person, score.point, this.camera.position, { armor: true });
+    } else if (score.person) {
+      score.person.hit(score.point, score.dir, now, this.scene, this.drops, this.blood);
+      hitCry(score.person, score.point, this.camera.position, { head: score.bodyZone === 'Head' });
+    }
     else {
       this.fx.push(dust(this.scene, score.point));
       this.holes.add(score.point, score.normal, score.object, surfaceKind(score.object, 'plaster'));

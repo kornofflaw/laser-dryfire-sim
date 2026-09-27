@@ -24,6 +24,7 @@ import { CONFIG } from './config.js';
 import { Lot3DView } from './knife3d.js';
 import { Character } from './char3d.js';
 import { People, CAST, attachProp } from './people3d.js';
+import { hitCry } from './audio.js';
 
 const J = () => CONFIG.judge3d;
 const IDLES = ['idle', 'look', 'nervous'];
@@ -67,6 +68,7 @@ export class Judge3DView extends Lot3DView {
     (this.used ??= []).push(id);
     const char = new Character(this.cast.rig(id), { role: 'person' });
     char.actor = a;
+    char.sex = CAST[id].sex; // for their voice when hit
     char.viewer = this.camera.position; // eyes follow you
     // Someone standing where an earlier person stands is in front of them
     // (the 2D scripts put the bystander in front by drawing order).
@@ -224,6 +226,7 @@ export class Judge3DView extends Lot3DView {
     if (!score.point) return;
     if (score.char) {
       score.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
+      hitCry(score.char, score.point, this.camera.position, { head: score.bodyZone === 'Head' });
       return;
     }
     super.onShot(score); // dust on the ground, sparks off cars and walls

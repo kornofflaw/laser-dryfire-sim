@@ -456,6 +456,10 @@ export const CONFIG = {
     // Scales with the Background volume slider.
     alarm: { level: 0.2, hz: 520, pattern: [0.5, 0.5, 0.5, 0.5, 0.5, 1.5] },
     rain: 0.55,             // recorded rain loop in the parking lot (Rain option), x Background volume
+    // People in the office and judgment scenes cry out when hit (recorded CC0
+    // voices, a woman's set for women): delay s after the hit; full loudness
+    // within nearFull metres.
+    hitCry: { delay: 0.12, nearFull: 4 },
     // Recorded sounds (web/assets/sounds, credits in CREDITS.md), layered with
     // or replacing the generated ones; the generated sound plays if a file
     // hasn't loaded. Levels are relative to CONFIG.sound.volume.
