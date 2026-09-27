@@ -401,7 +401,7 @@ export const CONFIG = {
     // or replacing the generated ones; the generated sound plays if a file
     // hasn't loaded. Levels are relative to CONFIG.sound.volume.
     samples: {
-      enabled: true,
+      enabled: false,     // off: Andrew preferred the generated sounds (2026-09-27); files kept
       steel: 0.55,        // real metal clank at the moment of a steel hit (the ring is generated)
       step: 1.3,          // concrete footsteps (knife attacker)
       glass: 0.9,         // glass impact under the generated shatter
