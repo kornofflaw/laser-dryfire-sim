@@ -540,3 +540,7 @@ he reports a problem.
 - Power factor (Setup -> Targets): Minor (A 5, C 3, D 1) or Major (A 5, C 4,
   D 2) for every drill and stage; the stage sheet says which
   (CONFIG.powerFactor).
+- Popper calibration: a hit on the bottom 30% of a popper (below its
+  calibration zone) rings and rocks it on its hinge, leaves a lead splash,
+  but it stays up and scores a miss, as at a match (full-size and mini
+  poppers; CONFIG.range3d.steel.popper.holdBelow / wobble).

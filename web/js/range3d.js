@@ -752,6 +752,8 @@ export class Range3DView {
         const id = this.steel.idOf ? this.steel.idOf(i) : `${this.steel.name}-${i}`;
         const size = this.steel.items?.[i]?.size ?? 2 * CONFIG.star.plateRadius; // for the ring's pitch
         const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: id, kind: 'steel', steel: i, point: h.point, dir, size };
+        // Too low on a popper: it rings but doesn't go down - a miss.
+        if (this.steel.holdsLow?.(i, h.point)) return { ...s, zone: 'Miss', points: 0, noFall: true };
         if (this.kind === 'star') s.plate = i; // range.js knocks it off the star's physics
         return s;
       }
@@ -771,7 +773,8 @@ export class Range3DView {
       return;
     }
     if (score.steel != null && this.steel) {
-      this.steel.hit(score.steel, score.point, score.dir, now);
+      if (score.noFall) this.steel.nudge(score.steel, score.point, now);
+      else this.steel.hit(score.steel, score.point, score.dir, now);
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
       this.fx.push(dustPuff(this.scene, score.point, score.dir.clone().negate(), '#b9b9b4', 0.5));

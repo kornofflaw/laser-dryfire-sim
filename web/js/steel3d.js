@@ -52,8 +52,24 @@ class FallingSet {
   }
 
   get standing() { return this.items.filter(t => t.up).length; }
-  get moving() { return this.items.some(t => !t.up && !t.resting); }
+  get moving() { return this.items.some(t => (!t.up && !t.resting) || t.wobbleT != null); }
   hittables() { return this.items.filter(t => t.up).map(t => t.mesh); }
+
+  // A popper hit low on its body (below its calibration zone, the bottom
+  // CONFIG popper.holdBelow of its height) hasn't the leverage to go over:
+  // it rings and rocks but stays up - a miss, as at a match.
+  holdsLow(i, point) {
+    const t = this.items[i];
+    if (!t?.popper) return false;
+    return t.mesh.worldToLocal(point.clone()).y < t.length * S().popper.holdBelow;
+  }
+  // Rock it on its hinge (and leave the lead splash) without it falling.
+  nudge(i, point, nowSec) {
+    const t = this.items[i];
+    if (!t?.up) return;
+    t.marks.push(addSplash(t.mesh, point, t.faceZ));
+    t.wobbleT = nowSec;
+  }
 
   hit(i, point, dir, nowSec) {
     const t = this.items[i];
@@ -66,7 +82,14 @@ class FallingSet {
 
   update(dt) {
     const h = Math.min(dt, 0.05) / 4;
+    const now = performance.now() / 1000, W = S().popper.wobble;
     for (const t of this.items) {
+      if (t.up && t.wobbleT != null) {
+        // A low hit: a quick damped rock back and forth on the hinge.
+        const u = now - t.wobbleT;
+        t.pivot.rotation.x = u < W.time ? -W.angle * Math.sin(u * W.freq) * Math.exp(-u * W.damping) : 0;
+        if (u >= W.time) t.wobbleT = null;
+      }
       if (t.up || t.resting) continue;
       for (let s = 0; s < 4; s++) {
         // An inverted pendulum about the hinge: gravity pulls it further over.
@@ -89,7 +112,7 @@ class FallingSet {
 
   reset() {
     for (const t of this.items) {
-      Object.assign(t, { up: true, theta: 0, omega: 0, resting: false, clanked: false });
+      Object.assign(t, { up: true, theta: 0, omega: 0, resting: false, clanked: false, wobbleT: null });
       t.pivot.rotation.x = 0;
       t.marks.forEach(m => m.removeFromParent());
       t.marks = [];
@@ -101,7 +124,8 @@ class FallingSet {
   addItem(pivot, mesh, faceZ, length, kick, fallTo, size) {
     const i = this.items.length;
     mesh.userData.steel = i;
-    this.items.push({ pivot, mesh, faceZ, k: (3 * 9.81) / (2 * length), kick, fallTo, size, up: true, theta: 0, omega: 0, resting: false, marks: [] });
+    this.items.push({ pivot, mesh, faceZ, length, k: (3 * 9.81) / (2 * length), kick, fallTo, size, up: true, theta: 0, omega: 0, resting: false, marks: [] });
+    return this.items[i];
   }
 }
 
@@ -186,7 +210,7 @@ function addPopper(set, mats, x, z, height) {
   const mesh = new THREE.Mesh(popperGeometry(height), mats.paint);
   pivot.add(mesh);
   set.group.add(pivot);
-  set.addItem(pivot, mesh, THICK / 2, height, P.kick, P.fallTo, height * CONFIG.sound.steelRing.popperSize);
+  set.addItem(pivot, mesh, THICK / 2, height, P.kick, P.fallTo, height * CONFIG.sound.steelRing.popperSize).popper = true;
 }
 
 // A single 8" plate on a paddle hinged to the top of a post (a "plate stand").

@@ -503,7 +503,11 @@ export const CONFIG = {
       // 8" plates on 12" centres; paddle = hinge to plate centre (m); kick = rad/s a hit gives;
       // fallTo = angle (rad) where it lands on the stop bar / ground.
       rack: { plates: 6, spacing: 0.3048, plateRadius: 0.1016, beamY: 0.95, paddle: 0.22, kick: 3.0, fallTo: 1.3 },
-      popper: { count: 4, spacing: 1.5, height: 1.07, kick: 1.2, fallTo: 1.52 },
+      // holdBelow: a hit on the bottom this share of a popper's height doesn't
+      // knock it over (below the calibration zone: it rocks, rings, stays up,
+      // scores a miss); wobble: that rock (radians, s, rad/s, 1/s).
+      popper: { count: 4, spacing: 1.5, height: 1.07, kick: 1.2, fallTo: 1.52, holdBelow: 0.3,
+        wobble: { angle: 0.05, time: 0.9, freq: 22, damping: 5 } },
       star: { hubY: 1.5 },  // hub height (m); arm and plate sizes and the physics are CONFIG.star
       mini: { height: 0.71 },                         // USPSA mini popper (2/3 scale)
       plateStand: { height: 0.95, paddle: 0.2, fallTo: 1.45 }, // single 8" plate on a post
