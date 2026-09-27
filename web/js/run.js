@@ -59,6 +59,7 @@ export class DrillRunner extends Runner {
     this.runStart = 0;
     this.parPlayed = false;
     this.shotTimes = [];     // seconds from the beep
+    this.shotZones = [];     // what each shot hit (A, C, D, Head, Steel, Miss...)
     this.slots = [];         // bay slot of each hit, in order
     this.early = 0;
     this.points = 0;
@@ -117,6 +118,7 @@ export class DrillRunner extends Runner {
 
     // A camera frame can be captured a hair before the beep frame; clamp to 0.
     this.shotTimes.push(Math.max(0, (score.t - this.runStart) / 1000));
+    this.shotZones.push(score.zone);
     this.points += score.points;
     this.counts[score.zone] = (this.counts[score.zone] || 0) + 1;
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
@@ -173,6 +175,7 @@ export class DrillRunner extends Runner {
       time,
       firstShot: this.firstShot,
       splits,
+      zones: [...this.shotZones],
       shots: s.length,
       hits: this.hits,
       points: this.points,
@@ -209,10 +212,21 @@ export class DrillRunner extends Runner {
           `Shots: ${this.shots}   Hits: ${this.hits}` +
           (this.early ? `\n<span class="bad">Jumped the beep (${this.early})</span>` : '');
       case State.Done: {
-        const r = this.result;
-        return head + `<b>DONE</b>\n` +
-          `First shot: ${r.firstShot == null ? '--' : f2(r.firstShot) + 's'}\n` +
-          `Shots: ${r.shots}   Hits: ${r.hits}\n` +
+        // Like a shot timer's review: the last shot's time big, then every
+        // shot with its time from the beep, the split and what it hit.
+        const r = this.result, s = this.shotTimes;
+        const letter = z => ({ Head: 'H', Steel: 'S', Miss: 'M', NS: 'NS', Tile: 'S', Dot: 'X' }[z] || z || '');
+        const max = CONFIG.timer.reviewRows;
+        const from = Math.max(0, s.length - max);
+        const rows = s.slice(from).map((t, k) => {
+          const i = from + k, z = this.shotZones[i];
+          const cls = z === 'Miss' || z === 'NS' ? ' class="bad"' : '';
+          return `<tr${cls}><td>${i + 1}</td><td>${f2(t)}</td><td>${i ? f2(t - s[i - 1]) : '—'}</td><td>${letter(z)}</td></tr>`;
+        }).join('');
+        return head + `<span class="bigtime">${s.length ? f2(s[s.length - 1]) : '--'}</span>` +
+          `${r.shots} shot${r.shots === 1 ? '' : 's'} · 1st ${r.firstShot == null ? '--' : f2(r.firstShot)} · par ${d.parTime.toFixed(2)}\n` +
+          (s.length ? `<table class="shots"><tr><th>#</th><th>time</th><th>split</th><th>hit</th></tr>${rows}</table>` +
+            (from ? `<span class="muted small">(first ${from} not shown)</span>\n` : '') : '') +
           (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
           `<span class="muted small">[Space] run again</span>`;
       }

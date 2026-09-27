@@ -75,6 +75,7 @@ export const CONFIG = {
     // until the next]. Shots before the last one don't count as early.
     commands: { on: true, say: [['Make ready.', 2.6], ['Are you ready?', 1.6], ['Standby.', 0.6]] },
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
+    reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
   // Drill, dot torture and scenario definitions live in courses.js and

@@ -259,8 +259,7 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-1. Shot timer review like a real timer (AMG / CED): after the run, step through each shot (number, time, split) on the timer panel, plus first shot and total.
-2. Standard drills with their real par times: Blake Drill, 5x5, FAST (head box + body with a reload break), Rhythm drill, 1-reload-1, Doubles at 3 distances.
+1. Standard drills with their real par times: Blake Drill, 5x5, FAST (head box + body with a reload break), Rhythm drill, 1-reload-1, Doubles at 3 distances.
 3. USPSA-style results: the hits as letters (A A C A D ...), points, hit factor and a "stage score sheet" for stages.
 4. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
 5. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
@@ -525,3 +524,8 @@ he reports a problem.
     CONFIG.range3d.paste).
   - The hourly routine now works through the new "Range & drills realism
     queue".
+- 2026-09-27 (range & drills): Shot timer review like a real timer: after a
+  drill or stage the timer panel shows the last shot's time big, the shot
+  count, first shot and par, then every shot with its time from the beep,
+  the split and what it hit (A / C / D / H / S, misses in red); the last
+  12 shots if there are more (CONFIG.timer.reviewRows). Also on the Controller.
