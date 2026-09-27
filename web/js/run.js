@@ -51,7 +51,7 @@ export class DrillRunner extends Runner {
 
   get usesCriteria() {
     const d = this.course;
-    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order || d.sequence);
+    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order || d.sequence || d.evenSplits);
   }
 
   clearRun() {
@@ -156,6 +156,11 @@ export class DrillRunner extends Runner {
       const name = { Head: 'head', A: 'A zone', body: 'body' };
       const bad = d.sequence.findIndex((want, i) => !ok[want](this.shotZones[i]));
       if (bad >= 0) out.push(`shot ${bad + 1} should be ${name[d.sequence[bad]]} (got ${this.shotZones[bad] || 'none'})`);
+    }
+    if (d.evenSplits && this.shotTimes.length > 2) {
+      const s = this.shotTimes, splits = s.slice(1).map((t, i) => t - s[i]);
+      const spread = Math.max(...splits) - Math.min(...splits);
+      if (spread > d.evenSplits) out.push(`splits uneven: ${f2(Math.min(...splits))}–${f2(Math.max(...splits))} s (spread ${f2(spread)} > ${f2(d.evenSplits)})`);
     }
     if (d.order === 'ltr' && this.slots.some((s, i) => i > 0 && s < this.slots[i - 1])) {
       out.push('out of order (go left to right)');

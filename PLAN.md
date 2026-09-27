@@ -263,7 +263,6 @@ he reports a problem.
 3. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
 4. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
 5. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
-6. More standard drills: Rhythm drill (3 targets, even splits), Doubles at 3/7/15 yards, Accelerator, Criss-cross.
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -544,3 +543,6 @@ he reports a problem.
   calibration zone) rings and rocks it on its hinge, leaves a lead splash,
   but it stays up and scores a miss, as at a match (full-size and mini
   poppers; CONFIG.range3d.steel.popper.holdBelow / wobble).
+- More standard drills: Rhythm Drill (6 body hits, every split within 0.08 s
+  of the others: new drill field evenSplits), and two 3D stages at real
+  distances: Accelerator (15, 10, 5 yd, far to near) and Doubles 3-7-15.

@@ -24,6 +24,7 @@
 //   order: 'ltr'   hits must go left to right across the bay targets
 //   sequence       what each shot in turn must hit: 'Head', 'A' or 'body'
 //                  (A / C / D), e.g. FAST: two head, then four body
+//   evenSplits     every split within this many seconds of the others (rhythm)
 //   desc           one line shown in the drill panel
 
 import { SCENARIOS } from './scenarios.js';
@@ -50,6 +51,8 @@ const DRILLS = [
   { name: 'FAST', category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 5.0,
     sequence: ['Head', 'Head', 'body', 'body', 'body', 'body'],
     desc: 'Fundamentals, Accuracy & Speed Test: 2 to the head, reload, 4 to the body. Under 5 s is Advanced.' },
+  { name: 'Rhythm Drill', category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 3.0, minBodyHits: 6,
+    evenSplits: 0.08, desc: '6 body hits at an even pace: every split within 0.08 s of the others. Shoot to a rhythm, not a rush.' },
   { name: '1-Reload-1', category: 'Fundamentals', layout: 'single', requiredShots: 2, parTime: 3.0, minAHits: 2,
     desc: 'One A-zone hit, a slide-lock reload, another A-zone hit.' },
 
@@ -134,6 +137,20 @@ const STAGES = [
       { type: 'paper', x: 2.2, yd: 8 },
       { type: 'noshoot', x: 2.55, yd: 7.8, dy: -0.1 },
       { type: 'mini', x: -4.6, yd: 12 },
+    ] } },
+  { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
+    desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
+    stage: { items: [
+      { type: 'paper', x: -2.2, yd: 15 },
+      { type: 'paper', x: 0, yd: 10 },
+      { type: 'paper', x: 2.2, yd: 5 },
+    ] } },
+  { name: 'Doubles 3-7-15', category: 'Stages', parTime: 5.0, maxShots: 10,
+    desc: 'A pair on a target at 3 yards, 7 yards and 15 yards. Same sights-and-trigger, very different pace.',
+    stage: { items: [
+      { type: 'paper', x: -1.4, yd: 3 },
+      { type: 'paper', x: 0.2, yd: 7 },
+      { type: 'paper', x: 1.9, yd: 15 },
     ] } },
   { name: 'Long Course', category: 'Stages', parTime: 16.0, maxShots: 26,
     desc: 'Paper from 5 to 15 yards, plates, mini poppers and a far popper. 2 per paper, all steel down.',
