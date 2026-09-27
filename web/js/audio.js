@@ -595,6 +595,22 @@ export function distantShot(into) {
   src.start(t0);
 }
 
+// A round passing close and ricocheting off the wall beside you (office near
+// misses): a recorded ricochet (CC0, CREDITS.md) to your left or right,
+// following the Gunshot slider. If it isn't loaded: a sharp generated crack.
+export function nearMiss() {
+  if (forwarded('nearMiss', arguments)) return;
+  if (!ctx) return;
+  const side = Math.random() < 0.5 ? -1 : 1, pan = side * (0.4 + Math.random() * 0.5);
+  if (playSample('ricochet', CONFIG.sound.samples.ricochet * mix.gun, { pan })) return;
+  const n = Math.floor(ctx.sampleRate * 0.004), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = i < n / 2 ? 1 - (4 * i) / n : -1 + (4 * (i - n / 2)) / n; // N-wave
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = b; g.gain.value = 0.8 * CONFIG.sound.volume * mix.gun;
+  src.connect(g).connect(ctx.destination);
+  src.start();
+}
+
 // Decode a sound file. Newer browsers also return a promise, which rejects
 // alongside the error callback; swallow that one so a bad file isn't a page error.
 function decode(bytes) {
@@ -607,7 +623,7 @@ function decode(bytes) {
 // impacts / footsteps (CC0). Loaded after the first tap; until a set has
 // loaded (or if it fails), playSample returns false and the generated sound
 // is used instead.
-const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3 };
+const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2 };
 const samples = {};
 let samplesLoading = false;
 function loadSamples() {
@@ -626,7 +642,7 @@ function loadSamples() {
   }
 }
 // Play a random take from a set; opts.out: node to play into (default the
-// speakers); opts.lowpass: Hz; opts.rate: playback speed; opts.take: a
+// speakers); opts.lowpass: Hz; opts.pan: -1 left .. 1 right; opts.rate: playback speed; opts.take: a
 // particular file (else random). Returns false if
 // nothing is loaded.
 function playSample(name, level, opts = {}) {
@@ -637,6 +653,11 @@ function playSample(name, level, opts = {}) {
   src.playbackRate.value = (opts.rate ?? 1) * (1 + (Math.random() * 2 - 1) * CONFIG.sound.samples.rateJitter);
   g.gain.value = level * (opts.out ? 1 : CONFIG.sound.volume);
   let node = src;
+  if (opts.pan != null && ctx.createStereoPanner) {
+    const p = ctx.createStereoPanner();
+    p.pan.value = opts.pan;
+    node = node.connect(p);
+  }
   if (opts.lowpass) {
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass'; lp.frequency.value = opts.lowpass;

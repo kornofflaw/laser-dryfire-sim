@@ -29,7 +29,7 @@ import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -956,12 +956,22 @@ export class OfficeRunner extends Runner {
       // Armed men who stay up keep firing at you until they're stopped.
       for (const g of this.gunmen) {
         if (!g.live || g.down || g === this.hostagePair.taker || this.killedAt) continue;
+        if (g.followAt && nowS >= g.followAt) {
+          g.followAt = null;
+          g.fire(nowS);
+          v.gunFx(g);
+          enemyShot({ indoor: true });
+          setTimeout(nearMiss, O().followUp.ricochetAfter * 1000);
+        }
         if (nowS >= g.fireAt) {
           g.fire(nowS);
           v.gunFx(g);
           enemyShot({ indoor: true });
           g.fireAt = nowS + rand(...O().refireDelay);
           this.youAreHit(nowMs);
+          // Often a quick second round that misses: it cracks past and
+          // ricochets off the wall beside you (doesn't count as a hit).
+          if (Math.random() < O().followUp.chance) g.followAt = nowS + rand(...O().followUp.delay);
         }
       }
 

@@ -257,9 +257,10 @@ recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
-2. Office: suspects' shots crack past you (a recorded bullet snap for near misses).
-3. Judgment scenes: bystanders run for cover (needs the scenario scripts to allow people to leave their marks; grading reads the 3D bodies).
-4. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
+2. Judgment scenes: bystanders run for cover (needs the scenario scripts to allow people to leave their marks; grading reads the 3D bodies).
+3. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
+4. Knife attack: the attacker shouts / grunts as he charges (a free recorded voice).
+5. Parking lot: the glass of parked cars shatters when hit (the office already has breaking glass).
 
 ---
 
@@ -378,6 +379,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27 (realism pass): parking lot Rain option (Setup, next to Night; also on the Controller; knife attack + 3D judgment scenes): wet darker asphalt with glassy puddles (puddle roughness texture, flatter bumps), 4000 falling streaks around the camera, overcast sky by day (lighter fog at night), rippled lamp reflections on the wet ground between you and each lamp (knife3d.js setRain / updateRain, CONFIG.knife3d.rain), and a recorded CC0 heavy-rain loop (web/assets/sounds/rain_0.wav, 1.3 MB, loaded only when rain is on; CONFIG.sound.rain, follows the Background slider). Also: sound decoding no longer leaves an uncaught page error when a file can't be decoded (audio.js decode()).
 - 2026-09-27 (realism pass): judgment-scene bystanders react to gunfire (judge3d.js startle, char3d.js 'cower' pose + flinchT; CONFIG.judge3d.react, CONFIG.people.flinch / cower): every shot (hit or miss) makes each standing person flinch after their own reaction time (0.1-0.35 s); people just standing, turned away or on the phone then cower (hunched, head down, arms over the head, trembling, afraid face, turned partly away) until 2.5-4.5 s after the last shot. Anyone showing a gun or wallet, or surrendering, keeps showing it (that's what's judged); walkers flinch and keep walking (the script moves them). Scoring unchanged (j3). Test note: screenshot these with a frozen performance.now and stepped renders (real-time waits in headless overshoot by seconds).
 - 2026-09-27 (realism pass): 3D range Time of day (Setup -> Time of day, also on the Controller): Day (unchanged), Morning (Poly Haven spruit_sunrise sky: low warm sun behind you, long shadows) and Evening (Poly Haven blouberg_sunrise_2 sky, turned 90° so its city skyline stays out of view: low sun behind you, soft overcast). Sunlight direction is taken from where the sun is in each photo (brightest pixel; convention checked by rendering toward it). Sky photos load on first use. range3d.js setTime, CONFIG.range3d.times; credits in assets/3d/CREDITS.md.
+- 2026-09-27 (realism pass): office near misses: after a suspect's shot (still counted as a hit on you, as before), half the time he fires a quick second round 0.22-0.45 s later that misses: muzzle flash + report, then a recorded ricochet (Warfork CC0, ricochet_0-1.wav) off the wall to your left or right (stereo pan). Follow-ups never count as hits, so difficulty is unchanged (CONFIG.office3d.followUp, CONFIG.sound.samples.ricochet; audio.js nearMiss with a generated crack fallback; playSample opts.pan).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

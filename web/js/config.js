@@ -269,6 +269,10 @@ export const CONFIG = {
       victimVoice: true,    // the wounded man in the lobby asks for help
       alarm: false,         // fire alarm going: wall strobes flash and the horn sounds (stress)
     },
+    // A suspect who fires often fires again quickly: that round misses (a
+    // ricochet off the wall beside you) and doesn't count as a hit on you.
+    // chance per shot; delay s after the first; ricochetAfter s after the report.
+    followUp: { chance: 0.5, delay: [0.22, 0.45], ricochetAfter: 0.05 },
     // Fire alarm horn-strobes on the walls: synchronised flashes `rate` per
     // second, each `flash` s long; light = intensity of the two flash lights
     // (range m); lens = emissive glow of the strobe lens while it flashes.
@@ -456,6 +460,7 @@ export const CONFIG = {
       glass: 0.9,         // glass impact under the generated shatter
       outdoorTail: 0.5,   // real pistol report + echo under your shot outdoors
       recordedShot: 1.4,  // the real pistol report alone (Sound choices: R), into the gunshot compressor
+      ricochet: 0.8,      // a suspect's near miss ricocheting beside you (office), x Gunshot volume
       distantShot: 0.35,  // range ambience: shots from other bays
       rateJitter: 0.08,   // +- playback speed so repeats don't sound identical
     },
