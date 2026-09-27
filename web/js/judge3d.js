@@ -24,7 +24,7 @@ import { CONFIG } from './config.js';
 import { Lot3DView } from './knife3d.js';
 import { Character } from './char3d.js';
 import { People, CAST, attachProp } from './people3d.js';
-import { hitCry } from './audio.js';
+import { hitCry, downCry } from './audio.js';
 
 const J = () => CONFIG.judge3d;
 const IDLES = ['idle', 'look', 'nervous'];
@@ -107,7 +107,9 @@ export class Judge3DView extends Lot3DView {
     actors.forEach((a, i) => { if (!this.people.has(a)) this.spawn(a, i, actors); });
     for (const [a, p] of this.people) {
       // Walked out of the scene (a downed person stays where they fell).
-      if (!actors.includes(a) && !p.char.down) { this.removePerson(p); this.people.delete(a); continue; }
+      // (Someone the script already marked down still gets their fall, even if
+      // no frame was drawn before the script dropped them: a very slow frame.)
+      if (!actors.includes(a) && !p.char.down && a.downAt == null) { this.removePerson(p); this.people.delete(a); continue; }
       this.pose(p, now, dt);
     }
   }
@@ -138,7 +140,7 @@ export class Judge3DView extends Lot3DView {
     char.pose = cowers ? 'cower' : { gun: 'aim', surrender: 'handsUp', wallet: 'offer' }[a.pose] || null;
     if (a.pose === 'surrender' && p.hadGun && !p.droppedGun) this.dropGun(p);
     if (a.pose === 'gun') p.hadGun = true;
-    if (a.downAt != null && !char.fall) char.goDown(now, 'back');
+    if (a.downAt != null && !char.fall) { char.goDown(now, 'back'); downCry(char, this.camera.position); }
 
     char.update(dt, now);
     char.gun.visible = a.pose === 'gun' && !char.down;

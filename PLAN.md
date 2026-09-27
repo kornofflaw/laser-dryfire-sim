@@ -260,7 +260,6 @@ recording (with credits) rather than pure synthesis.
 2. Judgment scenes: bystanders run for cover (needs the scenario scripts to allow people to leave their marks; grading reads the 3D bodies).
 3. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 4. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
-5. Office / judgment scenes: a groan as someone goes down (needs the down moment per view, not in the shared goDown, or the knife attack doubles its groan).
 
 ---
 
@@ -383,6 +382,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27 (realism pass): parked-car glass (knife attack + judgment scenes): a round through a windshield leaves a laminated-glass spiderweb (hole + radial cracks + rings, ~20 cm, holes3d 'windshield' kind, CONFIG.holes.windshield), throws glinting chips that tumble to the ground (CONFIG.knife3d.glassChips), and plays the glass sound (recorded glass hit); lamp lenses crack smaller. Before, car glass got a bare-metal bullet hole (its material isn't transparent, so it was treated as paint). Glass crack texture doubled to 128 px (sharper, also the office windows).
 - 2026-09-27 (realism pass): the knife attacker has a voice (2D and 3D; knife.js, audio.js voice(), CONFIG.knife.voice, CONFIG.sound.samples.voice): a yell as he starts his charge and another at 3.2 m, a grunt 0.12 s after each body hit (light for the first, hard for the stopping hit), a groan as he goes down; a head shot drops him silently. Louder as he closes (full within 3 m). Recorded CC0 male voice from Warfork (voice_*.wav, 174 KB).
 - 2026-09-27 (realism pass): people in the office and judgment scenes cry out when hit (audio.js hitCry; CONFIG.sound.hitCry): a grunt 0.12 s after the hit, harder with each hit on that person, a light one on body armour, none for a head shot; men and women get their own recorded CC0 voice (Warfork male / female sets; Character.sex from people3d CAST); loudness falls off beyond 4 m. Suspects, bystanders and hostages alike. Scoring unchanged (j3).
+- 2026-09-27 (realism pass): ...and groan as they go down (audio.js downCry, CONFIG.sound.hitCry.downDelay 0.45 s): office suspects stopped by body hits, a hostage you hit, judgment-scene people the script drops; silent after a head shot; woman's groan for women (voice_f_death_0.wav). Fix: a judgment-scene person marked down by the script now always gets their fall - before, if no 3D frame was drawn within the script's 0.25 s fall time (a very slow machine), they vanished instead of falling.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

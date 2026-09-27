@@ -597,7 +597,7 @@ export function distantShot(into) {
 
 // A person's voice (recorded, CC0): 'charge' (a yell), 'pain' (severity
 // 0..3 = light grunt .. hard hit) or 'death' (a groan). sex 'f' uses the
-// woman's set (pain only). loudness 0..1 (distance). No generated stand-in:
+// woman's set (pain, death). loudness 0..1 (distance). No generated stand-in:
 // silent if not loaded.
 export function voice(kind, loudness = 1, severity, sex = 'm') {
   if (forwarded('voice', arguments)) return;
@@ -610,12 +610,23 @@ export function voice(kind, loudness = 1, severity, sex = 'm') {
 // a moment later, harder with each hit; lighter on body armour; none for a
 // head shot. char: a Character (sex, voiceHits); from: the camera position.
 export function hitCry(char, point, from, { head = false, armor = false } = {}) {
+  if (char) char.lastHitHead = head;
   if (head || !char) return;
   const V = CONFIG.sound.hitCry;
   char.voiceHits = (char.voiceHits || 0) + 1;
   const sev = armor ? 0 : Math.min(3, char.voiceHits);
   const loud = Math.min(1, V.nearFull / Math.max(0.5, point.distanceTo(from)));
   setTimeout(() => voice('pain', loud, sev, char.sex), V.delay * 1000);
+}
+
+// ...and groans as they go down (not after a head shot: pass head, or it's
+// taken from their last hit via hitCry).
+export function downCry(char, from, head = char?.lastHitHead) {
+  if (head || !char || char.groaned) return;
+  char.groaned = true;
+  const V = CONFIG.sound.hitCry;
+  const loud = Math.min(1, V.nearFull / Math.max(0.5, char.obj.position.distanceTo(from)));
+  setTimeout(() => voice('death', loud, 0, char.sex), V.downDelay * 1000);
 }
 
 // A round passing close and ricocheting off the wall beside you (office near
@@ -646,7 +657,7 @@ function decode(bytes) {
 // impacts / footsteps (CC0). Loaded after the first tap; until a set has
 // loaded (or if it fails), playSample returns false and the generated sound
 // is used instead.
-const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4 };
+const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4, voice_f_death: 1 };
 const samples = {};
 let samplesLoading = false;
 function loadSamples() {

@@ -29,7 +29,7 @@ import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry, downCry } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -1044,7 +1044,7 @@ export class OfficeRunner extends Runner {
     if (p.role !== 'gunman' || !p.live) {
       const what = { victim: 'the wounded man', innocent: 'an office worker', hostage: 'the hostage' }[p.role] || 'a bystander';
       this.penalties.push(`no-shoot: hit ${what}`);
-      if (p.role === 'hostage' && !p.down) { p.goDown(nowS, 'forward'); }
+      if (p.role === 'hostage' && !p.down) { p.goDown(nowS, 'forward'); downCry(p, this.view.camera.position, score.bodyZone === 'Head'); }
       return;
     }
     this.threatHits++;
@@ -1054,6 +1054,7 @@ export class OfficeRunner extends Runner {
     if (score.bodyZone === 'Head' || p.hits >= O().stopHits) {
       p.live = false;
       p.goDown(nowS, p.spot?.type === 'pod' ? 'drop' : 'back');
+      downCry(p, this.view.camera.position, score.bodyZone === 'Head');
       if (p === this.hostagePair.taker) {
         const h = this.hostagePair.hostage;
         h.pose = 'handsUp';
