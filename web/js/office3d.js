@@ -29,7 +29,7 @@ import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -124,6 +124,7 @@ export class OfficeView {
     const movers = [];
     this.scene.traverse(o => { if (o.userData?.pivot) movers.push(o.userData.pivot); });
     this.solids = mergeStatic(this.scene, { keep, movers, solids: this.solids });
+    this.buildAlarm();
     this.drops = new GroundDrops(this.scene);
     this.post = new Post(renderer, this.scene, this.camera);
     this.resize(window.innerWidth, window.innerHeight);
@@ -217,6 +218,60 @@ export class OfficeView {
     clock.rotation.y = -Math.PI / 2;
     this.add(clock, 5.88, 2.4, -5);
     this.troffers([[-3, -3], [3, -3], [-3, -7.5], [3, -7.5]], 3.3);
+  }
+
+  // Fire alarm horn-strobes on the walls (red housing, "FIRE", clear lens)
+  // and two flash lights, dark until setAlarm(true). Built after the static
+  // merge so the lens material can flash.
+  buildAlarm() {
+    const A = O().alarm;
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 160;
+    const g = c.getContext('2d');
+    g.fillStyle = '#b3161b'; g.fillRect(0, 0, 128, 160);
+    g.fillStyle = '#fff'; g.font = 'bold 30px sans-serif'; g.textAlign = 'center';
+    g.fillText('FIRE', 64, 150);
+    const face = new THREE.CanvasTexture(c);
+    face.colorSpace = THREE.SRGBColorSpace;
+    const body = new THREE.MeshStandardMaterial({ color: '#b3161b', roughness: 0.4 });
+    const front = new THREE.MeshStandardMaterial({ map: face, roughness: 0.4 });
+    this.strobeLens = new THREE.MeshStandardMaterial({ color: '#f4f4f0', roughness: 0.15, emissive: '#ffffff', emissiveIntensity: 0 });
+    const box = new THREE.BoxGeometry(0.13, 0.16, 0.06), lens = new THREE.BoxGeometry(0.09, 0.05, 0.03);
+    this.strobes = [];
+    for (const [x, y, z, facing] of A.strobes) {
+      const u = new THREE.Group();
+      u.add(new THREE.Mesh(box, [body, body, body, body, front, body]));
+      const l = new THREE.Mesh(lens, this.strobeLens);
+      l.position.set(0, 0.035, 0.04);
+      u.add(l);
+      u.position.set(x, y, z);
+      u.rotation.y = { x: Math.PI / 2, '-x': -Math.PI / 2, z: 0, '-z': Math.PI }[facing];
+      this.scene.add(u);
+      this.strobes.push(u);
+    }
+    this.strobeLights = []; // made on first use (extra lights cost every frame)
+    this.alarmOn = false;
+  }
+
+  setAlarm(on) {
+    this.alarmOn = !!on;
+    if (on && !this.strobeLights.length) {
+      // Two lights just in front of the lobby and back-wall strobes carry the
+      // flash onto the walls and floor.
+      this.strobeLights = O().alarm.lights.map(([x, y, z]) => {
+        const pl = new THREE.PointLight('#f2f6ff', 0, O().alarm.range, 2);
+        pl.position.set(x, y, z);
+        this.scene.add(pl);
+        return pl;
+      });
+    }
+    if (!on) this.flashStrobes(false);
+  }
+
+  flashStrobes(lit) {
+    const A = O().alarm;
+    this.strobeLens.emissiveIntensity = lit ? A.lens : 0;
+    for (const pl of this.strobeLights) pl.intensity = lit ? A.light : 0;
   }
 
   // Hallway to the office: closed office doors on both sides, exit sign.
@@ -494,6 +549,8 @@ export class OfficeView {
     const now = nowMs / 1000;
     const dt = Math.min(0.05, this.lastT ? now - this.lastT : 0.016);
     this.lastT = now;
+    // Fire alarm: all strobes flash together.
+    if (this.alarmOn) { const A = O().alarm; this.flashStrobes((now * A.rate) % 1 < A.flash * A.rate); }
     // Doors slide open as you approach.
     const open = THREE.MathUtils.clamp((5 - this.walkZ) / 2.5, 0, 1);
     this.doors[0].position.x = -0.8 - open * 1.5;
@@ -688,6 +745,7 @@ export class OfficeRunner extends Runner {
     this.phase = 'call';
     this.state = State.Running;
     radioStatic();
+    if (this.opt.alarm) { this.view.setAlarm(true); fireAlarm(true); } // someone pulled the fire alarm
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';
     clearTimeout(this.callTimer);
     this.callTimer = setTimeout(() => say('All units, shots fired at Northgate Office Center. Multiple armed suspects inside. Respond code 3.'), 450);
@@ -696,6 +754,8 @@ export class OfficeRunner extends Runner {
   cancel() {
     super.cancel();
     clearTimeout(this.callTimer);
+    this.view.setAlarm(false);
+    fireAlarm(false);
     hush();
     this.view.clearPeople();
     this.clearRun();
@@ -1028,6 +1088,8 @@ export class OfficeRunner extends Runner {
   }
 
   finish() {
+    this.view.setAlarm(false);
+    fireAlarm(false);
     const reasons = [...new Set(this.penalties)];
     const stillUp = this.gunmen.filter(g => !g.down && g.obj.visible).length;
     if (stillUp && !this.killedAt) reasons.push(`suspects still up (${stillUp})`);

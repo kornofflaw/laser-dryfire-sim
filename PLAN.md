@@ -256,9 +256,9 @@ Direction (confirmed 2026-09-27: recorded versions all preferred): realism comes
 recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
-1. Office: sprinkler/emergency lights, fire alarm option (stress).
-2. People: idle life while standing (breathing, small weight shifts, blinks).
-3. Parking lot: wet-asphalt / rain option (reflections, rain sound).
+1. People: idle life while standing (breathing, small weight shifts, blinks).
+2. Parking lot: wet-asphalt / rain option (reflections, rain sound; rain from a free recording).
+3. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
 
 ---
 
@@ -372,6 +372,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27: Andrew: flip-grid voice works on iPad; gunshots deeper (good); didn't like the recorded sounds, so they are off (CONFIG.sound.samples.enabled = false; files kept in web/assets/sounds, nothing downloads). All sounds are generated again. Then: "It doesn't sound as good now, revert" -> recordings back on (enabled = true).
 - 2026-09-27: Setup -> Sound choices (compare), Andrew's idea: each sound has labelled versions (R = recorded, G = generated, R+G = both) for gunshot (+ which recording: Take 1 .40 / Take 2 9mm / Take 3-4 .45), steel, footsteps, glass, distant shots, each with a Test button; saved per browser, mirrored on the Controller (audio.js setSoundChoices / distantShot). Defaults = the current mix. Waiting for Andrew to name the versions he likes; then make those the defaults.
 - 2026-09-27: Andrew: "the recorded sounds are all better" -> every sound defaults to R (recorded only): gunshot (random take; indoors adds the room echo), steel clank, footsteps, glass, distant shots. Picks saved under a new key (soundPicks) so earlier test picks don't override; the Controller gets the picks in the state message. G versions stay as the fallback and in Setup to compare.
+- 2026-09-27 (realism pass): office option "Fire alarm going" (Setup, also on the Controller; off by default): red horn-strobes on the lobby, hall, back and side walls flash together once a second (bright lens + a soft flash on the walls; the two flash lights are only created when the alarm is first used), and the horn sounds the standard evacuation pattern (3 blasts, pause) for the whole run, stopping on finish / cancel / leaving the office. Horn is generated (an electronic tone), scaled by the Background slider. CONFIG.office3d.alarm, CONFIG.sound.alarm.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

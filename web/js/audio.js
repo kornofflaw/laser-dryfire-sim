@@ -17,6 +17,7 @@ const mix = { gun: 1, amb: 1 };
 export function setVolumes(v = {}) {
   if (typeof v.gun === 'number') mix.gun = v.gun;
   if (typeof v.amb === 'number') mix.amb = v.amb;
+  if (alarm && ctx) alarm.gain.gain.setTargetAtTime(CONFIG.sound.alarm.level * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.05);
   if (amb && ctx) { // follow the slider now
     const g = amb.gain.gain, t = ctx.currentTime;
     g.cancelScheduledValues(t);
@@ -450,6 +451,7 @@ let ambWanted = null; // started once audio is unlocked
 // Display gets its own audio. It starts here on the Display's first tap.
 export function setAmbience(kind) {
   ambWanted = kind ?? null;
+  if (ambWanted !== 'office') fireAlarm(false); // left the office
   if (!ctx || ctx.state !== 'running' || (amb?.kind ?? null) === ambWanted) return;
   const A = CONFIG.sound.ambience, t = ctx.currentTime;
   if (amb) { // fade the old bed out, then stop it
@@ -504,6 +506,44 @@ export function setAmbience(kind) {
     };
     next();
   }
+}
+
+// Fire alarm horn (office option), looping the temporal-three pattern until
+// turned off. The pattern is rendered once into a looping buffer.
+let alarm = null, alarmBuf = null;
+export function fireAlarm(on) {
+  if (on && forwarded('fireAlarm', arguments)) return;
+  if (!on && forwarder) forwarder('fireAlarm', [false]); // the Controller may be playing it
+  if (!on) {
+    if (alarm) { try { alarm.src.stop(); alarm.gain.disconnect(); } catch { /* gone */ } alarm = null; }
+    return;
+  }
+  if (!ctx || alarm) return;
+  const S = CONFIG.sound.alarm;
+  if (!alarmBuf || alarmBuf.sampleRate !== ctx.sampleRate) {
+    const sr = ctx.sampleRate, cycle = S.pattern.reduce((a, b) => a + b, 0);
+    alarmBuf = ctx.createBuffer(1, Math.floor(sr * cycle), sr);
+    const d = alarmBuf.getChannelData(0);
+    let t0 = 0;
+    S.pattern.forEach((len, k) => {
+      if (k % 2 === 0) { // horn on: buzzy square plus the piezo's high tone, soft edges
+        const a = Math.floor(t0 * sr), n = Math.floor(len * sr);
+        for (let i = 0; i < n; i++) {
+          const t = i / sr, edge = Math.min(1, i / (0.01 * sr), (n - i) / (0.01 * sr));
+          const sq = Math.sign(Math.sin(2 * Math.PI * S.hz * t)) * 0.6 + Math.sin(2 * Math.PI * S.hz * 5.9 * t) * 0.4;
+          d[a + i] = sq * (0.85 + 0.15 * Math.sin(2 * Math.PI * 60 * t)) * edge;
+        }
+      }
+      t0 += len;
+    });
+  }
+  const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+  src.buffer = alarmBuf; src.loop = true;
+  lp.type = 'lowpass'; lp.frequency.value = 5000;
+  g.gain.value = S.level * CONFIG.sound.volume * mix.amb;
+  src.connect(lp).connect(g).connect(ctx.destination);
+  src.start();
+  alarm = { src, gain: g };
 }
 
 // A shot from another bay: a real far-off pistol ('rec') or low-passed noise

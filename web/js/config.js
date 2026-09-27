@@ -244,7 +244,14 @@ export const CONFIG = {
       hostage: true,        // the hostage scene at the end
       fleeing: true,        // some innocents run for the exit instead of raising their hands
       victimVoice: true,    // the wounded man in the lobby asks for help
+      alarm: false,         // fire alarm going: wall strobes flash and the horn sounds (stress)
     },
+    // Fire alarm horn-strobes on the walls: synchronised flashes `rate` per
+    // second, each `flash` s long; light = intensity of the two flash lights
+    // (range m); lens = emissive glow of the strobe lens while it flashes.
+    alarm: { rate: 1, flash: 0.1, light: 12, range: 15, lens: 12,
+      strobes: [[-5.88, 2.3, -6.5, 'x'], [1.08, 2.25, -17, '-x'], [-3.5, 2.4, -39.88, 'z'], [5.5, 2.4, -39.88, 'z'], [-11.88, 2.4, -29, 'x']],
+      lights: [[-4.9, 2.1, -6.5], [1, 2.1, -38.2]] }, // strobes: x, y, z, facing; lights: in front of the lobby and back-wall strobes
     doorOpenAngle: 1.7,     // radians an office door swings open
     doorSpeed: 6,           // how fast doors swing (1/s)
     doorLead: 0.45,         // seconds the door opens before the suspect steps out
@@ -397,6 +404,10 @@ export const CONFIG = {
     steelRing: { ref: 0.2032, pitch: 1, decay: 0.7, range: [0.5, 2.5], popperSize: 0.4 },
     indoorEcho: 0.9,        // seconds of room echo on gunshots indoors (office)
     indoorEchoMix: 0.45,    // echo level relative to the shot
+    // Fire alarm horn (office option): the standard evacuation pattern ("temporal
+    // three": on/off times in s, repeating), a harsh electronic horn tone.
+    // Scales with the Background volume slider.
+    alarm: { level: 0.2, hz: 520, pattern: [0.5, 0.5, 0.5, 0.5, 0.5, 1.5] },
     // Recorded sounds (web/assets/sounds, credits in CREDITS.md), layered with
     // or replacing the generated ones; the generated sound plays if a file
     // hasn't loaded. Levels are relative to CONFIG.sound.volume.
