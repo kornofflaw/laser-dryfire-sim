@@ -248,11 +248,43 @@ function runDone(result) {
   log.add(result, lastInput);
   const [zero, label] = reviewZero(active());
   review.finishRun(result, zero, label);
-  setTimeout(() => { if (!review.isOpen) toast('Press V to review your shots'); }, 900);
+  const walk = isRange3D(range.layout) && views3d[range.layout]?.inspectable?.().length;
+  setTimeout(() => { if (!review.isOpen) toast(walk ? 'Press V to review your shots, I to walk up to the targets' : 'Press V to review your shots'); }, 900);
+}
+
+// Walking the targets: which one this is and what each hole scored.
+function drawWalkLabel(g, W, w) {
+  const counts = {};
+  for (const z of w.zones) counts[z] = (counts[z] || 0) + 1;
+  const holes = w.zones.length;
+  const lines = [
+    `Target ${w.i + 1} of ${w.n}${w.noShoot ? ' · No-shoot' : ''}`,
+    !holes ? 'No hits' : ['A', 'C', 'D', 'M', 'NS'].filter(z => counts[z]).map(z => `${counts[z]} ${z === 'M' ? 'hard cover' : z}`).join(' · ') + ` (${holes} hole${holes > 1 ? 's' : ''})`,
+    `[I] ${w.i + 1 < w.n ? 'next target' : 'back to the line'} · [Esc] back to the line`,
+  ];
+  g.save();
+  g.font = '600 18px system-ui, sans-serif';
+  const bw = Math.max(...lines.map(l => g.measureText(l).width)) + 36, bh = 88, x = (W - bw) / 2, y = 16;
+  g.fillStyle = 'rgba(20,24,28,0.72)';
+  g.beginPath();
+  g.roundRect(x, y, bw, bh, 12);
+  g.fill();
+  g.textAlign = 'center';
+  g.textBaseline = 'top';
+  g.fillStyle = '#fff';
+  g.fillText(lines[0], W / 2, y + 12);
+  g.font = '500 16px system-ui, sans-serif';
+  g.fillStyle = w.noShoot && holes ? '#ff8f8f' : '#e8e2d0';
+  g.fillText(lines[1], W / 2, y + 38);
+  g.font = '500 13px system-ui, sans-serif';
+  g.fillStyle = '#a9b0b8';
+  g.fillText(lines[2], W / 2, y + 63);
+  g.restore();
 }
 
 // ---- The single shot path ------------------------------------------------------
 function shoot(nx, ny, tMs, source) {
+  if (range.view3d?.walking) return; // downrange looking at the targets
   let score = { ...range.scoreShot(nx, ny), nx, ny, t: tMs, source };
   // A runner may re-judge a shot before it counts (Dot Torture: wrong dot = miss).
   score = active().judge?.(score) ?? score;
@@ -411,6 +443,7 @@ function frame(now) {
   if (v3?.ready) v3.render(now);
   range.draw(g, now / 1000, settings.showZones);
   active().drawOverlay?.(g, W, H, now);
+  if (v3?.inspecting) drawWalkLabel(g, W, v3.inspecting);
   review.captureFrame();
 
   setHUD('stats', statsHTML(now));
@@ -487,6 +520,7 @@ const actions = {
     if (is3DLayout(range.layout) && !is3D(course().type) && !views3d[range.layout]?.ready) {
       return toast('The 3D scene is still loading. Start again in a moment.');
     }
+    views3d[range.layout]?.inspect?.(null, true); // back to the firing line
     const t = performance.now();
     r.start(t);
     if (r.busy) review.startRun(course(), t);
@@ -537,6 +571,14 @@ const actions = {
   review() {
     if (active().busy) return toast('Finish or cancel the run first (Esc).');
     if (!review.open()) toast('No runs to review yet. Finish a course first.');
+  },
+  // Walk the targets (3D range): up to the next paper target, then back.
+  inspect() {
+    const v = views3d[range.layout];
+    if (!isRange3D(range.layout) || !v?.ready) return toast('Walk the targets works on the 3D range.');
+    if (active().busy) return toast('Finish or cancel the run first (Esc).');
+    const cur = v.inspecting;
+    if (!v.inspect(cur ? cur.i + 1 : 0) && !cur) toast('No paper targets to walk to here.');
   },
 };
 
@@ -592,11 +634,13 @@ window.addEventListener('keydown', e => {
     h: () => actions.hideHud(),
     '?': () => actions.help(),
     v: () => actions.review(),
+    i: () => actions.inspect(),
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
     x: () => active().setCover?.(true), // hold: take cover (office)
     Escape: () => {
       if (!$('#setup').hidden) closeSetup();
+      else if (range.view3d?.inspecting) range.view3d.inspect(null);
       else if (active().busy) { active().cancel(); toast('Run cancelled.'); }
     },
   };

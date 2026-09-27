@@ -495,6 +495,10 @@ export const CONFIG = {
     // (beam m wide), held `rest` radians to one side until its activator
     // falls, then a damped pendulum (period s, damping 1/s).
     swinger: { pivotY: 2.95, beam: 1.9, rest: 1.0, period: 2.5, damping: 0.16 },
+    // Walk the targets (I, after a run): the camera takes `time` s to walk up
+    // to each paper, framing `frame` x the target's height, standing `raise`
+    // x that frame higher (so the target sits below the label at the top).
+    inspect: { time: 1.2, frame: 1.5, raise: 0.05 },
     props: { wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] }, barrel: { r: 0.29, h: 0.88, color: '#24569e' } },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving

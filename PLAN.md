@@ -564,3 +564,10 @@ he reports a problem.
   little quieter the farther the plate, and comes from its side (stereo pan
   by where it is on screen). CONFIG.sound.steelRing speed / near / falloff /
   pan.
+- Walk the targets (3D range, after a run): press I (or "Walk to targets"
+  on the Controller) and the camera walks up to the first paper target,
+  square on and close enough to see every hole, with a label of what the
+  holes scored (A / C / D / hard cover, or NS on a no-shoot). I again for
+  the next one, Esc (or I after the last) walks back to the firing line.
+  Shots don't count while downrange; Space comes straight back and starts.
+  CONFIG.range3d.inspect.

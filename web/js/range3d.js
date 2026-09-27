@@ -407,6 +407,7 @@ export class Range3DView {
     this.movers = [];
     this.swingers = [];
     this.steel = null;
+    this.walk = this.inspecting = null;
     this.layoutGroup = new THREE.Group();
     this.scene.add(this.layoutGroup);
     const kind = this.kind;
@@ -450,6 +451,7 @@ export class Range3DView {
 
   setDistance(kind, yards) {
     this.yards[kind] = yards;
+    if (this.walk) this.inspect(null, true);
     if (this.ready && kind === this.kind) { this.placeTargets(); this.resize(window.innerWidth, window.innerHeight); }
   }
 
@@ -820,9 +822,79 @@ export class Range3DView {
     const focal = this.fovOverride ? H / 2 / Math.tan(THREE.MathUtils.degToRad(this.fovOverride) / 2) : CONFIG.knife.focalFrac * H;
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / focal));
     this.camera.aspect = W / H;
-    this.camera.position.set(0, CONFIG.knife.eyeHeight, 0);
-    this.camera.lookAt(0, R().aimY[this.kind], -this.lookYards * YARD);
     this.camera.updateProjectionMatrix();
+    if (!this.walk) this.homeCamera();
+  }
+
+  // The shooter's view from the firing line.
+  homeView() {
+    return { pos: new THREE.Vector3(0, CONFIG.knife.eyeHeight, 0), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
+  }
+
+  homeCamera() {
+    const h = this.homeView();
+    this.camera.position.copy(h.pos);
+    this.camera.lookAt(h.look);
+    this.look = h.look;
+  }
+
+  // ---- Walk the targets (after a run, I) ---------------------------------------
+  // The camera walks up to each paper target in turn, square on and close
+  // enough to see every hole (like going downrange to score), then back to
+  // the firing line. Pop-ups and movers are skipped. No shots count while
+  // away from the line (walking).
+  inspectable() {
+    return this.targets.filter(t => t.card?.face && t.card.meta.kind !== 'popup' && t.card.meta.mover == null);
+  }
+
+  get walking() { return !!this.walk; }
+
+  // Walk to target i of inspectable() (null or past the last = back to the
+  // line; instant = no walk). Returns { i, n, id, noShoot, zones } for the
+  // target now in view, or null when heading back.
+  inspect(i, instant = false) {
+    if (!this.ready) return null;
+    const list = this.inspectable(), now = performance.now() / 1000;
+    const from = { pos: this.camera.position.clone(), look: (this.look || this.homeView().look).clone() };
+    const t = i == null ? null : list[i];
+    if (!t) {
+      this.inspecting = null;
+      if (!this.walk) return null;
+      if (instant) { this.walk = null; this.homeCamera(); return null; }
+      this.walk = { from, to: this.homeView(), t0: now, back: true };
+      return null;
+    }
+    const face = t.card.face, c = face.getWorldPosition(new THREE.Vector3());
+    const n = face.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+    const I = R().inspect, half = (Ucfg().height / 100) * I.frame / 2;
+    const d = half / Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    c.y += half * 2 * I.raise;
+    const to = { pos: c.clone().addScaledVector(n, d), look: c };
+    this.walk = instant ? { from: to, to, t0: now } : { from, to, t0: now };
+    const noShoot = t.card.meta.kind === 'noshoot';
+    this.inspecting = { i, n: list.length, id: t.card.id, noShoot, zones: this.holeZones(t.card) };
+    return this.inspecting;
+  }
+
+  // What each hole in a card scored (hard cover = M, a no-shoot = NS).
+  holeZones(card) {
+    const U = Ucfg(), k = card.pxPerCm;
+    return (card.holes || []).map(h => {
+      const cm = { x: h.x / k - U.width / 2, y: U.height / 2 - h.y / k };
+      if (inHardCover(card.meta.hard, cm)) return 'M';
+      if (card.meta.kind === 'noshoot') return 'NS';
+      const z = classifyUspsa(cm.x, cm.y);
+      return z === 'Head' ? 'A' : z || 'M';
+    });
+  }
+
+  // Move the camera along the walk (render()).
+  updateWalk(now) {
+    const w = this.walk, u = smooth((now - w.t0) / R().inspect.time);
+    this.camera.position.lerpVectors(w.from.pos, w.to.pos, u);
+    this.look = new THREE.Vector3().lerpVectors(w.from.look, w.to.look, u);
+    this.camera.lookAt(this.look);
+    if (w.back && u >= 1) { this.walk = null; this.homeCamera(); }
   }
 
   render(nowMs) {
@@ -846,6 +918,7 @@ export class Range3DView {
     }
     if (this.movers?.length) this.updateMovers(dt, now);
     if (this.swingers?.length) this.updateSwingers(now);
+    if (this.walk) this.updateWalk(now);
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
       for (const c of this.popups || []) {

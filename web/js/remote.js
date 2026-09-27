@@ -25,7 +25,7 @@
 export const CHANNEL = 'dryfire-remote';
 
 // Actions a Controller may run on the Display (main.js `actions`).
-export const REMOTE_ACTIONS = ['startStop', 'reset', 'layout', 'zones', 'hideHud', 'review', 'calibrate'];
+export const REMOTE_ACTIONS = ['startStop', 'reset', 'layout', 'zones', 'hideHud', 'review', 'inspect', 'calibrate'];
 
 // Setup controls mirrored on the Controller, in order. kind: range / check /
 // select (or button / text); `out` is the element showing the value;
