@@ -51,6 +51,7 @@ export class Judge3DView extends Lot3DView {
   // The Range calls these like the 3D range view's (main.js range.onReset).
   setLayout() { return false; }
   resetTargets() {
+    for (const car of this.cars || []) car.userData.taken = false;
     this.holes.clear();
     for (const p of this.people.values()) this.removePerson(p);
     this.people.clear();
@@ -161,7 +162,8 @@ export class Judge3DView extends Lot3DView {
         // Some bystanders run instead of cowering (not anyone still in the script).
         const a = p.a, F = R.flee;
         if (!p.flee && !a.vx && !a.moreScript && ['empty', 'back', 'phone'].includes(a.pose) && Math.random() < F.chance) {
-          p.flee = { at: p.startle + r(F.after), speed: r(F.speed), dir: Math.sign(p.char.obj.position.x) || (Math.random() < 0.5 ? -1 : 1) };
+          const o = p.char.obj;
+          p.flee = { at: p.startle + r(F.after), speed: r(F.speed), dir: Math.sign(o.position.x) || (Math.random() < 0.5 ? -1 : 1), path: this.coverPath(o.position.x, o.position.z) };
         }
       }
       p.cowerUntil = now + r(R.cower);
@@ -172,11 +174,22 @@ export class Judge3DView extends Lot3DView {
   // you, until they're out of the scene; then gone (and can't be hit).
   runAway(p, now, dt) {
     const { char } = p, o = char.obj, F = p.flee;
+    if (F.path && !F.path.length) { this.inCover(p, now, dt); return; }
     char.pose = null;
     char.play('run');
-    o.position.x += F.dir * F.speed * dt;
-    o.position.z -= F.speed * 0.3 * dt;
-    const yaw = Math.atan2(F.dir, -0.3);
+    let mx = F.dir, mz = -0.3;
+    if (F.path) {
+      // To the car's near corner, then along its far side.
+      const t = F.path[0], dx = t.x - o.position.x, dz = t.z - o.position.z, d = Math.hypot(dx, dz);
+      if (d < 0.25) F.path.shift();
+      mx = dx / (d || 1); mz = dz / (d || 1);
+      const step = Math.min(d, F.speed * dt);
+      o.position.x += mx * step; o.position.z += mz * step;
+    } else {
+      o.position.x += F.dir * F.speed * dt;
+      o.position.z -= F.speed * 0.3 * dt;
+    }
+    const yaw = Math.atan2(mx, mz);
     const d = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw));
     p.yaw += Math.sign(d) * Math.min(Math.abs(d), J().turnRate * 1.5 * dt);
     o.rotation.y = p.yaw;
@@ -184,7 +197,51 @@ export class Judge3DView extends Lot3DView {
     char.gun.visible = false;
     p.phone.visible = p.a.pose === 'phone'; // still holding the phone
     p.wallet.visible = false;
-    if (Math.abs(o.position.x) > J().spread / 2 + J().react.flee.offBy) o.visible = false;
+    if (!F.path && Math.abs(o.position.x) > J().spread / 2 + J().react.flee.offBy) o.visible = false;
+  }
+
+  // Behind the car: crouched (sunk into the ground: the car hides the legs),
+  // hands over the head; now and then rising to peek over it at you.
+  inCover(p, now, dt) {
+    const { char } = p, o = char.obj, C = J().react.flee.cover;
+    const r = ([a, b]) => a + Math.random() * (b - a);
+    p.peekAt ??= now + r(C.peekEvery);
+    const peeking = now >= p.peekAt && now < p.peekAt + C.peekTime;
+    if (now >= p.peekAt + C.peekTime) p.peekAt = now + r(C.peekEvery);
+    const want = peeking ? -C.peek : -C.crouch;
+    o.position.y += (want - o.position.y) * Math.min(1, dt * 6);
+    const toYou = Math.atan2(-o.position.x, -o.position.z);
+    const d = Math.atan2(Math.sin(toYou - p.yaw), Math.cos(toYou - p.yaw));
+    p.yaw += Math.sign(d) * Math.min(Math.abs(d), J().turnRate * dt);
+    o.rotation.y = p.yaw;
+    char.play(peeking ? 'nervous' : 'idle');
+    char.pose = peeking ? null : 'cower';
+    char.update(dt, now);
+    char.gun.visible = false;
+    p.phone.visible = false;
+    p.wallet.visible = false;
+  }
+
+  // Cover for someone at (x, z): the nearest parked car within reach, not
+  // already taken. Returns [near corner, behind it in line with you] or null.
+  coverPath(x, z) {
+    const C = J().react.flee.cover, cam = this.camera.position;
+    let best = null;
+    for (const car of this.cars || []) {
+      if (car.userData.taken) continue;
+      const b = car.userData.box ??= new THREE.Box3().setFromObject(car);
+      const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
+      const hideZ = b.min.z - C.gap; // the far side, from where you stand
+      const hideX = cam.x + (cx - cam.x) * (hideZ - cam.z) / (cz - cam.z);
+      const cornerX = x < b.min.x ? b.min.x - C.gap : x > b.max.x ? b.max.x + C.gap : x;
+      // Prefer cover you can see (hiding in view reads; off-screen it's just leaving).
+      const s = new THREE.Vector3(hideX, 1, hideZ).project(this.camera);
+      const d = Math.hypot(hideX - x, hideZ - z) + (Math.abs(s.x) < 0.9 ? 0 : 100);
+      if (d <= C.max + 100 && Math.hypot(hideX - x, hideZ - z) <= C.max && (!best || d < best.d)) best = { d, car, path: [{ x: cornerX, z: hideZ }, { x: hideX, z: hideZ }] };
+    }
+    if (!best) return null;
+    best.car.userData.taken = true;
+    return best.path;
   }
 
   // Surrendering: the pistol falls at their feet.

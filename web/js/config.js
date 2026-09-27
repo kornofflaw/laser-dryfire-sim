@@ -327,7 +327,11 @@ export const CONFIG = {
       // Some of those bystanders (chance) run for cover instead: after `after`
       // s they sprint sideways out of the scene at `speed` m/s and are gone
       // `offBy` m past its edge. Never anyone the script still has plans for.
-      flee: { chance: 0.5, after: [0.3, 0.8], speed: [3.5, 5], offBy: 4 } },
+      flee: { chance: 0.5, after: [0.3, 0.8], speed: [3.5, 5], offBy: 4,
+        // Cover: a parked car within `max` m: they run round its near end to
+        // the far side (in line with you), crouch (sunk `crouch` m; the car
+        // hides the rest) and now and then peek over it for `peekTime` s.
+        cover: { max: 14, gap: 0.6, crouch: 0.6, peek: 0.15, peekEvery: [2, 4], peekTime: 1.0 } } },
   },
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
