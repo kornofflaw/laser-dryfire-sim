@@ -720,6 +720,7 @@ export class OfficeRunner extends Runner {
 
   clearRun() {
     this.phase = 'idle';      // call | approach | room | done
+    this.lastShotS = null;    // workers duck when shots are fired
     this.t0 = 0;
     this.roomT0 = 0;
     this.events = [];
@@ -923,6 +924,7 @@ export class OfficeRunner extends Runner {
         p.obj.position.lerpVectors(p.from, p.to, THREE.MathUtils.smoothstep(k, 0, 1));
         p.obj.position.y -= p.sag || 0; // hostage sagging in the gunman's grip
         if (p.dodge) this.applyDodge(p, nowS);
+        if (p.role === 'innocent' && !p.flee && p.spot?.type === 'pod') this.applyHide(p, nowS, dt);
       }
       if (k >= 1 && !p.fall && p.flee?.length) {
         // Running for the exit (then gone).
@@ -967,12 +969,14 @@ export class OfficeRunner extends Runner {
           v.gunFx(g);
           enemyShot({ indoor: true });
           setTimeout(nearMiss, O().followUp.ricochetAfter * 1000);
+          this.lastShotS = nowS;
         }
         if (nowS >= g.fireAt) {
           g.fire(nowS);
           v.gunFx(g);
           enemyShot({ indoor: true });
           g.fireAt = nowS + rand(...O().refireDelay);
+          this.lastShotS = nowS;
           this.youAreHit(nowMs);
           // Often a quick second round that misses: it cracks past and
           // ricochets off the wall beside you (doesn't count as a hit).
@@ -1038,6 +1042,7 @@ export class OfficeRunner extends Runner {
   onShot(score) {
     if (this.state !== State.Running) return;
     this.shots++;
+    this.lastShotS = score.t / 1000; // workers take cover
     const p = score.person;
     if (!p) { this.nearMiss(score); return; }
     const nowS = score.t / 1000;
@@ -1062,6 +1067,31 @@ export class OfficeRunner extends Runner {
         this.caption = 'Suspect down. Hostage safe.';
       }
     }
+  }
+
+  // An office worker with raised hands ducks behind the cubicle wall when
+  // shots are fired (hands over the head, peeking over now and then) and
+  // stands up again, hands raised, once it's been quiet a while.
+  applyHide(p, nowS, dt) {
+    const H = O().hide;
+    if (nowS < p.revealT + p.moveTime) return; // still rising into view
+    if (this.lastShotS != null && this.lastShotS !== p.seenShot) {
+      p.seenShot = this.lastShotS;
+      if (!p.hiding) p.hideFrom = this.lastShotS + rand(...H.after);
+      p.hideUntil = this.lastShotS + rand(...H.quiet);
+    }
+    const hiding = p.hideFrom != null && nowS >= p.hideFrom && nowS < p.hideUntil;
+    p.hiding = hiding;
+    let want = 0;
+    if (hiding) {
+      p.peekAt ??= nowS + rand(...H.peekEvery);
+      const peek = nowS >= p.peekAt && nowS < p.peekAt + H.peekTime;
+      if (nowS >= p.peekAt + H.peekTime) p.peekAt = nowS + rand(...H.peekEvery);
+      want = peek ? H.peek : H.depth;
+      p.pose = peek ? null : 'cower';
+    } else p.pose = 'handsUp';
+    p.hideY = (p.hideY || 0) + (want - (p.hideY || 0)) * Math.min(1, dt * 6);
+    p.obj.position.y -= p.hideY;
   }
 
   // A round that missed but went close past a suspect makes him react.

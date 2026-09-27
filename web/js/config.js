@@ -278,6 +278,12 @@ export const CONFIG = {
     // ricochet off the wall beside you) and doesn't count as a hit on you.
     // chance per shot; delay s after the first; ricochetAfter s after the report.
     followUp: { chance: 0.5, delay: [0.22, 0.45], ricochetAfter: 0.05 },
+    // Workers standing with raised hands at the cubicles duck behind the
+    // cubicle wall `after` s after a shot (yours or a suspect's), hands over
+    // their heads, sunk `depth` m; every `peekEvery` s they peek over (sunk
+    // `peek` m) for `peekTime` s; `quiet` s after the last shot they stand up
+    // with their hands raised again.
+    hide: { after: [0.15, 0.4], quiet: [3, 5], depth: 0.85, peek: 0.3, peekEvery: [2, 4], peekTime: 0.8 },
     // Fire alarm horn-strobes on the walls: synchronised flashes `rate` per
     // second, each `flash` s long; light = intensity of the two flash lights
     // (range m); lens = emissive glow of the strobe lens while it flashes.
