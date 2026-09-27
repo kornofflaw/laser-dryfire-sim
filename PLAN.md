@@ -242,6 +242,19 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - Reflections on a glossy screen can look like shots (maxBlobArea helps).
 - Browser log/settings/calibration are per-browser; download the CSV to keep it.
 
+## Sounds Andrew rejected as unrealistic (2026-09-27)
+Heard with the recordings switched off (generated sounds only). Don't use these
+as the only sound; the recordings (web/assets/sounds) stay on. They remain only
+as the fallback CLAUDE.md rule 7 requires if a file fails to load.
+- Your gunshot outdoors without the recorded report/echo (crack + thump + boom only).
+- Steel: the generated ring alone, without the recorded clank.
+- Footsteps: the generated heel-thump + scuff (knife attacker).
+- Glass: the generated crack + tinkle alone.
+- Range distant shots: low-passed noise bursts.
+Still liked: the deeper gunshot synth underneath (Andrew: "gunshots are deeper").
+Direction: realism comes from recordings; new sounds should start from a free
+recording (with credits) rather than pure synthesis.
+
 ## Realism queue (hourly realism pass takes the top item)
 1. Office: sprinkler/emergency lights, fire alarm option (stress).
 2. People: idle life while standing (breathing, small weight shifts, blinks).
