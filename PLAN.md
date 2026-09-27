@@ -546,3 +546,6 @@ he reports a problem.
 - More standard drills: Rhythm Drill (6 body hits, every split within 0.08 s
   of the others: new drill field evenSplits), and two 3D stages at real
   distances: Accelerator (15, 10, 5 yd, far to near) and Doubles 3-7-15.
+- 3D range: yardage markers down both sides of the bay (5, 10, 15, 20, 25
+  yd): wooden stakes with weathered white signs, turned toward the firing
+  line (CONFIG.range3d.markers).

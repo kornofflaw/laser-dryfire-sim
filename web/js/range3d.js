@@ -132,6 +132,7 @@ export class Range3DView {
     this.buildGround();
     this.buildBerms();
     this.buildWeeds();
+    this.buildMarkers();
     this.buildBrass();
     this.buildSun();
     this.cardboardNormal = cardboardNormalMap();
@@ -275,6 +276,46 @@ export class Range3DView {
     });
     mesh.receiveShadow = true;
     this.scene.add(mesh);
+  }
+
+  // Yardage markers down both sides of the bay: a wooden stake with a white
+  // sign, the distance painted in black, facing the firing line.
+  buildMarkers() {
+    const K = R().markers;
+    if (!K?.yards?.length) return;
+    const [sw, sh] = K.sign;
+    const stakeGeo = new THREE.BoxGeometry(0.045, K.height, 0.045);
+    const signGeo = new THREE.BoxGeometry(sw, sh, 0.012);
+    for (const yd of K.yards) {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = Math.round(256 * sh / sw);
+      const g = c.getContext('2d');
+      g.fillStyle = '#ecebe4';
+      g.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < 900; i++) { // weathered paint
+        g.fillStyle = `rgba(${Math.random() < 0.5 ? '90,80,60' : '255,255,255'},${Math.random() * 0.08})`;
+        g.fillRect(Math.random() * c.width, Math.random() * c.height, 2 + Math.random() * 4, 1 + Math.random() * 2);
+      }
+      g.fillStyle = '#1b1b1b';
+      g.font = `900 ${Math.round(c.height * 0.72)}px Arial, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(String(yd), c.width / 2, c.height * 0.54);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      const face = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+      const edge = new THREE.MeshStandardMaterial({ color: '#d9d7cf', roughness: 0.9 });
+      for (const side of [-1, 1]) {
+        const x = side * K.x, z = -yd * YARD;
+        const stake = new THREE.Mesh(stakeGeo, this.mats.wood);
+        stake.position.set(x, K.height / 2, z - 0.02);
+        const sign = new THREE.Mesh(signGeo, [edge, edge, edge, edge, face, edge]);
+        sign.position.set(x, K.height - sh / 2 + 0.03, z);
+        sign.rotation.y = -side * K.turn; // turned a little toward the shooter
+        for (const m of [stake, sign]) { m.castShadow = m.receiveShadow = true; m.userData.surface = 'wood'; this.scene.add(m); this.solids.push(m); }
+      }
+    }
   }
 
   // Spent 9 mm brass on the bay floor, where the camera can see it: small glints.

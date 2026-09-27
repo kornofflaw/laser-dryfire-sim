@@ -486,6 +486,9 @@ export const CONFIG = {
     gravelTile: 2.0,        // metres per gravel texture tile
     dirtTile: 3.0,          // metres per berm texture tile
     berm: { width: 44, depth: 9, height: 4.5, backZ: 28, lumps: 0.6, sideX: 7.5, sideLength: 34, sideStartZ: 3 },
+    // Yardage markers down both sides of the bay (stake height m, sign w x h
+    // m, x from the centre line, turn radians toward the shooter).
+    markers: { yards: [5, 10, 15, 20, 25], x: 6.7, height: 0.6, sign: [0.3, 0.2], turn: 0.35 },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render
