@@ -155,6 +155,11 @@
         <label id="dist3d-label">Distance to the <span id="dist3d-kind">targets</span> <output id="dist3d-val"></output>
           <input type="range" id="dist3d" min="3" max="25" step="1">
         </label>
+        <label>Time of day <select id="opt-time">
+          <option value="day">Day (sun high on your left)</option>
+          <option value="morning">Morning (low sun behind you, long shadows)</option>
+          <option value="evening">Evening (low sun behind you, soft overcast light)</option>
+        </select></label>
         <p class="note">Each kind of target keeps its own distance. Plate Rack and Poppers are always 3D. Targets look true to size only when the projection matches the camera's field of view.</p>
       </div>
       <p class="note" id="up-time-none">This course has no time-up setting. It applies to the flip grid and pop-up courses.</p>

@@ -44,6 +44,7 @@ const settings = Object.assign({
   blood: true,        // 3D blood effects
   lotNight: false,    // parking lot at night (knife attack, 3D judgment scenes)
   lotRain: false,     // parking lot in the rain (wet asphalt, rain, rain sound)
+  rangeTime: 'day',   // 3D range time of day: day / morning / evening
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
   screenIn: CONFIG.lifeSize.screenWidthIn.default,
@@ -147,6 +148,7 @@ function ensureRange3D() {
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
     const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
     await view.init({ yards, star: range.star, popups: range.popups, flip: range.flip, stage: () => range.stageDef });
+    view.setTime(settings.rangeTime);
     resize3D();
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
@@ -835,6 +837,11 @@ function refreshSound() {
   }
 }
 
+$('#opt-time').onchange = e => {
+  settings.rangeTime = e.target.value;
+  persist();
+  views3d['range3d-single']?.setTime(settings.rangeTime);
+};
 $('#opt-rain').onchange = e => {
   settings.lotRain = e.target.checked;
   persist();
@@ -857,6 +864,7 @@ function refreshSetup() {
   $('#opt-blood').checked = settings.blood;
   $('#opt-night').checked = settings.lotNight;
   $('#opt-rain').checked = settings.lotRain;
+  $('#opt-time').value = settings.rangeTime;
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
   $('#range3d-row').hidden = !l3;

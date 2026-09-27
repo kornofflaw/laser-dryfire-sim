@@ -360,6 +360,14 @@ export const CONFIG = {
     skyRotation: 0,         // radians: turns the sky (and its sun) around the range
     sunIntensity: 2.4,
     sunDir: [-0.85, 0.75, 0.35], // from the left and a little behind: side light gives shape
+    // Time of day (Setup). Each has its own sky photo (the light and what you
+    // see); morning / evening put the sunlight where the sun is in their photo
+    // (sunDir; low sun = long shadows). 'day' is the settings above.
+    times: {
+      morning: { hdr: 'morning.hdr', sunDir: [0.8, 0.14, 0.58], sun: 1.9, sunColor: '#ffd6a8', env: 0.9, bg: 0.9, exposure: 1.0, haze: '#d9cdbf' },
+      // Evening's photo has a city skyline except behind the sun: turned 90° (rotate) to keep it out of view.
+      evening: { hdr: 'evening.hdr', sunDir: [-0.93, 0.14, -0.34], rotate: 1.571, sun: 1.7, sunColor: '#ffc48e', env: 0.85, bg: 0.85, exposure: 1.0, haze: '#d6c9bd' },
+    },
     cardboardRelief: 0.25,  // strength of the corrugation / fibre normal map
     hazeColor: '#c9d3dc',
     hazeNear: 40,           // metres: haze starts

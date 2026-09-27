@@ -13,6 +13,8 @@ Unless noted, files were taken from the three.js repository's examples
 | `sky.hdr` | Dusk lighting and reflections (`venice_sunset_1k.hdr`) | Poly Haven (polyhaven.com), CC0. |
 | `city.hdr` | Daytime city lighting for the office scene (`pedestrian_overpass_1k.hdr`) | Poly Haven (polyhaven.com), CC0. |
 | `range/range.hdr` | Outdoor light and sky for the 3D range (`quarry_01_1k.hdr`) | Poly Haven (polyhaven.com), CC0. |
+| `range/morning.hdr` | Morning light and sky for the 3D range (`spruit_sunrise_1k.hdr`, copied from the three.js examples) | Poly Haven (polyhaven.com), CC0. |
+| `range/evening.hdr` | Low-sun light and sky for the 3D range's Evening option (`blouberg_sunrise_2_1k.hdr`, copied from the three.js examples) | Poly Haven (polyhaven.com), CC0. |
 | `range/dirt_color.jpg` | Berm dirt (`dirt.jpg`); `dirt_normal.jpg` was derived from it (Sobel filter) | Babylon.js Assets (github.com/BabylonJS/Assets), CC BY 4.0. |
 | `range/gravel_color.jpg`, `gravel_normal.jpg`, `gravel_rough.jpg` | Bay floor gravel (`rockyGround` PBR set; roughness taken from its metal/rough map) | Babylon.js Assets (github.com/BabylonJS/Assets), CC BY 4.0. |
 | `range/wood_color.jpg`, `wood_rough.jpg`, `wood_bump.jpg` | Target stakes and stands (`hardwood2_*.jpg`) | three.js examples textures. |

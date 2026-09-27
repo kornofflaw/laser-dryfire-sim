@@ -110,6 +110,7 @@ export class Range3DView {
     this.scene.environment = pmrem.fromEquirectangular(sky).texture;
     pmrem.dispose();
     this.scene.background = sky;
+    this.skies = { day: { sky, env: this.scene.environment } };
     this.scene.backgroundIntensity = R().bgIntensity;
     this.scene.environmentIntensity = R().envIntensity;
     this.scene.backgroundRotation.y = R().skyRotation;
@@ -308,6 +309,45 @@ export class Range3DView {
     sun.shadow.normalBias = 0.02;
     sun.shadow.radius = 2;
     this.scene.add(sun, sun.target);
+    this.sun = sun;
+    if (this.timeWanted) this.setTime(this.timeWanted);
+  }
+
+  // Time of day: 'day' (default), 'morning' or 'evening'. Swaps the sky photo
+  // (loaded the first time), moves the sun to where it is in that photo and
+  // sets its colour. Only the look changes; targets and scoring don't.
+  async setTime(kind = 'day') {
+    this.timeWanted = kind;
+    if (!this.sun || this.time === kind) return;
+    const T = kind === 'day' ? null : R().times[kind];
+    if (kind !== 'day' && !T) return;
+    if (T && !this.skies[kind]) {
+      const sky = await new HDRLoader().loadAsync(ASSETS + T.hdr).catch(() => null);
+      if (!sky) return;
+      sky.mapping = THREE.EquirectangularReflectionMapping;
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      this.skies[kind] = { sky, env: pmrem.fromEquirectangular(sky).texture };
+      pmrem.dispose();
+      if (this.timeWanted !== kind) return; // changed again while loading
+    }
+    const S = this.skies[kind];
+    this.time = kind;
+    this.scene.background = S.sky;
+    this.scene.environment = S.env;
+    this.scene.backgroundIntensity = T ? T.bg : R().bgIntensity;
+    this.scene.environmentIntensity = T ? T.env : R().envIntensity;
+    // Morning / evening: sunDir is in the photo's own frame; `rotate` turns
+    // photo and sun together (to keep buildings etc. out of view).
+    const rot = T ? (T.rotate || 0) : R().skyRotation;
+    this.scene.backgroundRotation.y = rot;
+    this.scene.environmentRotation.y = rot;
+    this.renderer.toneMappingExposure = T ? T.exposure : R().exposure;
+    this.scene.fog.color.set(T ? T.haze : R().hazeColor);
+    const [x, y, z] = T ? T.sunDir : R().sunDir;
+    this.sun.position.set(x, y, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), T ? rot : 0).normalize().multiplyScalar(40).add(this.sun.target.position);
+    this.sun.color.set(T ? T.sunColor : '#fff3df');
+    this.sun.intensity = T ? T.sun : R().sunIntensity;
+    this.renderer.shadowMap.needsUpdate = true;
   }
 
   // ---- targets ---------------------------------------------------------------------

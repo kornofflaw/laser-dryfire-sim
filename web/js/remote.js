@@ -52,6 +52,7 @@ export const SETUP_CONTROLS = [
   { id: 'up-time-reset', button: true },
   { id: 'opt-real3d', kind: 'check', label: 'Photo-realistic 3D range' },
   { id: 'dist3d', kind: 'range', label: 'Distance', out: 'dist3d-val' },
+  { id: 'opt-time', kind: 'select', label: 'Time of day' },
   { id: 'cars3d', kind: 'range', label: 'Parked cars', out: 'cars3d-val' },
   { id: 'opt-night', kind: 'check', label: 'Night' },
   { id: 'opt-rain', kind: 'check', label: 'Rain' },
