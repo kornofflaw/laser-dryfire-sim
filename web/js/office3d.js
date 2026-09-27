@@ -125,6 +125,9 @@ export class OfficeView {
     this.scene.traverse(o => { if (o.userData?.pivot) movers.push(o.userData.pivot); });
     this.solids = mergeStatic(this.scene, { keep, movers, solids: this.solids });
     this.buildAlarm();
+    this.trofferGlow = this.M.troffer.emissiveIntensity;
+    this.screenGlow = this.M.screens[0].emissiveIntensity;
+    this.buildEmergency();
     this.drops = new GroundDrops(this.scene);
     this.post = new Post(renderer, this.scene, this.camera);
     this.resize(window.innerWidth, window.innerHeight);
@@ -266,6 +269,52 @@ export class OfficeView {
       });
     }
     if (!on) this.flashStrobes(false);
+  }
+
+  // Battery emergency lights (white box, two lamp heads) on the walls, dark
+  // until a power cut. Built after the static merge so the heads can light.
+  buildEmergency() {
+    const E = O().power;
+    const box = new THREE.MeshStandardMaterial({ color: '#e8e6e0', roughness: 0.5 });
+    this.emLamp = new THREE.MeshStandardMaterial({ color: '#f4f2ea', roughness: 0.2, emissive: '#fff6e0', emissiveIntensity: 0 });
+    const body = new THREE.BoxGeometry(0.34, 0.12, 0.08), head = new THREE.CylinderGeometry(0.045, 0.05, 0.07, 14);
+    for (const [x, y, z, facing] of E.units) {
+      const u = new THREE.Group();
+      u.add(new THREE.Mesh(body, box));
+      for (const sx of [-0.12, 0.12]) {
+        const h = new THREE.Mesh(head, this.emLamp);
+        h.position.set(sx, -0.08, 0.07);
+        h.rotation.x = 1.1; // tilted down into the room
+        u.add(h);
+      }
+      u.position.set(x, y, z);
+      u.rotation.y = { x: Math.PI / 2, '-x': -Math.PI / 2, z: 0, '-z': Math.PI }[facing];
+      this.scene.add(u);
+    }
+    this.powerOn = true;
+  }
+
+  // Power cut: ceiling lights, monitors and the ceiling fill go dark; the
+  // room lights move to the emergency units and glow dim and cool; daylight
+  // through the windows and the exit sign stay.
+  setPower(on) {
+    on = !!on;
+    if (on === this.powerOn) return;
+    this.powerOn = on;
+    const E = O().power;
+    this.roomLights.forEach((l, i) => {
+      const u = E.units[i];
+      if (on) { l.position.copy(l.userData.on.pos); l.intensity = l.userData.on.intensity; l.color.set('#fff5e6'); }
+      else if (u) {
+        const f = { x: [1, 0], '-x': [-1, 0], z: [0, 1], '-z': [0, -1] }[u[3]];
+        l.position.set(u[0] + f[0] * E.out, u[1] - 0.3, u[2] + f[1] * E.out);
+        l.intensity = E.light;
+        l.color.set(E.color);
+      } else l.intensity = 0;
+    });
+    this.emLamp.emissiveIntensity = on ? 0 : E.lamp;
+    this.M.troffer.emissiveIntensity = on ? this.trofferGlow : 0;
+    for (const m of this.M.screens) m.emissiveIntensity = on ? this.screenGlow : 0;
   }
 
   flashStrobes(lit) {
@@ -423,16 +472,25 @@ export class OfficeView {
     Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 30, bottom: -30, near: 5, far: 90 });
     sun.shadow.bias = -0.0005;
     this.scene.add(sun, sun.target);
+    this.hemi = this.scene.children.find(c => c.isHemisphereLight);
+    this.sun = sun;
     // Indoor light: soft point lights under the troffers.
+    // (setPower(false) turns them into the emergency lights.)
+    this.roomLights = [];
     for (const [x, y, z, i] of [[0, 3.0, -5, 1], [0, 2.7, -16, 0.7], [-6, 2.9, -26, 1], [6, 2.9, -26, 1], [-6, 2.9, -32, 1], [6, 2.9, -32, 1], [0, 2.9, -38, 0.8]]) {
       const l = new THREE.PointLight('#fff5e6', O().roomLight * i, 16, 1.6);
       l.position.set(x, y, z);
+      l.userData.on = { pos: l.position.clone(), intensity: l.intensity };
       this.scene.add(l);
+      this.roomLights.push(l);
     }
     // Muzzle flash light: off until someone fires (always in the scene, so
     // the shaders don't recompile when it comes on).
     this.muzzle = new THREE.PointLight('#ffc27a', 0, O().muzzleLightRange, 2);
     this.scene.add(this.muzzle);
+    // Your own muzzle flash, at your gun.
+    this.myMuzzle = new THREE.PointLight('#ffc27a', 0, O().myMuzzle.range, 2);
+    this.scene.add(this.myMuzzle);
     // Daylight through the windows (from the right), casting soft shadows.
     const day = new THREE.DirectionalLight('#eef4ff', O().windowLight);
     day.position.set(30, 6, -30);
@@ -448,6 +506,7 @@ export class OfficeView {
     top.shadow.bias = -0.0005;
     top.shadow.radius = 4;
     this.scene.add(top, top.target);
+    this.topLight = top;
   }
 
   // Swing an office door open (or shut); render() eases it.
@@ -564,12 +623,18 @@ export class OfficeView {
     }
     const inside = this.walkZ < -1;
     this.scene.environment = inside ? this.envInside : this.envOutside;
-    this.scene.environmentIntensity = inside ? O().envInside : O().envIntensity;
+    const dark = inside && !this.powerOn, P = O().power;
+    this.scene.environmentIntensity = inside ? O().envInside * (dark ? P.env : 1) : O().envIntensity;
+    this.hemi.intensity = O().hemiIntensity * (dark ? P.hemi : 1);
+    this.topLight.intensity = O().ceilingShadowLight * (dark ? P.top : 1);
+    this.sun.intensity = O().sunIntensity * (dark ? P.sun : 1);
+    this.renderer.toneMappingExposure = O().exposure * (dark ? P.exposure : 1);
     for (const p of this.people) p.update(dt, now);
     // The latest shot lights the room around the muzzle for a moment.
     const shooter = this.people.filter(p => p.flash?.visible).sort((a, b) => b.flashT - a.flashT)[0];
     this.muzzle.intensity = shooter ? O().muzzleLight : 0;
     if (shooter) shooter.flash.getWorldPosition(this.muzzle.position);
+    this.updateMyMuzzle(now);
     for (const f of this.fx) f.update(now);
     this.fx = this.fx.filter(f => { if (f.done && !f.keep) f.obj.removeFromParent(); return !f.done; });
     this.post.render();
@@ -606,10 +671,23 @@ export class OfficeView {
     return { ...miss, point: h.point, dir, surface: 'wall', glass, normal, object: h.object };
   }
 
+  // Your muzzle flash: a brief warm light at your gun (shows most with the
+  // power cut).
+  flashMuzzle() { this.myMuzzleT = performance.now() / 1000; }
+  updateMyMuzzle(now) {
+    const M = O().myMuzzle, k = this.myMuzzleT != null ? (now - this.myMuzzleT) / M.time : 9;
+    this.myMuzzle.intensity = k >= 0 && k < 1 ? M.light * (1 - k) * (1 - k) : 0;
+    if (this.myMuzzle.intensity > 0) {
+      const off = new THREE.Vector3(...M.at).applyQuaternion(this.camera.quaternion);
+      this.myMuzzle.position.copy(this.camera.position).add(off);
+    }
+  }
+
   // Reaction (called by Range.onShot): blood/reaction on people, dust on walls.
   onShot(score) {
     if (!this.ready) return;
     const now = performance.now() / 1000;
+    this.flashMuzzle();
     for (const g of score.glass || []) this.breakGlass(g.pane, g.point, score.dir);
     if (!score.point) return;
     if (score.person && score.armor) {
@@ -751,6 +829,7 @@ export class OfficeRunner extends Runner {
     this.phase = 'call';
     this.state = State.Running;
     radioStatic();
+    this.view.setPower(!this.opt.lightsOut);
     if (this.opt.alarm) { this.view.setAlarm(true); fireAlarm(true); } // someone pulled the fire alarm
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';
     clearTimeout(this.callTimer);

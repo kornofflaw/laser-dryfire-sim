@@ -260,8 +260,8 @@ recording (with credits) rather than pure synthesis.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
-5. Office: your muzzle flash lighting the room too (the office is bright; matters with a lights-out option).
-6. Office: a lights-out / emergency-lighting option (power cut: only exit signs and emergency lights).
+5. Office: a night version of the power cut (dark windows, city lights outside) so the emergency lights and muzzle flashes carry the scene.
+6. Office power cut: a flashlight option (weapon light / handheld beam that follows your aim).
 
 ---
 
@@ -423,4 +423,11 @@ recording (with credits) rather than pure synthesis.
   metric target shape on stakes with cardboard texture (scoring now uses the
   same shape), torn bullet holes, dust strikes on misses, Dot Torture sheet on a
   backer, shaded people with clothing/faces in an indoor room.
-
+- 2026-09-27 (hourly realism): Office "Power cut" option (Setup -> Current
+  course, also on the Controller): the ceiling lights and monitors go dark,
+  the room lights become battery emergency lights (twin-head units on the
+  lobby and hall walls, the office's left wall and the pillars between the
+  back offices), the fill light drops and your eyes adjust a little. Daylight
+  through the windows and the exit sign stay. Your own muzzle flash now
+  lights the office for a moment on every shot (CONFIG.office3d.myMuzzle,
+  CONFIG.office3d.power). Office regression (t22c) passes.

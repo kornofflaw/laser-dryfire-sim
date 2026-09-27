@@ -72,6 +72,7 @@ export const SETUP_CONTROLS = [
   { id: 'of-fleeing', kind: 'check', label: 'Some workers run for the exit' },
   { id: 'of-voice', kind: 'check', label: 'Wounded man calls for help' },
   { id: 'of-alarm', kind: 'check', label: 'Fire alarm going' },
+  { id: 'of-dark', kind: 'check', label: 'Power cut (emergency lights only)' },
   { section: 'Targets' },
   { id: 'opt-layout', kind: 'select', label: 'Free-practice targets' },
   { id: 'opt-zones', kind: 'check', label: 'Show scoring zones' },

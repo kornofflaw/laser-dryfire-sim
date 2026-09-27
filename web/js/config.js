@@ -243,6 +243,17 @@ export const CONFIG = {
     roomLight: 9,          // indoor point lights (candela)
     muzzleLight: 5,        // a suspect's muzzle flash lights up the room this much (candela) for a moment
     muzzleLightRange: 5,   // metres
+    // Your own muzzle flash lighting the room for `time` s: peak intensity
+    // (candela), range m, offset from your eye (right, down, forward) m.
+    myMuzzle: { light: 25, time: 0.06, range: 12, at: [0.2, -0.3, 0.6] },
+    // Power cut (option lightsOut): the room lights become battery emergency
+    // lights at `units` (x, y, z, facing wall), `out` m in front of the unit,
+    // `light` candela, `color`; lamp = glow of the lamp heads. Inside, the
+    // fill lights scale by env / hemi / top / sun (it leaks onto the back
+    // offices) and the exposure by `exposure`
+    // (your eyes adjust a little).
+    power: { light: 3.5, out: 0.6, color: '#f3f1ff', lamp: 6, env: 0.25, hemi: 0.25, top: 0.1, sun: 0.3, exposure: 1.2,
+      units: [[-5.86, 2.55, -3.5, 'x'], [1.06, 2.45, -12.5, '-x'], [-11.86, 2.55, -27, 'x'], [-0.575, 2.6, -36.52, 'z'], [5.425, 2.6, -36.52, 'z']] },
     // Each shot a suspect fires: a puff of gun smoke from the muzzle that
     // drifts up and fades, and a brass case thrown out to the right that
     // bounces and stays on the floor until the next run.
@@ -276,6 +287,7 @@ export const CONFIG = {
       fleeing: true,        // some innocents run for the exit instead of raising their hands
       victimVoice: true,    // the wounded man in the lobby asks for help
       alarm: false,         // fire alarm going: wall strobes flash and the horn sounds (stress)
+      lightsOut: false,     // power cut: ceiling lights and monitors off, battery emergency lights only
     },
     // A suspect who fires often fires again quickly: that round misses (a
     // ricochet off the wall beside you) and doesn't count as a hit on you.

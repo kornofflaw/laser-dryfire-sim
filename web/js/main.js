@@ -729,6 +729,7 @@ const officeCtl = {
   fleeing: ['#of-fleeing', el => el.checked],
   victimVoice: ['#of-voice', el => el.checked],
   alarm: ['#of-alarm', el => el.checked],
+  lightsOut: ['#of-dark', el => el.checked],
 };
 for (const [key, [sel, read]] of Object.entries(officeCtl)) {
   const el = $(sel);
@@ -751,6 +752,7 @@ function refreshOffice() {
   for (const k of ['rifle', 'armor', 'hostage', 'fleeing']) $(officeCtl[k][0]).checked = o[k];
   $('#of-voice').checked = o.victimVoice;
   $('#of-alarm').checked = o.alarm;
+  $('#of-dark').checked = o.lightsOut;
 }
 
 // Life-size 3D.
