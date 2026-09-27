@@ -260,7 +260,7 @@ recording (with credits) rather than pure synthesis.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
-5. Office at night: street lights and a police car's light bar outside while you get the radio call.
+5. Office: a sound of your car door and radio chatter while you walk in; sirens arriving in the distance during the fight.
 6. Office: photo-scanned textures (CC0, Poly Haven / ambientCG) - those sites are blocked in this cloud environment; possible once Andrew allows dl.polyhaven.org / ambientcg.com in the environment's network settings.
 7. Office: a suspect who leans out around a door frame or pillar to shoot (needs a lean/crouch animation clip; the current peeker pops up over waist-high cover).
 
@@ -482,3 +482,9 @@ recording (with credits) rather than pure synthesis.
   and muzzle flashes. At night the glass no longer reflects the daytime
   sky's sun (it showed as a glare). CONFIG.office3d.night. No new shaders
   compile mid-run; office regression (t22c) passes.
+- 2026-09-27 (hourly realism): Office: your patrol car's light bar flashes
+  behind you while you're outside (radio call and walk-in): red and blue
+  quad-flash washing over the building, glass and ground; strong at night,
+  faint by day; off once you're inside or the run ends
+  (CONFIG.office3d.police). Two lights always in the scene, so no shader
+  recompiles. Office regression (t22c) passes.

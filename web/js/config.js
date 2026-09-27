@@ -244,6 +244,10 @@ export const CONFIG = {
     muzzleLight: 30,       // a suspect's muzzle flash lights up the room this much (candela) for a moment
     muzzleLightRange: 6,   // metres
     signGlow: 0.3,          // the building's name sign by day (night: night.sign)
+    // Your patrol car's light bar behind you while you're outside: red and
+    // blue lights `spread` m either side of `at`, candela at night (x day by
+    // day), range m, quad-flash cycles per second.
+    police: { light: 320, day: 0.35, range: 45, at: [0, 1.55, 17.5], spread: 0.5, rate: 1.1 },
     // Night (option): sky colours (top, horizon); sun left (moonlight share);
     // fill light / reflections / exposure factors outside and inside (the
     // office lights stay on unless the power is cut too); the sign's glow;

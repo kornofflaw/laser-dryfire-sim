@@ -532,6 +532,16 @@ export class OfficeView {
     this.canopyLight = new THREE.PointLight('#ffe2b8', 0, N.range, 2);
     this.canopyLight.position.set(...N.at);
     this.scene.add(this.canopyLight);
+    // Your patrol car's light bar just behind you (red and blue), flashing
+    // while you're outside; dark otherwise (always in the scene).
+    const PL = O().police;
+    this.policeLights = ['#ff1a12', '#1f4dff'].map((c, i) => {
+      const l = new THREE.PointLight(c, 0, PL.range, 2);
+      l.position.set(PL.at[0] + (i ? PL.spread : -PL.spread), PL.at[1], PL.at[2]);
+      this.scene.add(l);
+      return l;
+    });
+    this.policeOn = false;
     // Interior shadow caster straight down, so people are grounded indoors.
     const top = new THREE.DirectionalLight('#ffffff', O().ceilingShadowLight);
     top.position.set(0.5, 20, -28);
@@ -711,6 +721,10 @@ export class OfficeView {
     const inside = this.walkZ < -1;
     // (At night the city sky's sun would glint in the glass: no sky reflections.)
     this.scene.environment = inside || this.night ? this.envInside : this.envOutside;
+    // Light bar: red, then blue, each a double flash (quad-flash pattern).
+    const PL = O().police, on = this.policeOn && !inside;
+    const ph = (now * PL.rate) % 1, flash = k => { const u = (ph - k + 1) % 1; return u < 0.08 || (u > 0.16 && u < 0.24); };
+    this.policeLights.forEach((l, i) => { l.intensity = on && flash(i * 0.5) ? PL.light * (this.night ? 1 : PL.day) : 0; });
     // Nothing outside moves: once you're in, the sun's shadow map stays as is.
     this.sun.shadow.autoUpdate = !inside;
     const dark = inside && !this.powerOn, P = O().power;
@@ -989,6 +1003,7 @@ export class OfficeRunner extends Runner {
     radioStatic();
     this.view.setPower(!this.opt.lightsOut);
     this.view.setNight(this.opt.night);
+    this.view.policeOn = true; // your car's lights behind you
     if (this.opt.alarm) { this.view.setAlarm(true); fireAlarm(true); } // someone pulled the fire alarm
     this.view.warmPeople(); // no freeze when they first appear
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';
@@ -998,6 +1013,7 @@ export class OfficeRunner extends Runner {
 
   cancel() {
     super.cancel();
+    this.view.policeOn = false;
     clearTimeout(this.callTimer);
     this.view.setAlarm(false);
     fireAlarm(false);
@@ -1477,6 +1493,7 @@ export class OfficeRunner extends Runner {
   }
 
   finish() {
+    this.view.policeOn = false;
     this.view.setAlarm(false);
     fireAlarm(false);
     const reasons = [...new Set(this.penalties)];
