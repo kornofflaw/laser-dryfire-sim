@@ -25,7 +25,7 @@ import { CONFIG } from './config.js';
 const T = () => CONFIG.range3d.turner;
 import { DrillRunner, State, isHit, f2 } from './run.js';
 import { stageTargets } from './courses.js';
-import { startBeep, parBeep, say } from './audio.js';
+import { startBeep, parBeep } from './audio.js';
 
 export class StageRunner extends DrillRunner {
   setCourse(course) {
@@ -49,7 +49,7 @@ export class StageRunner extends DrillRunner {
   }
 
   update(nowMs) {
-    while (this.state === State.Delay && this.calls?.length && nowMs >= this.calls[0].at) say(this.calls.shift().text, { rate: 1.0 });
+    this.speakCalls(nowMs);
     if (this.state === State.Delay && nowMs >= this.beepAt) {
       startBeep();
       this.runStart = nowMs;
@@ -142,6 +142,7 @@ export class StageRunner extends DrillRunner {
       notes: problems.join('; '),
     };
     this.state = State.Done;
+    this.closingCalls();
     this.emit();
   }
 

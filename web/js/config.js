@@ -76,7 +76,14 @@ export const CONFIG = {
     maxDelay: 4.0,
     // Range officer commands before the delay (Setup): [what's said, seconds
     // until the next]. Shots before the last one don't count as early.
-    commands: { on: true, say: [['Make ready.', 2.6], ['Are you ready?', 1.6], ['Standby.', 0.6]] },
+    // `after`: the closing commands, starting afterPause s after a drill or
+    // stage ends.
+    commands: {
+      on: true,
+      say: [['Make ready.', 2.6], ['Are you ready?', 1.6], ['Standby.', 0.6]],
+      after: [['If you are finished, unload and show clear.', 3.4], ['If clear, hammer down, holster.', 2.8], ['Range is clear.', 0]],
+      afterPause: 1.5,
+    },
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },

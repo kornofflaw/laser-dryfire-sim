@@ -580,3 +580,7 @@ he reports a problem.
   targets (turner and swinger) now release 0.3 s after the popper is hit,
   as the popper falls and pulls the cable (CONFIG.range3d.turner,
   activateDelay).
+- RO closing commands (Setup -> RO commands): after a drill or stage, "If
+  you are finished, unload and show clear." ... "If clear, hammer down,
+  holster." ... "Range is clear.", as at a match (CONFIG.timer.commands
+  after / afterPause). Starting the next run or cancelling stops them.

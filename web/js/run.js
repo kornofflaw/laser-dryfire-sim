@@ -83,10 +83,26 @@ export class DrillRunner extends Runner {
     this.state = State.Delay;
   }
 
-  cancel() { super.cancel(); this.clearRun(); }
+  cancel() { super.cancel(); this.clearRun(); this.calls = []; }
+
+  // After the run (Setup -> RO commands): "If you are finished, unload and
+  // show clear" ... "Range is clear", as at a match.
+  closingCalls() {
+    const C = CONFIG.timer.commands;
+    this.calls = [];
+    if (!C.on) return;
+    let t = performance.now() + C.afterPause * 1000;
+    for (const [text, gap] of C.after) { this.calls.push({ at: t, text }); t += gap * 1000; }
+  }
+
+  // Speak the RO's calls that are due (before the beep and after the run).
+  speakCalls(nowMs) {
+    if (this.state === State.Running) return;
+    while (this.calls?.length && nowMs >= this.calls[0].at) say(this.calls.shift().text, { rate: 1.0 });
+  }
 
   update(nowMs) {
-    while (this.state === State.Delay && this.calls?.length && nowMs >= this.calls[0].at) say(this.calls.shift().text, { rate: 1.0 });
+    this.speakCalls(nowMs);
     if (this.state === State.Delay && nowMs >= this.beepAt) {
       startBeep();
       this.runStart = nowMs;
@@ -202,6 +218,7 @@ export class DrillRunner extends Runner {
       notes: problems.join('; '),
     };
     this.state = State.Done;
+    if (timed) this.closingCalls();
     this.emit();
   }
 
