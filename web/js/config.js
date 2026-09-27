@@ -192,6 +192,8 @@ export const CONFIG = {
     // Your muzzle flash lighting the lot for `time` s (shows at night): peak
     // intensity, reach (m), and where the gun is from your eyes (right, down, forward m).
     muzzle: { light: 90, time: 0.06, range: 22, at: [0.2, -0.3, 0.6] },
+    // Your spent brass (as CONFIG.office3d.myBrass), bouncing on asphalt.
+    myBrass: { at: [0.16, -0.22, -0.45], right: [2.0, 3.0], up: [1.6, 2.4], back: 0.6, bounce: 0.35 },
     // Rain (Setup): wet asphalt (roughness x wet, colour x darken, glassy
     // puddles where the ground dips), falling streaks around the camera, and
     // by day an overcast sky. drops: streak count in a box `area` (x, depth,

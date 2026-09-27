@@ -27,7 +27,7 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { CONFIG } from './config.js';
 import { KnifeRunner } from './knife.js';
 import { GroundDrops } from './blood3d.js';
-import { Character } from './char3d.js';
+import { Character, brassCase } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { glassBreak } from './audio.js';
 import { People, attachProp } from './people3d.js';
@@ -155,6 +155,27 @@ export class Lot3DView {
     // night; by day it's lost in the daylight, as in life.
     this.muzzle = new THREE.PointLight('#ffc27a', 0, V().muzzle.range, 2);
     this.scene.add(this.muzzle);
+    this.casings = [];
+    // One case kept below the ground, so its shader is ready before the first shot.
+    const warm = brassCase(this.scene, new THREE.Vector3(0, -5, 0), new THREE.Vector3(), 0, 0).obj;
+    warm.frustumCulled = false;
+  }
+
+  // Your spent case: thrown out to the right and up from your gun; it
+  // tumbles past the edge of the picture, bounces on the asphalt and stays
+  // until the next run (CONFIG.knife3d.myBrass).
+  myBrass() {
+    const B = V().myBrass, q = this.camera.quaternion, now = performance.now() / 1000;
+    const r = ([a, b]) => a + Math.random() * (b - a);
+    const port = new THREE.Vector3(...B.at).applyQuaternion(q).add(this.camera.position);
+    const v = new THREE.Vector3(r(B.right), r(B.up), B.back).applyQuaternion(q);
+    const fx = brassCase(this.scene, port, v, now, B.bounce);
+    this.casings.push(fx.obj);
+    this.effects.push(fx);
+  }
+  clearBrass() {
+    this.casings?.forEach(c => c.removeFromParent());
+    this.casings = [];
   }
 
   // A shot: the flash lights the scene for a moment.
@@ -478,6 +499,7 @@ export class Lot3DView {
   // no wounds, standing, idle).
   newMan() {
     this.holes.clear(); // a new run: fresh walls and cars
+    this.clearBrass();
     if (this.char) {
       this.char.obj.removeFromParent();
       this.char.effects.forEach(e => e.obj.removeFromParent());
@@ -559,7 +581,7 @@ export class Lot3DView {
     this.updateMuzzle(now);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => {
-      if (fx.done) fx.obj.removeFromParent();
+      if (fx.done && !fx.keep) fx.obj.removeFromParent();
       return !fx.done;
     });
     this.renderer.render(this.scene, this.camera);
@@ -591,6 +613,7 @@ export class Lot3DView {
   onShot(score) {
     if (!this.ready) return;
     this.flashMuzzle();
+    this.myBrass();
     if (!score.point) return;
     if (score.kind === 'actor' && score.hit) {
       this.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);

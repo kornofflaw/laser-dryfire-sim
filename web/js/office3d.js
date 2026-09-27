@@ -26,7 +26,7 @@ import { Post } from './post3d.js';
 import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView, lateralFiles, worldUV, concreteCanvas } from './interior3d.js';
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
-import { Character } from './char3d.js';
+import { Character, brassCase } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
 import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry, downCry, steelPing } from './audio.js';
@@ -1650,37 +1650,6 @@ function gunSmoke(scene, at, fwd, t0) {
     s.scale.setScalar(S.size[0] + (S.size[1] - S.size[0]) * e);
     s.position.copy(start).addScaledVector(fwd, 0.25 * e).add(new THREE.Vector3(0, S.rise * k, 0));
     mat.opacity = S.opacity * (1 - k) * Math.min(1, k * 12 + 0.3);
-  } };
-  return fx;
-}
-
-// A spent 9 mm case: thrown out, tumbling, bounces on the floor and stays.
-let caseGeo = null, caseMat = null;
-function brassCase(scene, at, v, t0, bounce) {
-  caseGeo ??= new THREE.CylinderGeometry(0.0048, 0.0048, 0.019, 8);
-  caseMat ??= new THREE.MeshStandardMaterial({ color: '#c9a24a', metalness: 0.9, roughness: 0.35 });
-  const m = new THREE.Mesh(caseGeo, caseMat);
-  m.position.copy(at);
-  m.castShadow = true;
-  scene.add(m);
-  const spin = new THREE.Vector3(rand(-20, 20), rand(-20, 20), rand(-20, 20));
-  let last = t0;
-  const fx = { obj: m, done: false, update(now) {
-    const dt = Math.min(0.05, now - last);
-    last = now;
-    v.y -= 9.81 * dt;
-    m.position.addScaledVector(v, dt);
-    m.rotation.x += spin.x * dt; m.rotation.y += spin.y * dt; m.rotation.z += spin.z * dt;
-    if (m.position.y <= 0.005) {
-      m.position.y = 0.005;
-      if (Math.abs(v.y) < 0.4) { // at rest on its side; keep it on the floor
-        m.rotation.set(Math.PI / 2, 0, Math.random() * 6);
-        fx.done = true;
-        fx.keep = true;
-        return;
-      }
-      v.y = -v.y * bounce; v.x *= 0.6; v.z *= 0.6; spin.multiplyScalar(0.5);
-    }
   } };
   return fx;
 }

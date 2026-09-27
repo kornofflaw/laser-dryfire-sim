@@ -256,7 +256,6 @@ Direction (confirmed 2026-09-27: recorded versions all preferred): realism comes
 recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
-0. Your own brass in the lot/judgment scenes too (done in the office).
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
@@ -495,3 +494,8 @@ recording (with credits) rather than pure synthesis.
   until the next run (CONFIG.office3d.myBrass). Office regression passes.
   The queued sound item (car door, radio, sirens) is blocked on realistic
   free recordings.
+- 2026-09-27 (hourly realism): Your own spent brass in the parking-lot knife
+  attack and the 3D judgment scenes too (as in the office): out to the right
+  on every shot, bouncing on the asphalt, left lying until the next run
+  (CONFIG.knife3d.myBrass). brassCase moved to char3d.js (shared). Office,
+  knife (k10) and judgment (j3) regressions pass.

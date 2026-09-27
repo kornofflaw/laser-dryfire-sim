@@ -607,3 +607,34 @@ function makeMuzzleFlash() {
   s.visible = false;
   return s;
 }
+
+// A spent 9 mm case: thrown out, tumbling, bounces on the floor and stays.
+let caseGeo = null, caseMat = null;
+export function brassCase(scene, at, v, t0, bounce) {
+  caseGeo ??= new THREE.CylinderGeometry(0.0048, 0.0048, 0.019, 8);
+  caseMat ??= new THREE.MeshStandardMaterial({ color: '#c9a24a', metalness: 0.9, roughness: 0.35 });
+  const m = new THREE.Mesh(caseGeo, caseMat);
+  m.position.copy(at);
+  m.castShadow = true;
+  scene.add(m);
+  const spin = new THREE.Vector3((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40);
+  let last = t0;
+  const fx = { obj: m, done: false, update(now) {
+    const dt = Math.min(0.05, now - last);
+    last = now;
+    v.y -= 9.81 * dt;
+    m.position.addScaledVector(v, dt);
+    m.rotation.x += spin.x * dt; m.rotation.y += spin.y * dt; m.rotation.z += spin.z * dt;
+    if (m.position.y <= 0.005) {
+      m.position.y = 0.005;
+      if (Math.abs(v.y) < 0.4) { // at rest on its side; keep it on the floor
+        m.rotation.set(Math.PI / 2, 0, Math.random() * 6);
+        fx.done = true;
+        fx.keep = true;
+        return;
+      }
+      v.y = -v.y * bounce; v.x *= 0.6; v.z *= 0.6; spin.multiplyScalar(0.5);
+    }
+  } };
+  return fx;
+}
