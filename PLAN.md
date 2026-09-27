@@ -258,6 +258,9 @@ recording (with credits) rather than pure synthesis.
 ## Realism queue (hourly realism pass takes the top item)
 1. Parking lot: wet-asphalt / rain option (reflections, rain sound; rain from a free recording).
 2. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
+3. Judgment scenes: bystanders react to gunfire (flinch, duck, run for cover) instead of standing still.
+4. 3D range: time-of-day option (morning / midday / evening sun and shadows).
+5. Office: suspects' shots crack past you (a recorded bullet snap for near misses).
 
 ---
 
