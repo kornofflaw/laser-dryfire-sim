@@ -461,6 +461,14 @@ export class Range3DView {
   makeCard(meta, pxPerCm = PX_PER_CM) {
     const U = Ucfg();
     const color = cardboardCanvas(pxPerCm, meta.kind === 'noshoot');
+    if (meta.hard) {
+      // Hard cover: that part of the target painted flat black (kept when
+      // the target is pasted or renewed).
+      const paint = () => paintHardCover(color.g, meta.hard, pxPerCm);
+      const fresh = color.reset;
+      color.reset = () => { fresh(); paint(); };
+      paint();
+    }
     const alpha = alphaCanvas(pxPerCm);
     const colorTex = new THREE.CanvasTexture(color.canvas);
     colorTex.colorSpace = THREE.SRGBColorSpace;
@@ -517,7 +525,7 @@ export class Range3DView {
     const H = U.height / 100;
     const dy = opts.dy || 0;
     const group = new THREE.Group();
-    const card = this.makeCard({ kind: opts.noShoot ? 'noshoot' : 'uspsa', slot }, opts.pxPerCm);
+    const card = this.makeCard({ kind: opts.noShoot ? 'noshoot' : 'uspsa', slot, hard: opts.hard }, opts.pxPerCm);
     const face = card.face;
     face.position.y = R().targetCenterY + dy;
     // Face and stakes flex together from the stand when hit (or in the breeze).
@@ -630,7 +638,7 @@ export class Range3DView {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
       this.targets.push(this.makeTarget(it.x, slot++, {
-        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       }));
     }
     if (steel.length) {
@@ -767,6 +775,8 @@ export class Range3DView {
         const cm = { x: (h.uv.x - 0.5) * U.width, y: (h.uv.y - 0.5) * U.height };
         const zone = classifyUspsa(cm.x, cm.y);
         if (!zone) continue; // outside the die-cut shape: the round goes past
+        // Hard cover stops the round: it can't score (a hole in the paint, a miss).
+        if (inHardCover(card.meta.hard, cm)) return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm, hardCover: true };
         const base = { zone, points: CONFIG.points[zone], local: cm, point: h.point, dir, card, uv: h.uv };
         if (card.meta.kind === 'popup') {
           // Same rule as the 2D pop-ups: only a target on its way up or up
@@ -910,6 +920,28 @@ const PX_PER_CM = 12;
 function cmToPx(x, y, k) {
   const U = Ucfg();
   return [(x + U.width / 2) * k, (U.height / 2 - y) * k];
+}
+
+// Hard cover on a target: { side: 'left' | 'right' | 'top' | 'bottom', cm }
+// = that many centimetres in from that edge.
+function inHardCover(hard, cm) {
+  if (!hard) return false;
+  const U = Ucfg(), w = U.width / 2, h = U.height / 2;
+  return { left: cm.x < -w + hard.cm, right: cm.x > w - hard.cm, top: cm.y > h - hard.cm, bottom: cm.y < -h + hard.cm }[hard.side];
+}
+function paintHardCover(g, hard, k) {
+  const U = Ucfg(), w = U.width / 2, h = U.height / 2;
+  const box = { left: [-w, -h, hard.cm, U.height], right: [w - hard.cm, -h, hard.cm, U.height], top: [-w, h - hard.cm, U.width, hard.cm], bottom: [-w, -h, U.width, hard.cm] }[hard.side];
+  const [x0, y0] = cmToPx(box[0], box[1] + box[3], k), [x1, y1] = cmToPx(box[0] + box[2], box[1], k);
+  g.save();
+  polyPath(g, U.outline, k);
+  g.clip();
+  g.fillStyle = '#161616';
+  g.fillRect(x0, y0, x1 - x0, y1 - y0);
+  // Brushed paint: a little sheen and a few thin spots.
+  g.globalAlpha = 0.06;
+  for (let i = 0; i < 40; i++) { g.fillStyle = Math.random() < 0.5 ? '#fff' : '#6b5a44'; g.fillRect(x0 + Math.random() * (x1 - x0), y0 + Math.random() * (y1 - y0), 2 + Math.random() * 20, 1 + Math.random() * 3); }
+  g.restore();
 }
 
 function polyPath(g, pts, k) {

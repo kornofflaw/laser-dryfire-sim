@@ -549,3 +549,6 @@ he reports a problem.
 - 3D range: yardage markers down both sides of the bay (5, 10, 15, 20, 25
   yd): wooden stakes with weathered white signs, turned toward the firing
   line (CONFIG.range3d.markers).
+- Hard cover: stage paper can be partly painted flat black (hard: { side,
+  cm }); hits there stop and can't score (a miss, a hole in the paint). New
+  stage "Hard Cover" (3 paper with hard cover + a popper).

@@ -112,6 +112,8 @@ const FLIP = [
 // metres (left -, right +, from the shooting position), yd = distance in yards.
 // No-shoots are listed after the paper they cover and sit a little in front;
 // dy raises (+) or lowers (-) one, in metres. Plates may set h (stand height).
+// Paper may carry hard cover: hard: { side: 'left'|'right'|'top'|'bottom', cm }
+// paints that many cm in from that edge black; hits there can't score.
 // Every paper needs 2 hits and every piece of steel has to fall (CONFIG.stage).
 const STAGES = [
   { name: 'Mini Poppers', category: 'Steel', parTime: 5.0, maxShots: 10,
@@ -137,6 +139,14 @@ const STAGES = [
       { type: 'paper', x: 2.2, yd: 8 },
       { type: 'noshoot', x: 2.55, yd: 7.8, dy: -0.1 },
       { type: 'mini', x: -4.6, yd: 12 },
+    ] } },
+  { name: 'Hard Cover', category: 'Stages', parTime: 8.0, maxShots: 14,
+    desc: 'Three paper partly behind black hard cover (hits there don\'t count) and a popper. 2 per paper, the popper down.',
+    stage: { items: [
+      { type: 'paper', x: -2.3, yd: 8, hard: { side: 'right', cm: 16 } },
+      { type: 'paper', x: 0, yd: 11, hard: { side: 'bottom', cm: 38 } },
+      { type: 'paper', x: 2.3, yd: 8, hard: { side: 'left', cm: 14 } },
+      { type: 'popper', x: 1.2, yd: 16 },
     ] } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
