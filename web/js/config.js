@@ -243,6 +243,17 @@ export const CONFIG = {
     roomLight: 9,          // indoor point lights (candela)
     muzzleLight: 30,       // a suspect's muzzle flash lights up the room this much (candela) for a moment
     muzzleLightRange: 6,   // metres
+    signGlow: 0.3,          // the building's name sign by day (night: night.sign)
+    // Night (option): sky colours (top, horizon); sun left (moonlight share);
+    // fill light / reflections / exposure factors outside and inside (the
+    // office lights stay on unless the power is cut too); the sign's glow;
+    // the entrance downlight (candela, range m, position).
+    night: {
+      sky: ['#03050a', '#151b27'], sun: 0.04, sign: 2.5,
+      outside: { hemi: 0.1, env: 0.05, exposure: 1.35 },
+      inside: { hemi: 0.55, env: 0.8, exposure: 1 },
+      canopy: { light: 30, range: 16, at: [0, 3.0, 2.0] },
+    },
     // Your own muzzle flash lighting the room for `time` s: peak intensity
     // (candela), range m, offset from your eye (right, down, forward) m.
     myMuzzle: { light: 25, time: 0.06, range: 12, at: [0.2, -0.3, 0.6] },
@@ -308,6 +319,7 @@ export const CONFIG = {
       victimVoice: true,    // the wounded man in the lobby asks for help
       alarm: false,         // fire alarm going: wall strobes flash and the horn sounds (stress)
       lightsOut: false,     // power cut: ceiling lights and monitors off, battery emergency lights only
+      night: false,         // night: dark outside, the city lit up through the windows
       peeker: true,         // one suspect crouches behind cover and pops up to shoot (some behind cubicle walls too)
     },
     // A suspect who fires often fires again quickly: that round misses (a

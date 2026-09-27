@@ -748,6 +748,7 @@ const officeCtl = {
   alarm: ['#of-alarm', el => el.checked],
   peeker: ['#of-peeker', el => el.checked],
   lightsOut: ['#of-dark', el => el.checked],
+  night: ['#of-night', el => el.checked],
 };
 for (const [key, [sel, read]] of Object.entries(officeCtl)) {
   const el = $(sel);
@@ -772,6 +773,7 @@ function refreshOffice() {
   $('#of-alarm').checked = o.alarm;
   $('#of-peeker').checked = o.peeker;
   $('#of-dark').checked = o.lightsOut;
+  $('#of-night').checked = o.night;
 }
 
 // Life-size 3D.

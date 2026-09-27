@@ -376,6 +376,35 @@ function outsideCanvas() {
   return c;
 }
 
+// The same city at night: dark sky with a glow low down, black towers with
+// scattered lit windows (warm and cool), red beacons on a few roofs.
+function outsideNightCanvas() {
+  const [c, g] = canvas(1024, 256);
+  const r = rng(41);
+  const sky = g.createLinearGradient(0, 0, 0, 256);
+  sky.addColorStop(0, '#04060b');
+  sky.addColorStop(0.7, '#0e1320');
+  sky.addColorStop(1, '#2a2530');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, 1024, 256);
+  for (let layer = 0; layer < 2; layer++) {
+    let x = 0;
+    while (x < 1024) {
+      const w = 30 + r() * 70, h = (layer ? 60 : 110) + r() * (layer ? 60 : 90);
+      g.fillStyle = layer ? '#0b0d12' : '#07080b';
+      g.fillRect(x, 256 - h, w, h);
+      for (let wy = 256 - h + 6; wy < 250; wy += 9) for (let wx = x + 4; wx < x + w - 6; wx += 8) {
+        if (r() > (layer ? 0.28 : 0.2)) continue;
+        g.fillStyle = r() < 0.7 ? `rgba(255,${200 + r() * 40},${130 + r() * 60},${0.55 + r() * 0.4})` : `rgba(190,215,255,${0.5 + r() * 0.4})`;
+        g.fillRect(wx, wy, 5, 5);
+      }
+      if (!layer && r() < 0.3) { g.fillStyle = '#ff2a1a'; g.fillRect(x + w / 2 - 1, 256 - h - 3, 3, 3); }
+      x += w + r() * 10;
+    }
+  }
+  return c;
+}
+
 // ---- materials -------------------------------------------------------------------
 export function makeMaterials() {
   const [carpetC, carpetN] = carpetCanvases();
@@ -423,6 +452,7 @@ export function makeMaterials() {
     mug: std({ color: '#e8e4dc', roughness: 0.3 }),
     slat: std({ color: '#e9e7e1', roughness: 0.5, metalness: 0.2 }),
     outside: new THREE.MeshBasicMaterial({ map: texture(outsideCanvas()), fog: false }),
+    outsideNight: texture(outsideNightCanvas()), // swapped in as outside.map at night
     screens: [0, 1, 2].map(k => std({ color: '#000', emissive: '#ffffff', emissiveMap: texture(screenCanvas(k)), emissiveIntensity: 0.9, roughness: 0.25 })),
   };
   return M;

@@ -260,7 +260,7 @@ recording (with credits) rather than pure synthesis.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
-5. Office: a night version of the power cut (dark windows, city lights outside) so the emergency lights and muzzle flashes carry the scene.
+5. Office at night: street lights and a police car's light bar outside while you get the radio call.
 6. Office: photo-scanned textures (CC0, Poly Haven / ambientCG) - those sites are blocked in this cloud environment; possible once Andrew allows dl.polyhaven.org / ambientcg.com in the environment's network settings.
 7. Office: a suspect who leans out around a door frame or pillar to shoot (needs a lean/crouch animation clip; the current peeker pops up over waist-high cover).
 
@@ -473,3 +473,12 @@ recording (with credits) rather than pure synthesis.
     texture sites allowed (Realism queue 6).
   - Tests: office regression t22c, knife k10, judgment j3 pass; cheap and
     exact hit bounds give identical results.
+- 2026-09-27 (hourly realism): Office "Night" option (Setup -> Current
+  course, also on the Controller): dark sky, the city lit up through the
+  office windows (lit windows, red roof beacons), the building's sign glows,
+  a downlight under the entrance canopy, no sun or daylight; outside the fill
+  light drops and your eyes adjust a little; inside the office lights stay
+  on. With "Power cut" too, the office is lit only by the emergency lights
+  and muzzle flashes. At night the glass no longer reflects the daytime
+  sky's sun (it showed as a glare). CONFIG.office3d.night. No new shaders
+  compile mid-run; office regression (t22c) passes.

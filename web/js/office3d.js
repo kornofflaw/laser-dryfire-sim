@@ -164,6 +164,8 @@ export class OfficeView {
       fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ gl_FragColor = vec4(mix(bottom, top, smoothstep(0.0, 0.5, max(vP.y,0.0))), 1.0); }',
     });
     S.add(new THREE.Mesh(new THREE.SphereGeometry(250, 32, 16), skyMat));
+    this.skyMat = skyMat;
+    this.skyDay = [skyMat.uniforms.top.value.clone(), skyMat.uniforms.bottom.value.clone()];
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: tex(concreteCanvas(), 100), roughness: 0.9 }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.001;
@@ -182,7 +184,9 @@ export class OfficeView {
     for (let y = 3.2; y <= H; y += 3.5) this.box(40, 0.12, 0.32, mull, 0, y, 0.05, { solid: false });
     // Canopy and sign.
     this.box(6, 0.2, 2.4, mull, 0, 3.3, 1.2, { solid: false });
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.7), new THREE.MeshStandardMaterial({ map: signTexture('NORTHGATE OFFICE CENTER'), emissive: '#ffffff', emissiveIntensity: 0.3 }));
+    const signTex = signTexture('NORTHGATE OFFICE CENTER');
+    this.signMat = new THREE.MeshStandardMaterial({ map: signTex, emissive: '#ffffff', emissiveMap: signTex, emissiveIntensity: O().signGlow }); // the letters glow
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.7), this.signMat);
     sign.position.set(0, 4.7, 0.12);
     S.add(sign);
     // Sliding glass doors.
@@ -299,6 +303,19 @@ export class OfficeView {
       this.scene.add(u);
     }
     this.powerOn = true;
+  }
+
+  // Night: dark sky, the city lit up through the windows, the sign and the
+  // entrance downlight on; no sun or daylight (render() scales the fill).
+  setNight(on) {
+    this.night = !!on;
+    const N = O().night;
+    this.skyMat.uniforms.top.value.set(on ? N.sky[0] : this.skyDay[0]);
+    this.skyMat.uniforms.bottom.value.set(on ? N.sky[1] : this.skyDay[1]);
+    this.M.outsideDay ??= this.M.outside.map;
+    this.M.outside.map = on ? this.M.outsideNight : this.M.outsideDay;
+    this.signMat.emissiveIntensity = on ? N.sign : O().signGlow;
+    this.canopyLight.intensity = on ? N.canopy.light : 0;
   }
 
   // Power cut: ceiling lights, monitors and the ceiling fill go dark; the
@@ -508,6 +525,13 @@ export class OfficeView {
     day.position.set(30, 6, -30);
     day.target.position.set(0, 0, -31);
     this.scene.add(day, day.target);
+    this.dayLight = day;
+    // Downlight under the entrance canopy: dark by day, lights the doors at
+    // night (always in the scene, so switching doesn't recompile shaders).
+    const N = O().night.canopy;
+    this.canopyLight = new THREE.PointLight('#ffe2b8', 0, N.range, 2);
+    this.canopyLight.position.set(...N.at);
+    this.scene.add(this.canopyLight);
     // Interior shadow caster straight down, so people are grounded indoors.
     const top = new THREE.DirectionalLight('#ffffff', O().ceilingShadowLight);
     top.position.set(0.5, 20, -28);
@@ -685,15 +709,18 @@ export class OfficeView {
       u.pivot.rotation.y = u.open;
     }
     const inside = this.walkZ < -1;
-    this.scene.environment = inside ? this.envInside : this.envOutside;
+    // (At night the city sky's sun would glint in the glass: no sky reflections.)
+    this.scene.environment = inside || this.night ? this.envInside : this.envOutside;
     // Nothing outside moves: once you're in, the sun's shadow map stays as is.
     this.sun.shadow.autoUpdate = !inside;
     const dark = inside && !this.powerOn, P = O().power;
-    this.scene.environmentIntensity = inside ? O().envInside * (dark ? P.env : 1) : O().envIntensity;
-    this.hemi.intensity = O().hemiIntensity * (dark ? P.hemi : 1);
+    const N = O().night, n = this.night ? (inside ? N.inside : N.outside) : null;
+    this.scene.environmentIntensity = (inside ? O().envInside * (dark ? P.env : 1) : O().envIntensity) * (n ? n.env : 1);
+    this.hemi.intensity = O().hemiIntensity * (dark ? P.hemi : 1) * (n ? n.hemi : 1);
     this.topLight.intensity = O().ceilingShadowLight * (dark ? P.top : 1);
-    this.sun.intensity = O().sunIntensity * (dark ? P.sun : 1);
-    this.renderer.toneMappingExposure = O().exposure * (dark ? P.exposure : 1);
+    this.sun.intensity = O().sunIntensity * (dark ? P.sun : 1) * (n ? N.sun : 1);
+    this.dayLight.intensity = O().windowLight * (n ? 0 : 1);
+    this.renderer.toneMappingExposure = O().exposure * (dark ? P.exposure : 1) * (n ? n.exposure : 1);
     for (const p of this.people) p.update(dt, now);
     // The latest shot lights the room around the muzzle for a moment.
     const shooter = this.people.filter(p => p.flash?.visible).sort((a, b) => b.flashT - a.flashT)[0];
@@ -961,6 +988,7 @@ export class OfficeRunner extends Runner {
     this.state = State.Running;
     radioStatic();
     this.view.setPower(!this.opt.lightsOut);
+    this.view.setNight(this.opt.night);
     if (this.opt.alarm) { this.view.setAlarm(true); fireAlarm(true); } // someone pulled the fire alarm
     this.view.warmPeople(); // no freeze when they first appear
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';

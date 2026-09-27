@@ -76,6 +76,7 @@ export const SETUP_CONTROLS = [
   { id: 'of-alarm', kind: 'check', label: 'Fire alarm going' },
   { id: 'of-peeker', kind: 'check', label: 'A suspect crouches behind cover' },
   { id: 'of-dark', kind: 'check', label: 'Power cut (emergency lights only)' },
+  { id: 'of-night', kind: 'check', label: 'Night' },
   { section: 'Targets' },
   { id: 'opt-layout', kind: 'select', label: 'Free-practice targets' },
   { id: 'opt-zones', kind: 'check', label: 'Show scoring zones' },
