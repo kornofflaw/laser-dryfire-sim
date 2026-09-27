@@ -148,7 +148,7 @@ export class StageRunner extends DrillRunner {
       const lines = [`<b>${d.name}</b> — ${verdict}`,
         `<table class="shots sheet"><tr><th>target</th><th>hits</th><th>pts</th></tr>${rows}</table>` +
         `A ${r.counts.A}  C ${r.counts.C}  D ${r.counts.D}  M ${r.counts.Miss}  NS ${r.counts.NS}`,
-        `Points <b>${r.points}</b> · time <b>${f2(r.time)}</b> · hit factor <b>${f2(r.hitFactor)}</b>`,
+        `Points <b>${r.points}</b> <span class="muted small">${CONFIG.points.C === CONFIG.powerFactor.major.C ? 'major' : 'minor'}</span> · time <b>${f2(r.time)}</b> · hit factor <b>${f2(r.hitFactor)}</b>`,
         r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>'];
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;

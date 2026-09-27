@@ -45,6 +45,9 @@ export const CONFIG = {
   // Steel = a Texas Star plate. Tile = a flip-grid plate. Dot = a Dot Torture dot. NS = hitting a
   // no-shoot (bystander) in a scenario: a -10 penalty, as in USPSA.
   points: { A: 5, C: 3, D: 1, Head: 5, Steel: 5, Tile: 5, Dot: 1, NS: -10, Miss: 0 },
+  // USPSA power factor (Setup): what C and D hits are worth. Minor (most
+  // 9 mm divisions) is the default above; Major (e.g. .40 / .45 in Limited).
+  powerFactor: { minor: { C: 3, D: 1 }, major: { C: 4, D: 2 } },
 
   // ---- USPSA stage scoring (stage courses: paper + steel) ---------------------
   // Best `perPaper` hits on each paper count; each missing hit, and each steel

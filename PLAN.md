@@ -537,3 +537,6 @@ he reports a problem.
   RO's: one row per target (paper: its best two hits as letters, M for a
   missing hit; steel: down or M) with its points, then A / C / D / M / NS
   totals of the hits that count, points, time and hit factor.
+- Power factor (Setup -> Targets): Minor (A 5, C 3, D 1) or Major (A 5, C 4,
+  D 2) for every drill and stage; the stage sheet says which
+  (CONFIG.powerFactor).

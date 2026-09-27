@@ -56,11 +56,13 @@ const settings = Object.assign({
   volAmb: 1,          // background sound volume (Setup slider)
   roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
   paste: true,        // 3D range: paste holes between runs
+  powerFactor: 'minor', // USPSA scoring of C and D hits (CONFIG.powerFactor)
   soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
 }, load(CONFIG.storage.settings, {}));
 CONFIG.post.quality = settings.quality; // 3D graphics (read by post3d.js)
 CONFIG.timer.commands.on = settings.roCommands;
 CONFIG.range3d.paste.on = settings.paste;
+Object.assign(CONFIG.points, CONFIG.powerFactor[settings.powerFactor] || CONFIG.powerFactor.minor);
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
 if (typeof settings.dist3d === 'number') {
@@ -627,6 +629,12 @@ layoutSel.onchange = () => {
   range.setLayout(settings.layout);
 };
 $('#opt-zones').onchange = e => { settings.showZones = e.target.checked; persist(); };
+$('#opt-pf').onchange = e => {
+  if (active().busy) { refreshSetup(); return toast('Finish or cancel the run first (Esc).'); }
+  settings.powerFactor = e.target.value;
+  Object.assign(CONFIG.points, CONFIG.powerFactor[settings.powerFactor]);
+  persist();
+};
 $('#opt-mouse').onchange = e => { settings.mouseShots = e.target.checked; persist(); };
 $('#opt-camera-shots').onchange = e => { settings.cameraShots = e.target.checked; persist(); };
 
@@ -953,6 +961,7 @@ function refreshSetup() {
   }
   layoutSel.value = settings.layout;
   $('#opt-zones').checked = settings.showZones;
+  $('#opt-pf').value = settings.powerFactor;
   $('#opt-mouse').checked = settings.mouseShots;
   $('#opt-camera-shots').checked = settings.cameraShots;
   thr.value = settings.threshold;

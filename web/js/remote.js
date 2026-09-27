@@ -82,6 +82,7 @@ export const SETUP_CONTROLS = [
   { section: 'Targets' },
   { id: 'opt-layout', kind: 'select', label: 'Free-practice targets' },
   { id: 'opt-zones', kind: 'check', label: 'Show scoring zones' },
+  { id: 'opt-pf', kind: 'select', label: 'Power factor' },
   { id: 'opt-mouse', kind: 'check', label: 'Mouse / touch shots on the Display' },
   { section: 'Laser camera' },
   { id: 'cam-toggle', button: true },
