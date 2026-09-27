@@ -261,7 +261,8 @@ recording (with credits) rather than pure synthesis.
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
 5. Office: a night version of the power cut (dark windows, city lights outside) so the emergency lights and muzzle flashes carry the scene.
-6. Office power cut: a flashlight option (weapon light / handheld beam that follows your aim).
+6. Office: photo-scanned textures (CC0, Poly Haven / ambientCG) - those sites are blocked in this cloud environment; possible once Andrew allows dl.polyhaven.org / ambientcg.com in the environment's network settings.
+7. Office: a suspect who leans out around a door frame or pillar to shoot (needs a lean/crouch animation clip; the current peeker pops up over waist-high cover).
 
 ---
 
@@ -431,3 +432,44 @@ recording (with credits) rather than pure synthesis.
   through the windows and the exit sign stay. Your own muzzle flash now
   lights the office for a moment on every shot (CONFIG.office3d.myMuzzle,
   CONFIG.office3d.power). Office regression (t22c) passes.
+- 2026-09-27 (Andrew's office report: slow once the first enemy appears,
+  enemies off screen, wants better textures, a suspect who crouches and
+  peeks while shooting, and a way to take cover):
+  - Speed. The freeze was every suspect's muzzle flash carrying its own
+    light: when it came on, the scene's light count changed and every
+    shader recompiled (31 s in the headless test at the first enemy shot,
+    ~1 s on a real GPU, again whenever a new number of flashes was lit).
+    The flash has no light now (the view's one muzzle light follows the
+    shooter). Also: the office glass no longer uses "transmission" (that drew
+    the whole room twice a frame: frames ~34% faster); everything that can
+    appear mid-run (people, guns, smoke, casings, blood, holes, shards) is
+    drawn once at load and kept, and each run's cast once during the radio
+    call, so nothing compiles mid-run (verified: 0 new shader programs from
+    walking in to the last shot); hit tests use a cheap bounding sphere
+    instead of skinning every vertex on the CPU (office, lot, judgment);
+    the sun's shadow map stops updating once you're inside; the effects
+    fallback no longer switches to direct rendering (that recompiled every
+    shader). New Setup -> 3D graphics: Auto / High / Medium / Low with a live
+    frame-rate readout (CONFIG.post.steps: AO, bloom, resolution, shadow size).
+  - On screen. People only appear where their whole upper body is on screen
+    from where you stop, computed from the actual camera (screen shape, life
+    size); the look-around sway settles as soon as anyone appears; a suspect
+    who is off screen anyway holds his fire.
+  - Crouch-and-peek suspect (Setup option, on by default): behind two new
+    rows of steel file cabinets in the centre aisle (or a cubicle wall) he
+    rises until head, shoulders, gun and upper chest clear the top, aims
+    ~1.2 s, fires 1-2 rounds, ducks, moves along behind the cover and comes up
+    somewhere else; a close miss makes him duck (CONFIG.office3d.peek).
+  - Your cover: file cabinets just ahead of where you stop. Hold X, the right
+    mouse button, or the Controller's new "Take cover (hold)" button to
+    crouch behind them; rounds then hit the cabinets (clang, ricochet, holes)
+    instead of you; "IN COVER" shows on screen (CONFIG.office3d.cover).
+  - Textures: new generated textures from tileable noise at ~1 mm a pixel:
+    quarter-turned loop-pile carpet tiles, fissured ceiling tiles with the
+    T-grid, painted drywall with roller texture, woven heathered cubicle
+    fabric, wood grain, marble lobby tiles, vinyl hall tiles, concrete;
+    walls/floors/panels get world-scale UVs (no more one texture stretched
+    over a 24 m wall); anisotropic filtering 16x. Photo textures need the
+    texture sites allowed (Realism queue 6).
+  - Tests: office regression t22c, knife k10, judgment j3 pass; cheap and
+    exact hit bounds give identical results.

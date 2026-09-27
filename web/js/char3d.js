@@ -170,6 +170,20 @@ export class Character {
   // Fire: muzzle flash for a moment.
   fire(now) { this.flashT = now; }
 
+  // Cheap bounding spheres for hit tests: one sphere around the body, big
+  // enough for outstretched arms, a gun or lying flat. (computeBoundingSphere
+  // skins every vertex on the CPU: tens of milliseconds per shot.)
+  fitBounds(radius = 1.4) {
+    const c = (this.bones.Spine1 || this.bones.Hips || this.obj).getWorldPosition(new THREE.Vector3());
+    for (const m of this.meshes) {
+      if (!m.isSkinnedMesh) continue;
+      m.updateMatrixWorld();
+      m.boundingSphere ??= new THREE.Sphere();
+      m.boundingSphere.center.copy(c).applyMatrix4(m.matrixWorld.clone().invert());
+      m.boundingSphere.radius = radius / m.matrixWorld.getMaxScaleOnAxis();
+    }
+  }
+
   update(dt, now) {
     // A new 'aim' starts a draw from the hip holster.
     if (this.pose === 'aim' && this.lastPose !== 'aim') this.drawT = now;
@@ -264,7 +278,7 @@ export class Character {
     const free = m => { m.geometry?.dispose(); for (const mat of [].concat(m.material)) mat?.dispose(); };
     for (const m of this.meshes) if (!this.baseMeshes.has(m)) free(m);
     for (const e of this.effects) e.obj.traverse(o => { if (o.isMesh) free(o); }); // wound stains (their texture is shared)
-    if (this.flash) { this.flash.material.map?.dispose(); this.flash.material.dispose(); }
+    if (this.flash) this.flash.material.dispose(); // (the texture is shared)
     for (const mat of this.ownMaterials) mat.dispose();
   }
 
@@ -570,21 +584,26 @@ function makePistol() {
   return g;
 }
 
+let flashTex = null; // one texture for every muzzle flash
 function makeMuzzleFlash() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const x = c.getContext('2d');
-  const grad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255,250,220,1)');
-  grad.addColorStop(0.3, 'rgba(255,190,80,0.9)');
-  grad.addColorStop(1, 'rgba(255,120,20,0)');
-  x.fillStyle = grad;
-  x.fillRect(0, 0, 64, 64);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending, depthWrite: false }));
+  if (!flashTex) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d');
+    const grad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255,250,220,1)');
+    grad.addColorStop(0.3, 'rgba(255,190,80,0.9)');
+    grad.addColorStop(1, 'rgba(255,120,20,0)');
+    x.fillStyle = grad;
+    x.fillRect(0, 0, 64, 64);
+    flashTex = new THREE.CanvasTexture(c);
+  }
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: flashTex, blending: THREE.AdditiveBlending, depthWrite: false }));
   s.position.set(0, 0.025, 0.2);
   s.scale.set(0.25, 0.25, 1);
-  const light = new THREE.PointLight('#ffb050', 30, 6, 2);
-  s.add(light);
+  // No light of its own: a light switching on changes the scene's light
+  // count and recompiles every shader (a freeze at a suspect's first shot).
+  // The views keep one muzzle light in the scene and move it to the shooter.
   s.visible = false;
   return s;
 }

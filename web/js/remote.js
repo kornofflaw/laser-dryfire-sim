@@ -17,6 +17,7 @@
 //   { t: 'course', index }              select COURSES[index]
 //   { t: 'input', id, value, checked }  set a Setup control (fires input + change)
 //   { t: 'click', id }                  click a Setup button
+//   { t: 'cover', on }                  office: take cover (held) / leave cover
 // Display -> Controller:
 //   { t: 'state', ... }                 see remote.tick() in main.js
 //   { t: 'sound', name, args }          play this sound here (audio.js)
@@ -50,6 +51,7 @@ export const SETUP_CONTROLS = [
   { section: 'Current course' },
   { id: 'up-time', kind: 'range', label: 'Time targets stay up', out: 'up-time-val' },
   { id: 'up-time-reset', button: true },
+  { id: 'opt-quality', kind: 'select', label: '3D graphics', out: 'quality-now' },
   { id: 'opt-real3d', kind: 'check', label: 'Photo-realistic 3D range' },
   { id: 'dist3d', kind: 'range', label: 'Distance', out: 'dist3d-val' },
   { id: 'opt-time', kind: 'select', label: 'Time of day' },
@@ -72,6 +74,7 @@ export const SETUP_CONTROLS = [
   { id: 'of-fleeing', kind: 'check', label: 'Some workers run for the exit' },
   { id: 'of-voice', kind: 'check', label: 'Wounded man calls for help' },
   { id: 'of-alarm', kind: 'check', label: 'Fire alarm going' },
+  { id: 'of-peeker', kind: 'check', label: 'A suspect crouches behind cover' },
   { id: 'of-dark', kind: 'check', label: 'Power cut (emergency lights only)' },
   { section: 'Targets' },
   { id: 'opt-layout', kind: 'select', label: 'Free-practice targets' },

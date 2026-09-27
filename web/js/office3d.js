@@ -23,13 +23,13 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { People, CAST } from './people3d.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Post } from './post3d.js';
-import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView } from './interior3d.js';
+import { makeMaterials, mergeStatic, tiled, door, workstation, plant, whiteboard, wallClock, exitSign, troffer, extinguisher, copier, blinds, outsideView, lateralFiles, worldUV, concreteCanvas } from './interior3d.js';
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
 import { GroundDrops } from './blood3d.js';
-import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry, downCry } from './audio.js';
+import { say, hush, radioStatic, enemyShot, penaltyBuzz, glassBreak, armorThud, fireAlarm, nearMiss, hitCry, downCry, steelPing } from './audio.js';
 
 const O = () => CONFIG.office3d;
 const ASSETS = 'assets/3d/';
@@ -58,6 +58,11 @@ const PATH = [
 // Places people can appear in the office.
 const PODS = [-8.6, -5.0, 5.0, 8.6].flatMap(x => [-27.2, -31.6].map(z => ({ type: 'pod', x, z })));
 const OFFICES = [-9, -3, 3, 9].map(x => ({ type: 'office', x, z: -38.2, doorX: x + 1.6 }));
+// Waist-high file cabinets in the centre aisle: suspects crouch behind them
+// and pop up to shoot. x, z: middle of the row; hw: half its width.
+const COVERS = [-2.35, 2.35].map(x => ({ type: 'cover', x, z: -29.4, hw: 0.91 }));
+// Your cover: a row of file cabinets just ahead of where the walk ends.
+const MY_COVER = { x: 0, z: -24.2, units: 3, unitW: 0.76 };
 
 export class OfficeView {
   constructor() {
@@ -129,15 +134,18 @@ export class OfficeView {
     this.screenGlow = this.M.screens[0].emissiveIntensity;
     this.buildEmergency();
     this.drops = new GroundDrops(this.scene);
-    this.post = new Post(renderer, this.scene, this.camera);
+    this.post = new Post(renderer, this.scene, this.camera, { shadowLights: [this.sun, this.topLight] });
     this.resize(window.innerWidth, window.innerHeight);
     this.placeCamera(0, 0);
+    this.warmEffects();
     this.ready = true;
   }
 
   // ---- environment ---------------------------------------------------------------
   box(w, h, d, mat, x, y, z, { solid = true, shadow = true } = {}) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    const geo = new THREE.BoxGeometry(w, h, d);
+    if (mat.userData?.tile) worldUV(geo, w, h, d, mat.userData.tile); // real-size pattern
+    const m = new THREE.Mesh(geo, mat);
     m.position.set(x, y, z);
     m.castShadow = shadow;
     m.receiveShadow = true;
@@ -156,7 +164,7 @@ export class OfficeView {
       fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ gl_FragColor = vec4(mix(bottom, top, smoothstep(0.0, 0.5, max(vP.y,0.0))), 1.0); }',
     });
     S.add(new THREE.Mesh(new THREE.SphereGeometry(250, 32, 16), skyMat));
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: tex(concrete(), 30), roughness: 0.9 }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ map: tex(concreteCanvas(), 100), roughness: 0.9 }));
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.001;
     ground.receiveShadow = true;
@@ -178,7 +186,7 @@ export class OfficeView {
     sign.position.set(0, 4.7, 0.12);
     S.add(sign);
     // Sliding glass doors.
-    const doorGlass = new THREE.MeshPhysicalMaterial({ color: '#9fb3bd', metalness: 0, roughness: 0.02, transmission: 0.7, thickness: 0.02, transparent: true, opacity: 0.55 });
+    const doorGlass = new THREE.MeshPhysicalMaterial({ color: '#9fb3bd', metalness: 0, roughness: 0.02, transparent: true, opacity: 0.3 }); // no transmission: see interior3d.js glass
     this.doors = [-0.8, 0.8].map(x => this.box(1.6, 3.0, 0.05, doorGlass, x, 1.5, 0.02));
     // Planters.
     const planter = new THREE.MeshStandardMaterial({ color: '#6c6a66', roughness: 0.9 });
@@ -195,8 +203,7 @@ export class OfficeView {
   // Lobby: polished stone tiles, reception desk, seating, plants.
   buildLobby() {
     const M = this.M;
-    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#d9d4c9', '#c9c2b4', 8), 6), roughness: 0.18, metalness: 0 });
-    const f = this.box(12, 0.02, 10, floor, 0, 0, -5, { shadow: false });
+    const f = this.box(12, 0.02, 10, M.lobbyFloor, 0, 0, -5, { shadow: false });
     f.receiveShadow = true;
     this.box(12, 0.1, 10, tiled(M.ceiling, 12, 10, 0.6), 0, 3.35, -5, { shadow: false });
     this.box(0.2, 3.3, 10, M.wall, -6, 1.65, -5);
@@ -326,8 +333,7 @@ export class OfficeView {
   // Hallway to the office: closed office doors on both sides, exit sign.
   buildHall() {
     const M = this.M;
-    const floor = new THREE.MeshStandardMaterial({ map: tex(tiles('#b9b4ab', '#aaa498', 4), 2), roughness: 0.3 });
-    this.box(2.4, 0.02, 12, floor, 0, 0, -16, { shadow: false });
+    this.box(2.4, 0.02, 12, M.hallFloor, 0, 0, -16, { shadow: false });
     this.box(2.4, 0.1, 12, tiled(M.ceiling, 2.4, 12, 0.6), 0, 2.9, -16, { shadow: false });
     this.box(0.15, 2.85, 12, M.wall, -1.2, 1.425, -16);
     this.box(0.15, 2.85, 12, M.wall, 1.2, 1.425, -16);
@@ -432,6 +438,12 @@ export class OfficeView {
       this.add(ws);
       if (i % 3 === 0) this.add(plant(M, 0.35), p.x - 0.85, 0.75, p.z - 1.0); // desk plant
     }
+    // File cabinets: two rows in the centre aisle (a suspect's cover) and one
+    // just ahead of where you stop (yours; its drawers face the room).
+    for (const c of COVERS) this.add(lateralFiles(M, { units: 2, h: O().cover.height }), c.x, 0, c.z);
+    const mine = lateralFiles(M, { units: MY_COVER.units, unitW: MY_COVER.unitW, h: O().cover.height });
+    mine.rotation.y = Math.PI;
+    this.add(mine, MY_COVER.x, 0, MY_COVER.z);
     const spots = [];
     for (let x = -9; x <= 9; x += 3) for (const z of [-24.4, -27.4, -30.4, -33.4]) spots.push([x, z]);
     this.troffers(spots, 3.05);
@@ -591,9 +603,11 @@ export class OfficeView {
       look = new THREE.Vector3(a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k, a[4] + (b[4] - a[4]) * k);
       moving = t > 0;
     }
-    // Walking head-bob.
+    // Walking head-bob; crouched behind your cover (this.crouch 0..1).
     const bob = moving ? Math.sin(t * 9) * 0.025 : 0;
-    pos.y = CONFIG.knife.eyeHeight + bob;
+    const down = THREE.MathUtils.smootherstep(this.crouch || 0, 0, 1) * (CONFIG.knife.eyeHeight - O().cover.eye);
+    pos.y = CONFIG.knife.eyeHeight + bob - down;
+    look.y -= down;
     this.camera.position.copy(pos);
     this.camera.lookAt(look);
     this.camera.rotateY(lookYaw);
@@ -603,6 +617,55 @@ export class OfficeView {
   }
 
   get pathDuration() { return PATH.reduce((s, p) => s + p[5], 0); }
+
+  // ---- on screen -------------------------------------------------------------------
+  // A camera where the walk ends (standing, not looking around).
+  restCamera() {
+    const cam = this.camera.clone();
+    const e = PATH[PATH.length - 1];
+    cam.position.set(e[0], CONFIG.knife.eyeHeight, e[1]);
+    cam.lookAt(e[2], e[3], e[4]);
+    cam.updateMatrixWorld();
+    return cam;
+  }
+
+  // Is a world point inside the picture, `margin` (fraction of half the
+  // screen) in from the edges?
+  inView(point, cam = this.camera, margin = 0) {
+    const p = point.clone().project(cam);
+    return p.z < 1 && Math.abs(p.x) <= 1 - margin && Math.abs(p.y) <= 1 - margin;
+  }
+
+  // Where along a place (x from..to) a person there is fully on screen from
+  // `cam`: body 0.9-1.8 m up and 0.3 m either side. null if nowhere.
+  visibleRange(spot, cam) {
+    const M = O().onScreenMargin;
+    let xs, zs;
+    if (spot.type === 'pod') { xs = [spot.x - 1.0, spot.x + 1.0]; zs = [spot.z, spot.z + 0.45]; } // along the front panel
+    else if (spot.type === 'office') { xs = [spot.doorX - 1.4, spot.doorX + 0.6]; zs = [-35.6, -34.0]; }
+    else { xs = [spot.x - spot.hw + 0.3, spot.x + spot.hw - 0.3]; zs = [spot.z - 0.6]; }
+    let lo = null, hi = null;
+    const q = new THREE.Vector3();
+    for (let x = xs[0]; x <= xs[1] + 1e-6; x += 0.1) {
+      const ok = zs.every(z => [0.9, 1.8].every(y => [-0.3, 0.3].every(dx => this.inView(q.set(x + dx, y, z), cam, M))));
+      if (ok) { lo ??= x; hi = x; }
+    }
+    return lo == null ? null : [lo, hi];
+  }
+
+  // A suspect's round hits your cover: a hole and a puff where the line from
+  // his gun to your eyes meets the cabinets.
+  coverImpact(from) {
+    const to = this.camera.position;
+    this.coverRay ??= new THREE.Raycaster();
+    this.coverRay.set(from, to.clone().sub(from).normalize());
+    this.coverRay.far = from.distanceTo(to);
+    const h = this.coverRay.intersectObjects(this.solids, false)[0];
+    if (!h) return;
+    const normal = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : this.coverRay.ray.direction.clone().negate();
+    this.fx.push(dust(this.scene, h.point));
+    this.holes.add(h.point, normal, h.object, surfaceKind(h.object, 'plaster'));
+  }
 
   render(nowMs) {
     if (!this.ready) return;
@@ -623,6 +686,8 @@ export class OfficeView {
     }
     const inside = this.walkZ < -1;
     this.scene.environment = inside ? this.envInside : this.envOutside;
+    // Nothing outside moves: once you're in, the sun's shadow map stays as is.
+    this.sun.shadow.autoUpdate = !inside;
     const dark = inside && !this.powerOn, P = O().power;
     this.scene.environmentIntensity = inside ? O().envInside * (dark ? P.env : 1) : O().envIntensity;
     this.hemi.intensity = O().hemiIntensity * (dark ? P.hemi : 1);
@@ -640,11 +705,71 @@ export class OfficeView {
     this.post.render();
   }
 
+  // ---- warm-up -------------------------------------------------------------------
+  // The first time the GPU draws a new kind of thing (a person, a gun, gun
+  // smoke, blood, a bullet hole, broken glass) it compiles shaders and
+  // uploads textures: a freeze of up to a second or two on some computers,
+  // right when the first suspect appears or fires. So at load everything
+  // that can appear mid-run is drawn once and then kept, hidden (disposing
+  // it would free the compiled shaders again); warmPeople() does the same
+  // for each run's cast while the radio call plays.
+  warmEffects() {
+    const before = new Set(this.scene.children);
+    const now = performance.now() / 1000;
+    const cam = this.camera.position;
+    const ahead = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).setY(0).normalize();
+    const at = cam.clone().addScaledVector(ahead, 6).setY(0);
+    const stand = [];
+    for (const [i, gun] of ['pistol', 'rifle'].entries()) {
+      const p = new Character(this.cast.rig(ROLE_CAST.gunman[i]), { role: 'gunman' });
+      p.obj.position.copy(at).add(new THREE.Vector3(i - 0.5, 0, 0));
+      this.scene.add(p.obj, p.addGun(gun));
+      if (i) this.scene.add(p.addVest());
+      p.pose = 'aim';
+      p.aimAt.copy(cam);
+      p.update(0.016, now);
+      p.fire(now);
+      p.update(0, now);
+      this.gunFx(p);
+      const chest = p.bones.Spine2?.getWorldPosition(new THREE.Vector3()) ?? at.clone().setY(1.3);
+      p.hit(chest, ahead, now, this.scene, this.drops, this.blood);
+      stand.push(p);
+    }
+    this.fx.push(dust(this.scene, at.clone().setY(1)));
+    const wall = this.solids.find(o => o.isMesh);
+    for (const kind of ['plaster', 'metal', 'wood', 'glass']) this.holes.add(at.clone().setY(1.5), ahead.clone().negate(), wall, kind);
+    if (this.panes[0]) this.breakGlass(this.panes[0], this.panes[0].mesh.position.clone(), ahead, { silent: true });
+    this.myMuzzleT = now;
+    this.updateMyMuzzle(now);
+    this.post.render();
+    // Keep it all, hidden.
+    const keep = new THREE.Group();
+    keep.visible = false;
+    for (const o of [...this.scene.children]) if (!before.has(o)) keep.attach(o);
+    this.scene.add(keep);
+    this.fx = [];
+    this.casings = [];
+    this.shards = [];
+    this.holes.clear();
+    this.drops.clear();
+    this.resetGlass();
+    this.myMuzzleT = null;
+    this.updateMyMuzzle(now);
+  }
+
+  // Draw this run's people (and guns, vests) once while they're still hidden.
+  warmPeople() {
+    const shown = [];
+    for (const p of this.people) for (const o of [p.obj, p.gun, p.vest, p.flash]) if (o && !o.visible) { o.visible = true; shown.push(o); }
+    this.post.render();
+    for (const o of shown) o.visible = false;
+  }
+
   // Ray-cast a shot. Returns a score object for Range/Game.
   hitTest(nx, ny) {
     const miss = { zone: 'Miss', points: 0, targetId: null, kind: null };
     if (!this.ready) return miss;
-    for (const p of this.people) for (const m of p.meshes) if (m.isSkinnedMesh) m.computeBoundingSphere();
+    for (const p of this.people) if (p.obj.visible) p.fitBounds();
     this.raycaster.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), this.camera);
     const panes = this.panes.filter(p => p.mesh.visible).map(p => p.mesh);
     const targets = [...this.people.filter(p => p.obj.visible).flatMap(p => p.meshes.filter(m => m.visible)), ...this.solids, ...panes];
@@ -708,11 +833,11 @@ export class OfficeView {
 
   // A pane shatters: it's gone, shards spray out along the round and fall,
   // and stay on the floor until the next run.
-  breakGlass(pane, point, dir) {
+  breakGlass(pane, point, dir, { silent = false } = {}) {
     if (!pane.mesh.visible) return;
     pane.mesh.visible = false;
     pane.extra.forEach(e => { e.visible = false; });
-    glassBreak();
+    if (!silent) glassBreak();
     const n = Math.round(40 + pane.w * pane.h * 25);
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.05, 0.01, 0, 0.015, 0.07, 0], 3));
@@ -816,7 +941,13 @@ export class OfficeRunner extends Runner {
     this.endAt = null;
     this.lastMs = 0;
     this.caption = '';
+    this.scan = 1;            // looking around (1) until someone appears, then still (0)
+    this.view.crouch = 0;     // standing
   }
+
+  // Take cover (hold X, the right mouse button or the Controller's Cover
+  // button): crouch behind the file cabinets ahead of you, once you're there.
+  setCover(on) { this.coverWanted = !!on; }
 
   start(nowMs) {
     if (this.busy || !this.view.ready) return;
@@ -831,6 +962,7 @@ export class OfficeRunner extends Runner {
     radioStatic();
     this.view.setPower(!this.opt.lightsOut);
     if (this.opt.alarm) { this.view.setAlarm(true); fireAlarm(true); } // someone pulled the fire alarm
+    this.view.warmPeople(); // no freeze when they first appear
     this.caption = 'Dispatch: “All units, shots fired at Northgate Office Center, 400 Main. Multiple armed suspects inside. Respond code 3.”';
     clearTimeout(this.callTimer);
     this.callTimer = setTimeout(() => say('All units, shots fired at Northgate Office Center. Multiple armed suspects inside. Respond code 3.'), 450);
@@ -863,20 +995,39 @@ export class OfficeRunner extends Runner {
     v.victimPool = bloodPool(v.scene, 1.55, -4.45);
     this.victim = victim;
 
-    const spots = shuffle([...PODS, ...OFFICES]);
+    // Where people can appear: only where they'd be fully on screen from
+    // where you stop (this screen's shape and field of view), and only the
+    // part of each place that is (xRange).
+    const cam = v.restCamera();
+    this.xRange = new Map();
+    for (const sp of [...PODS, ...OFFICES, ...COVERS]) {
+      const r = v.visibleRange(sp, cam);
+      if (r) this.xRange.set(sp, r);
+    }
+    const seen = sp => this.xRange.has(sp);
     const nGunmen = opt.gunmen || (Math.random() < 0.5 ? 2 : 3);
     const nInnocent = opt.innocents >= 0 ? opt.innocents : (Math.random() < 0.6 ? 1 : 2);
-    const hostageOffice = opt.hostage ? pick(OFFICES.filter(o => !spots.slice(0, nGunmen + nInnocent).includes(o))) : null;
+    const used = new Set();
+    const take = list => { const sp = shuffle(list).find(x => !used.has(x)); if (sp) used.add(sp); return sp; };
+    // The hostage pair waits in an office (off to the side if possible:
+    // they walk out into the aisle, in view).
+    const hostageOffice = opt.hostage ? (take(OFFICES.filter(o => !seen(o))) || take(OFFICES)) : null;
+    const pods = PODS.filter(seen), covers = COVERS.filter(seen), offices = OFFICES.filter(seen);
+    // One suspect (Setup) crouches behind cover and pops up to shoot; some
+    // behind cubicle walls fight the same way.
+    const peekAt = opt.peeker ? Math.floor(Math.random() * nGunmen) : -1;
     // Loadouts: one suspect with a rifle, one (another if possible) in armour.
     const rifleAt = opt.rifle ? Math.floor(Math.random() * nGunmen) : -1;
     const armorAt = opt.armor ? (nGunmen > 1 ? (rifleAt + 1 + Math.floor(Math.random() * (nGunmen - 1))) % nGunmen : 0) : -1;
     let t = rand(2.0, 3.5);
     for (let i = 0; i < nGunmen; i++) {
-      const spot = spots.shift();
-      if (spot === hostageOffice) { i--; continue; }
+      let spot = i === peekAt ? take(covers) || take(pods) : take([...pods, ...offices]);
+      spot ??= take(covers); // nothing else left on screen
+      if (!spot) break;
       const g = v.addPerson('man', 'gunman', { gun: i === rifleAt ? 'rifle' : 'pistol', vest: i === armorAt });
       this.hide(g, spot);
       g.id = 'gunman' + i;
+      g.peeker = spot.type === 'cover' || (spot.type === 'pod' && opt.peeker && (i === peekAt || Math.random() < O3.peek.podChance));
       // Some who step out of an office keep advancing on you.
       g.advances = spot.type === 'office' && Math.random() < 0.45;
       this.events.push({ t, person: g, spot, kind: 'gunman' });
@@ -884,9 +1035,8 @@ export class OfficeRunner extends Runner {
       t += rand(O3.gunmanGap[0], O3.gunmanGap[1]);
     }
     for (let i = 0; i < nInnocent; i++) {
-      const spot = spots.find(s => s.type === 'pod' && s !== hostageOffice);
+      const spot = take([...pods, ...covers]) || take(offices);
       if (!spot) break;
-      spots.splice(spots.indexOf(spot), 1);
       const w = v.addPerson('man', 'innocent');
       this.hide(w, spot);
       w.id = 'innocent' + i;
@@ -914,7 +1064,9 @@ export class OfficeRunner extends Runner {
 
   hide(p, spot) {
     p.spot = spot;
-    if (spot.type === 'pod') p.obj.position.set(spot.x + rand(-0.6, 0.6), -1.2, spot.z + rand(0, 0.45));
+    const [lo, hi] = this.xRange.get(spot) ?? [spot.x, spot.x];
+    if (spot.type === 'pod') p.obj.position.set(rand(lo, hi), -1.2, spot.z + rand(0, 0.45));
+    else if (spot.type === 'cover') p.obj.position.set(rand(lo, hi), -1.2, spot.z - 0.6);
     else p.obj.position.set(spot.x - 0.3, 0, -38.6);
     p.obj.visible = false;
   }
@@ -926,9 +1078,10 @@ export class OfficeRunner extends Runner {
     p.obj.visible = true;
     p.revealT = nowS;
     p.from = p.obj.position.clone();
-    p.to = ev.spot.type === 'pod'
-      ? new THREE.Vector3(p.from.x, 0, p.from.z)
-      : new THREE.Vector3(ev.spot.doorX + rand(-1.4, 0.6), 0, rand(-35.6, -34.0));
+    const [lo, hi] = this.xRange.get(ev.spot) ?? [ev.spot.doorX, ev.spot.doorX];
+    p.to = ev.spot.type === 'office'
+      ? new THREE.Vector3(rand(lo, hi), 0, rand(-35.6, -34.0)) // steps out to where he's in view
+      : new THREE.Vector3(p.from.x, 0, p.from.z);
     if (ev.spot.type === 'office') {
       // The door swings open first, then they step out.
       this.view.openDoor(ev.spot);
@@ -945,6 +1098,7 @@ export class OfficeRunner extends Runner {
       p.fireAt = p.revealT + p.moveTime + rand(fd, fd * 1.5);
       p.aimAt.copy(this.view.camera.position);
       p.pose = 'aim';
+      if (p.peeker) this.startPeek(p, nowS);
     } else if (p.flees) {
       // Stands up, then runs for the far corner of the room.
       p.pose = null;
@@ -969,14 +1123,20 @@ export class OfficeRunner extends Runner {
     if (this.phase === 'call' && t >= callT) this.phase = 'approach';
     const walkT = Math.max(0, t - callT);
     if (this.phase === 'room') {
+      // Scanning the room until someone shows, then holding still (so
+      // nobody drifts off the edge of the screen).
       const rt = nowS - this.roomT0;
-      yaw = Math.sin(rt * 0.45) * O().lookAround;
+      if (v.people.some(p => p.revealT != null)) this.scan = Math.max(0, this.scan - dt / O().lookAroundFade);
+      yaw = Math.sin(rt * 0.45) * O().lookAround * this.scan;
     }
+    // Your cover: crouch while it's wanted (only once you're behind it).
+    const wantDown = this.coverWanted && this.phase === 'room' ? 1 : 0;
+    v.crouch += THREE.MathUtils.clamp(wantDown - v.crouch, -dt / O().cover.time, dt / O().cover.time);
     const arrived = v.placeCamera(this.phase === 'call' ? 0 : walkT, yaw);
     if (this.phase === 'approach' && arrived) {
       this.phase = 'room';
       this.roomT0 = nowS;
-      this.caption = 'Clear the room. Engage only armed suspects.';
+      this.caption = 'Clear the room. Engage only armed suspects. Hold X (or the right mouse button) to take cover.';
     }
 
     // The wounded man: reaching up now and then, asking for help as you pass.
@@ -999,11 +1159,12 @@ export class OfficeRunner extends Runner {
     for (const p of v.people) {
       if (p.revealT == null || !p.to) continue;
       const k = Math.min(1, (nowS - p.revealT) / p.moveTime);
-      if (!p.fall) {
+      if (!p.fall && p.peek) this.applyPeek(p, nowS, dt);
+      else if (!p.fall) {
         p.obj.position.lerpVectors(p.from, p.to, THREE.MathUtils.smoothstep(k, 0, 1));
         p.obj.position.y -= p.sag || 0; // hostage sagging in the gunman's grip
         if (p.dodge) this.applyDodge(p, nowS);
-        if (p.role === 'innocent' && !p.flee && p.spot?.type === 'pod') this.applyHide(p, nowS, dt);
+        if (p.role === 'innocent' && !p.flee && p.spot?.type !== 'office') this.applyHide(p, nowS, dt);
       }
       if (k >= 1 && !p.fall && p.flee?.length) {
         // Running for the exit (then gone).
@@ -1040,8 +1201,16 @@ export class OfficeRunner extends Runner {
       for (const ev of this.events) if (!ev.done && rt >= ev.t) { ev.done = true; this.reveal(ev, nowS); }
 
       // Armed men who stay up keep firing at you until they're stopped.
+      const chest = new THREE.Vector3();
       for (const g of this.gunmen) {
         if (!g.live || g.down || g === this.hostagePair.taker || this.killedAt) continue;
+        // Nobody fires at you from off screen: he holds until he's in view.
+        (g.bones.Spine2 || g.obj).getWorldPosition(chest);
+        if (!v.inView(chest)) {
+          g.followAt = null;
+          if (nowS >= g.fireAt) g.fireAt = nowS + 0.25;
+          continue;
+        }
         if (g.followAt && nowS >= g.followAt) {
           g.followAt = null;
           g.fire(nowS);
@@ -1054,12 +1223,18 @@ export class OfficeRunner extends Runner {
           g.fire(nowS);
           v.gunFx(g);
           enemyShot({ indoor: true });
-          g.fireAt = nowS + rand(...O().refireDelay);
           this.lastShotS = nowS;
-          this.youAreHit(nowMs);
+          if (g.peek) {
+            g.peek.shots++;
+            g.peek.lastShot = nowS;
+            g.fireAt = nowS + rand(...O().peek.refire);
+          } else g.fireAt = nowS + rand(...O().refireDelay);
+          // Down behind your cover, the round hits the cabinets instead.
+          if (v.crouch > O().cover.safe) this.coverHit(g);
+          else this.youAreHit(nowMs);
           // Often a quick second round that misses: it cracks past and
           // ricochets off the wall beside you (doesn't count as a hit).
-          if (Math.random() < O().followUp.chance) g.followAt = nowS + rand(...O().followUp.delay);
+          if (!g.peek && Math.random() < O().followUp.chance) g.followAt = nowS + rand(...O().followUp.delay);
         }
       }
 
@@ -1107,6 +1282,65 @@ export class OfficeRunner extends Runner {
     if (this.endAt && nowMs >= this.endAt) this.finish();
   }
 
+  // You're down behind the cabinets: his round hits them (a hole, a puff,
+  // the clang and a ricochet), not you.
+  coverHit(g) {
+    const from = g.flash ? g.flash.getWorldPosition(new THREE.Vector3()) : g.obj.position.clone().setY(1.4);
+    this.view.coverImpact(from);
+    steelPing(O().cover.clang);
+    setTimeout(nearMiss, 40);
+  }
+
+  // A suspect behind waist-high cover (CONFIG office3d.peek): crouched out of
+  // sight, he rises until his head, shoulders and gun clear the top, aims,
+  // fires a round or two, ducks, moves along behind the cover while he's
+  // down, and comes up somewhere else.
+  startPeek(p, nowS) {
+    const [lo, hi] = this.xRange.get(p.spot) ?? [p.to.x, p.to.x];
+    p.from.copy(p.to);
+    p.moveTime = 0.001;
+    p.fireAt = Infinity;
+    p.peek = { phase: 'down', t0: nowS, until: nowS + rand(0.2, 0.6), lo, hi, x: p.to.x, nextX: p.to.x, shots: 0, want: 1, lastShot: 0 };
+  }
+
+  applyPeek(p, nowS, dt) {
+    const K = O().peek, s = p.peek, u = nowS - s.t0;
+    if (s.phase === 'down') {
+      // Crouch-walking to where he'll come up next.
+      const dx = s.nextX - s.x, step = K.shiftSpeed * dt;
+      s.x = Math.abs(dx) <= step ? s.nextX : s.x + Math.sign(dx) * step;
+      if (nowS >= s.until && s.x === s.nextX) { s.phase = 'rise'; s.t0 = nowS; }
+    } else if (s.phase === 'rise' && u >= K.rise) {
+      s.phase = 'up';
+      s.t0 = nowS;
+      s.shots = 0;
+      s.want = Math.round(rand(K.shots[0], K.shots[1]));
+      // The first time up counts as appearing (reaction time).
+      if (!s.shown) { s.shown = true; p.revealT = nowS; }
+      p.fireAt = nowS + this.opt.fireDelay * K.aimK * rand(...K.aim);
+    } else if (s.phase === 'up' && s.shots >= s.want && nowS >= s.lastShot + K.after) {
+      this.peekDuck(p, nowS);
+    } else if (s.phase === 'duck' && u >= K.duck) {
+      s.phase = 'down';
+      s.t0 = nowS;
+      s.until = nowS + rand(...K.downTime);
+      // Next time up at the other end of his cover (or anywhere, if it's short).
+      const mid = (s.lo + s.hi) / 2;
+      s.nextX = s.hi - s.lo < 0.4 ? rand(s.lo, s.hi) : s.x > mid ? rand(s.lo, mid) : rand(mid, s.hi);
+    }
+    const k = Math.min(1, u / (s.phase === 'rise' ? K.rise : K.duck));
+    const e = THREE.MathUtils.smoothstep(k, 0, 1);
+    const sink = { down: K.down, rise: K.down + (K.up - K.down) * e, up: K.up, duck: K.up + (K.down - K.up) * e }[s.phase];
+    p.obj.position.set(s.x, -sink, p.to.z);
+  }
+
+  // Back down behind the cover (after firing, or a round came close).
+  peekDuck(p, nowS) {
+    p.peek.phase = 'duck';
+    p.peek.t0 = nowS;
+    p.fireAt = Infinity;
+  }
+
   // A suspect's round hit you. At `lives` hits you're down and the run ends.
   youAreHit(nowMs) {
     this.hitsTaken++;
@@ -1137,7 +1371,7 @@ export class OfficeRunner extends Runner {
     p.hits = (p.hits || 0) + 1;
     if (score.bodyZone === 'Head' || p.hits >= O().stopHits) {
       p.live = false;
-      p.goDown(nowS, p.spot?.type === 'pod' ? 'drop' : 'back');
+      p.goDown(nowS, p.spot?.type === 'office' ? 'back' : 'drop');
       downCry(p, this.view.camera.position, score.bodyZone === 'Head');
       if (p === this.hostagePair.taker) {
         const h = this.hostagePair.hostage;
@@ -1185,7 +1419,9 @@ export class OfficeRunner extends Runner {
       (g.bones.Spine2 || g.obj).getWorldPosition(chest);
       ray.closestPointToPoint(chest, closest);
       if (closest.distanceTo(chest) > D.nearMiss || Math.random() > D.chance) continue;
-      if (g.spot?.type === 'pod') {
+      if (g.peek) {
+        if (g.peek.phase === 'up' || g.peek.phase === 'rise') this.peekDuck(g, now); // gets his head down
+      } else if (g.spot?.type === 'pod') {
         const time = rand(...D.duckTime);
         g.dodge = { kind: 'duck', t0: now, time };
         g.fireAt = Math.max(g.fireAt, now + time + rand(0.4, 0.9)); // can't shoot from down there
@@ -1267,6 +1503,16 @@ export class OfficeRunner extends Runner {
       g.textBaseline = 'middle';
       g.fillText(`HIT ${this.hitsTaken} OF ${this.opt.lives}`, W / 2, H * 0.45);
     }
+    // In cover: say so (the view is just the back of the cabinets).
+    if (this.state === State.Running && this.view.crouch > O().cover.safe) {
+      g.fillStyle = 'rgba(0,0,0,0.45)';
+      g.fillRect(W / 2 - H * 0.2, H * 0.03, H * 0.4, H * 0.07);
+      g.fillStyle = '#ffd24a';
+      g.font = `800 ${Math.round(H * 0.04)}px system-ui, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText('IN COVER', W / 2, H * 0.065);
+    }
     // Wounds: the screen edges redden with each hit taken.
     if (this.hitsTaken && this.state === State.Running) {
       const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.9);
@@ -1309,7 +1555,8 @@ export class OfficeRunner extends Runner {
       return head + lines.join('\n') + '\n' + footer;
     }
     return head + `<b>${this.course.name}</b>\n<span class="muted">${this.course.desc}</span>\n` +
-      `Armed suspects fire if left up ~${this.opt.fireDelay.toFixed(1)} s. ${O().stopHits} hits or a head hit stops them; body armour stops chest hits. You can take ${this.opt.lives} hit${this.opt.lives > 1 ? 's' : ''}.\n` + footer;
+      `Armed suspects fire if left up ~${this.opt.fireDelay.toFixed(1)} s. ${O().stopHits} hits or a head hit stops them; body armour stops chest hits. You can take ${this.opt.lives} hit${this.opt.lives > 1 ? 's' : ''}.\n` +
+      `Take cover: hold <kbd>X</kbd> or the right mouse button to crouch behind the file cabinets.\n` + footer;
   }
 }
 
@@ -1438,27 +1685,10 @@ function tex(canvas, repeat) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(repeat, repeat);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
   return t;
 }
 
-function canvasOf(size, draw) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  draw(c.getContext('2d'), size);
-  return c;
-}
-
-function noise(g, size, alpha, n = 4000) {
-  for (let i = 0; i < n; i++) {
-    g.fillStyle = `rgba(${Math.random() < 0.5 ? '0,0,0' : '255,255,255'},${Math.random() * alpha})`;
-    g.fillRect(Math.random() * size, Math.random() * size, 2, 2);
-  }
-}
-
-const concrete = () => canvasOf(256, (g, s) => { g.fillStyle = '#a7a39b'; g.fillRect(0, 0, s, s); noise(g, s, 0.12, 9000); g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 2; g.strokeRect(0, 0, s, s); });
-const tiles = (a, b, n) => canvasOf(256, (g, s) => { const k = s / n * 2; for (let y = 0; y < s; y += k) for (let x = 0; x < s; x += k) { g.fillStyle = (x + y) / k % 2 ? a : b; g.fillRect(x, y, k, k); } noise(g, s, 0.05); g.strokeStyle = 'rgba(0,0,0,0.18)'; for (let i = 0; i <= s; i += k) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, s); g.moveTo(0, i); g.lineTo(s, i); g.stroke(); } });
-// Acoustic ceiling tiles; a little emissive stands in for light bouncing off the floor.
 function signTexture(text) {
   const c = document.createElement('canvas');
   c.width = 1024; c.height = 144;

@@ -129,6 +129,8 @@
         <label class="check"><input type="checkbox" id="flip-var"> Variable timing (each plate's time up and the pause before it vary)</label>
       </div>
       <div id="life-row" hidden>
+        <label>3D graphics <select id="opt-quality"><option value="auto">Auto (lowers quality if frames get slow)</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low (fastest)</option></select></label>
+        <p class="note">Now: <output id="quality-now">–</output>. If the picture stutters, pick Medium or Low.</p>
         <label class="check"><input type="checkbox" id="opt-life"> Life-size 3D (match the camera to your screen)</label>
         <label>Projected image width <output id="life-screen-val"></output>
           <input type="range" id="life-screen"></label>
@@ -149,6 +151,7 @@
         <label class="check"><input type="checkbox" id="of-fleeing"> Some workers run for the exit</label>
         <label class="check"><input type="checkbox" id="of-voice"> Wounded man calls for help</label>
         <label class="check"><input type="checkbox" id="of-alarm"> Fire alarm going (strobes flash, horn sounds)</label>
+        <label class="check"><input type="checkbox" id="of-peeker"> A suspect crouches behind cover and pops up to shoot</label>
         <label class="check"><input type="checkbox" id="of-dark"> Power cut (ceiling lights off, emergency lights only)</label>
       </div>
       <div id="range3d-row" hidden>
@@ -231,6 +234,7 @@
         <tr><td><kbd>C</kbd></td><td>Calibrate the laser camera</td></tr>
         <tr><td><kbd>F</kbd></td><td>Fullscreen (use it on the projector)</td></tr>
         <tr><td><kbd>H</kbd></td><td>Hide or show the panels</td></tr>
+        <tr><td><kbd>X</kbd> (hold)</td><td>Office: take cover behind the file cabinets (or hold the right mouse button)</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>Cancel a run or close a panel</td></tr>
       </table>
       <h3>Laser setup, once per room</h3>

@@ -283,10 +283,8 @@ export class Judge3DView extends Lot3DView {
     const meshes = [];
     for (const p of this.people.values()) {
       if (p.char.down) continue;
-      for (const m of p.char.meshes) {
-        if (m.isSkinnedMesh) m.computeBoundingSphere();
-        meshes.push(m);
-      }
+      p.char.fitBounds();
+      meshes.push(...p.char.meshes);
     }
     this.raycaster.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), this.camera);
     const dir = this.raycaster.ray.direction.clone();

@@ -4,11 +4,16 @@
 // people stand), a faint bloom on bright light sources, then tone mapping and
 // SMAA anti-aliasing. Settings are in CONFIG.post.
 //
-//   const post = new Post(renderer, scene, camera);
+//   const post = new Post(renderer, scene, camera, { shadowLights, onResize });
 //   post.setSize(w, h);  post.render();     // instead of renderer.render(...)
 //
-// If frames get slow (average over CONFIG.post.checkFrames above slowMs) it
-// drops the ambient occlusion, then everything, and just renders plainly.
+// Quality (Setup -> 3D graphics, CONFIG.post.quality): CONFIG.post.steps lists the
+// levels from best to fastest (ambient occlusion, bloom, resolution cap,
+// shadow map size). 'high' / 'medium' / 'low' pick one; 'auto' starts at the
+// best and steps down whenever frames average slower than slowMs.
+// Every level renders through the same composer, so switching never changes
+// the scene's shaders (rendering straight to the screen instead would
+// recompile every material: a freeze of a second or more mid-run).
 
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -22,11 +27,12 @@ import { CONFIG } from './config.js';
 const P = () => CONFIG.post;
 
 export class Post {
-  constructor(renderer, scene, camera) {
+  constructor(renderer, scene, camera, { shadowLights = [], onResize = null } = {}) {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
-    this.level = P().enabled ? 2 : 0; // 2 = AO + bloom, 1 = bloom only, 0 = plain
+    this.shadowLights = shadowLights;
+    this.onResize = onResize; // called after a resolution change
     const size = renderer.getSize(new THREE.Vector2());
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
@@ -55,15 +61,35 @@ export class Post {
     this.smaa = new SMAAPass(size.x * renderer.getPixelRatio(), size.y * renderer.getPixelRatio());
     composer.addPass(this.smaa);
     this.composer = composer;
-    this.frames = 0;
-    this.sum = 0;
-    this.last = 0;
+    this.reset();
+  }
+
+  // Back to the level the chosen quality starts at.
+  reset() {
+    this.step = P().enabled ? (P().modes[P().quality] ?? 0) : P().steps.length - 1;
+    this.frames = this.sum = this.last = 0;
     this.apply();
   }
 
   apply() {
-    this.ao.enabled = this.level >= 2;
-    this.bloom.enabled = this.level >= 1;
+    const s = P().steps[this.step];
+    this.ao.enabled = s.ao;
+    this.bloom.enabled = s.bloom;
+    const dpr = Math.min(window.devicePixelRatio || 1, s.dpr);
+    if (Math.abs(this.renderer.getPixelRatio() - dpr) > 0.01) {
+      this.renderer.setPixelRatio(dpr);
+      const size = this.renderer.getSize(new THREE.Vector2());
+      this.setSize(size.x, size.y);
+      this.onResize?.();
+    }
+    for (const l of this.shadowLights) {
+      if (l.shadow.mapSize.x === s.shadow) continue;
+      l.shadow.mapSize.set(s.shadow, s.shadow);
+      l.shadow.map?.dispose();
+      l.shadow.map = null; // made again at the new size (no shader change)
+      l.shadow.needsUpdate = true;
+    }
+    this.levelName = s.name;
   }
 
   setSize(w, h) {
@@ -71,18 +97,31 @@ export class Post {
     this.composer.setSize(w, h);
   }
 
+  // Auto: step down to the next level that actually saves something.
+  slower() {
+    const steps = P().steps, cur = steps[this.step], dprNow = this.renderer.getPixelRatio();
+    for (let i = this.step + 1; i < steps.length; i++) {
+      const s = steps[i];
+      if (s.ao !== cur.ao || s.bloom !== cur.bloom || s.shadow !== cur.shadow || Math.min(window.devicePixelRatio || 1, s.dpr) < dprNow - 0.01) {
+        this.step = i;
+        this.apply();
+        return;
+      }
+    }
+    this.step = steps.length - 1;
+  }
+
   render() {
     const now = performance.now();
-    if (this.last) {
+    if (this.last && P().quality === 'auto') {
       const dt = now - this.last;
       if (dt < 250) { this.sum += dt; this.frames++; }
       if (this.frames >= P().checkFrames) {
-        if (this.sum / this.frames > P().slowMs && this.level > 0) { this.level--; this.apply(); }
+        if (this.sum / this.frames > P().slowMs && this.step < P().steps.length - 1) this.slower();
         this.frames = this.sum = 0;
       }
     }
     this.last = now;
-    if (this.level === 0) this.renderer.render(this.scene, this.camera);
-    else this.composer.render();
+    this.composer.render();
   }
 }

@@ -47,6 +47,7 @@ const settings = Object.assign({
   rangeTime: 'day',   // 3D range time of day: day / morning / evening
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
+  quality: 'auto',    // 3D graphics: auto | high | medium | low (CONFIG.post)
   screenIn: CONFIG.lifeSize.screenWidthIn.default,
   viewFt: CONFIG.lifeSize.distanceFt.default,
   flipSpeed: 1,       // flip grid: plate spin / pace multiplier (CONFIG.flip.speed)
@@ -55,6 +56,7 @@ const settings = Object.assign({
   volAmb: 1,          // background sound volume (Setup slider)
   soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
 }, load(CONFIG.storage.settings, {}));
+CONFIG.post.quality = settings.quality; // 3D graphics (read by post3d.js)
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
 if (typeof settings.dist3d === 'number') {
@@ -290,19 +292,32 @@ function lifeFov() {
 const THREE_DEG = 180 / Math.PI;
 function resize3D() {
   const fov = lifeFov();
+  CONFIG.post.quality = settings.quality;
   for (const v of new Set(Object.values(views3d))) {
     v.fovOverride = fov;
+    // Views without the effects pipeline: cap their resolution by the chosen
+    // quality (once per change, so the 3D range's own step-down stays).
+    if (!v.post && v.renderer && v.qualitySet !== settings.quality) {
+      v.qualitySet = settings.quality;
+      const P = CONFIG.post, cap = P.steps[P.modes[settings.quality] ?? 0].dpr;
+      v.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2, cap));
+    }
     v.resize(window.innerWidth, window.innerHeight);
   }
 }
 
 canvas.addEventListener('pointerdown', e => {
+  if (e.button === 2) { active().setCover?.(true); return; } // hold the right button: take cover (office)
   if (e.button !== 0) return;
   unlockAudio();
   if (!settings.mouseShots) return;
   shoot(e.clientX / window.innerWidth, e.clientY / window.innerHeight, performance.now(), 'mouse');
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerup', e => { if (e.button === 2) active().setCover?.(false); });
+// Letting go of X ends cover (so does leaving the window).
+window.addEventListener('keyup', e => { if (e.key.toLowerCase() === 'x') active().setCover?.(false); });
+window.addEventListener('blur', () => active().setCover?.(false));
 // On touch screens (iPad) only the END of a tap counts as a user gesture for
 // starting audio, so unlock there too.
 window.addEventListener('pointerup', unlockAudio);
@@ -357,6 +372,7 @@ function inputLabel() {
 let lastFrame = performance.now();
 function frame(now) {
   const dt = Math.min(0.1, (now - lastFrame) / 1000);
+  if (now > lastFrame) fpsAvg += (1000 / (now - lastFrame) - fpsAvg) * 0.05;
   lastFrame = now;
 
   active().update(now);
@@ -396,7 +412,7 @@ function frame(now) {
   setHUD('drill', active().panelHTML(now));
   setHUD('start', active().busy ? 'Stop <kbd>Esc</kbd>' : 'Start <kbd>Space</kbd>');
 
-  if (!$('#setup').hidden || remote?.connected) updateCameraStatus();
+  if (!$('#setup').hidden || remote?.connected) { updateCameraStatus(); updateQualityStatus(); }
   remote?.tick(now);
   requestAnimationFrame(frame);
 }
@@ -572,6 +588,7 @@ window.addEventListener('keydown', e => {
     v: () => actions.review(),
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
+    x: () => active().setCover?.(true), // hold: take cover (office)
     Escape: () => {
       if (!$('#setup').hidden) closeSetup();
       else if (active().busy) { active().cancel(); toast('Run cancelled.'); }
@@ -729,6 +746,7 @@ const officeCtl = {
   fleeing: ['#of-fleeing', el => el.checked],
   victimVoice: ['#of-voice', el => el.checked],
   alarm: ['#of-alarm', el => el.checked],
+  peeker: ['#of-peeker', el => el.checked],
   lightsOut: ['#of-dark', el => el.checked],
 };
 for (const [key, [sel, read]] of Object.entries(officeCtl)) {
@@ -752,11 +770,27 @@ function refreshOffice() {
   for (const k of ['rifle', 'armor', 'hostage', 'fleeing']) $(officeCtl[k][0]).checked = o[k];
   $('#of-voice').checked = o.victimVoice;
   $('#of-alarm').checked = o.alarm;
+  $('#of-peeker').checked = o.peeker;
   $('#of-dark').checked = o.lightsOut;
 }
 
 // Life-size 3D.
 $('#opt-life').onchange = e => { settings.lifeSize = e.target.checked; persist(); resize3D(); refreshSetup(); };
+// 3D graphics quality (CONFIG.post): the office's effects and every 3D view's resolution.
+$('#opt-quality').onchange = e => {
+  settings.quality = e.target.value;
+  persist();
+  resize3D();
+  for (const v of new Set(Object.values(views3d))) v.post?.reset();
+  refreshSetup();
+};
+// Frames per second (smoothed) and the office's current effects level, for Setup.
+let fpsAvg = 0;
+function updateQualityStatus() {
+  const v = views3d[range.layout];
+  const level = v?.post ? ` · ${v.post.levelName}` : '';
+  $('#quality-now').textContent = v?.ready ? `${Math.round(fpsAvg)} fps${level}` : '–';
+}
 $('#life-screen').oninput = e => { settings.screenIn = Number(e.target.value); persist(); resize3D(); refreshSetup(); };
 $('#life-dist').oninput = e => { settings.viewFt = Number(e.target.value); persist(); resize3D(); refreshSetup(); };
 function refreshLife() {
@@ -767,6 +801,7 @@ function refreshLife() {
     el.disabled = !settings.lifeSize;
   }
   $('#opt-life').checked = settings.lifeSize;
+  $('#opt-quality').value = settings.quality;
   $('#life-screen-val').textContent = `${settings.screenIn} in (${Math.round(settings.screenIn * 2.54)} cm)`;
   $('#life-dist-val').textContent = `${settings.viewFt} ft (${(settings.viewFt * 0.3048).toFixed(1)} m)`;
 }
@@ -1039,6 +1074,8 @@ if (remote) {
       actions[m.name]();
     } else if (m.t === 'key') {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, shiftKey: !!m.shiftKey }));
+    } else if (m.t === 'cover') {
+      active().setCover?.(!!m.on);
     } else if (m.t === 'course') {
       selectCourse(m.index);
     } else if (m.t === 'input') {

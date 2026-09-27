@@ -17,6 +17,8 @@ button:disabled { opacity: 0.4; }
 .row > button { flex: 1; }
 .big { display: block; width: 100%; min-height: 84px; font-size: 28px; font-weight: 700; margin: 12px 0; background: #1f6f3a; border-color: #2b8c4b; }
 .big.stop { background: #8a2626; border-color: #a83434; }
+#cover-btn { display: block; width: 100%; min-height: 64px; font-size: 22px; margin: 0 0 12px; touch-action: none; user-select: none; -webkit-user-select: none; }
+#cover-btn.held { background: #6b5a1f; border-color: #a88a2b; }
 #course b { display: block; font-size: 20px; }
 #course span { color: var(--muted); font-size: 14px; }
 .panel { white-space: pre-line; background: #1a1e23; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; min-height: 40px; font-variant-numeric: tabular-nums; }

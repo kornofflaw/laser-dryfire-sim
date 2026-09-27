@@ -54,6 +54,13 @@ document.addEventListener('click', e => {
   if (b.dataset.key) send({ t: 'key', key: b.dataset.key, shiftKey: !!b.dataset.shift });
 });
 
+// Office: take cover while the button is held down.
+const coverBtn = $('#cover-btn');
+const setCover = on => { if (coverBtn.held !== on) { coverBtn.held = on; coverBtn.classList.toggle('held', on); send({ t: 'cover', on }); } };
+coverBtn.addEventListener('pointerdown', e => { e.preventDefault(); coverBtn.setPointerCapture?.(e.pointerId); setCover(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) coverBtn.addEventListener(ev, () => setCover(false));
+coverBtn.addEventListener('contextmenu', e => e.preventDefault());
+
 // ---- course picker ------------------------------------------------------------------
 $('#courses-btn').onclick = () => { renderCourses(); $('#courses').hidden = false; };
 $('#courses-close').onclick = () => { $('#courses').hidden = true; };

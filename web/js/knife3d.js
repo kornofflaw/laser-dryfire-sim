@@ -498,6 +498,7 @@ export class Lot3DView {
     this.knife = knife;
     for (const m of c.meshes) m.userData.surface = 'man';
     this.manMeshes = c.meshes;
+    this.manChar = c;
     this.man.position.set(0, 0, -9.1); // waiting at ~30 ft until a run starts
     this.scene.add(this.man);
   }
@@ -567,7 +568,7 @@ export class Lot3DView {
   // Ray from a normalized screen point. Returns a score-like object.
   hitTest(nx, ny, threat) {
     if (!this.ready) return { zone: 'Miss', points: 0, targetId: null, kind: null };
-    for (const m of this.manMeshes) if (m.isSkinnedMesh) m.computeBoundingSphere();
+    this.manChar?.fitBounds();
     this.raycaster.setFromCamera(new THREE.Vector2(nx * 2 - 1, -(ny * 2 - 1)), this.camera);
     const hits = this.raycaster.intersectObjects([...this.manMeshes, ...this.solids, this.ground], true);
     const h = hits.find(x => x.object.visible !== false && x.object.material?.visible !== false);

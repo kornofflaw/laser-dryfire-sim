@@ -1,11 +1,15 @@
 // interior3d.js — building blocks for realistic 3D interiors (office3d.js).
 // ---------------------------------------------------------------------------
-// Everything is drawn in code: canvas textures (carpet tiles, acoustic
-// ceiling tiles, painted drywall, cubicle fabric, wood veneer, screens,
-// whiteboard) and small models built from boxes and cylinders with physically
-// based materials. Units are metres.
+// Everything is drawn in code: canvas textures generated from tileable
+// noise at about 1 mm a pixel (carpet tiles, fissured ceiling tiles, painted
+// drywall, woven cubicle fabric, wood, stone and vinyl floor tiles, concrete,
+// screens, whiteboard) and small models built from boxes and cylinders with
+// physically based materials. Units are metres.
 //
-//   makeMaterials()                  the shared material set
+//   makeMaterials()                  the shared material set (userData.tile:
+//                                    metres per repeat, for worldUV)
+//   worldUV(geo, w, h, d, tile)      real-size texture on a box of any size
+//   lateralFiles(M, opts)            a row of steel file cabinets (cover)
 //   door(M, opts)                    framed door with a swinging leaf
 //   workstation(M, opts)             desk, pedestal, monitors, keyboard, chair...
 //   taskChair(M), plant(M), whiteboard(M), wallClock(M), exitSign(M),
@@ -33,7 +37,7 @@ function texture(c, { repeat = [1, 1], srgb = true } = {}) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(...repeat);
-  t.anisotropy = 8;
+  t.anisotropy = 16; // (the GPU's maximum if lower) floors and ceilings stay sharp at a slant
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
@@ -43,159 +47,211 @@ function rng(seed) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-// A normal map from a greyscale height canvas (Sobel).
-function normalFrom(c, strength = 2) {
-  const w = c.width, h = c.height;
-  const src = c.getContext('2d').getImageData(0, 0, w, h).data;
-  const [n, g] = canvas(w, h);
-  const out = g.createImageData(w, h);
-  const H = (x, y) => src[(((y + h) % h) * w + ((x + w) % w)) * 4] / 255;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const dx = (H(x + 1, y) - H(x - 1, y)) * strength, dy = (H(x, y + 1) - H(x, y - 1)) * strength;
-    const l = Math.hypot(dx, dy, 1), i = (y * w + x) * 4;
-    out.data[i] = (-dx / l * 0.5 + 0.5) * 255;
-    out.data[i + 1] = (dy / l * 0.5 + 0.5) * 255;
-    out.data[i + 2] = (1 / l * 0.5 + 0.5) * 255;
-    out.data[i + 3] = 255;
-  }
-  g.putImageData(out, 0, 0);
-  return n;
+// ---- procedural noise (tileable) ----------------------------------------------------
+// Value noise on a px x py lattice that wraps around, so the textures tile.
+function lattice(px, py, seed) {
+  const r = rng(seed), v = new Float32Array(px * py);
+  for (let i = 0; i < v.length; i++) v[i] = r();
+  return (x, y) => {
+    const xf = Math.floor(x), yf = Math.floor(y), fx = x - xf, fy = y - yf;
+    const x0 = ((xf % px) + px) % px, y0 = ((yf % py) + py) % py;
+    const x1 = x0 + 1 === px ? 0 : x0 + 1, y1 = y0 + 1 === py ? 0 : y0 + 1;
+    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = v[y0 * px + x0], b = v[y0 * px + x1], c = v[y1 * px + x0], d = v[y1 * px + x1];
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  };
 }
 
-// Carpet tiles: 50 cm squares laid quarter-turned, each with a directional
-// loop-pile texture. One canvas = 1 m (2 x 2 tiles).
+// Fractal noise over a W x H texture (0..1, tiles): `cells` lattice cells
+// across at the coarsest octave, doubling each octave, each `gain` as strong.
+function fbm(W, H, cells, octaves, seed, gain = 0.5) {
+  const out = new Float32Array(W * H);
+  let amp = 1, total = 0;
+  for (let o = 0; o < octaves; o++) {
+    const cx = cells * 2 ** o, cy = Math.max(1, Math.round(cx * H / W));
+    const n = lattice(cx, cy, seed + o * 101), kx = cx / W, ky = cy / H;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) out[y * W + x] += n(x * kx, y * ky) * amp;
+    total += amp;
+    amp *= gain;
+  }
+  for (let i = 0; i < out.length; i++) out[i] /= total;
+  return out;
+}
+
+// White noise per pixel (integer hash), 0..1.
+function hash(x, y, s = 0) {
+  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+// A canvas filled pixel by pixel: fn(x, y, data, i) writes data[i..i+2].
+function paint(W, H, fn) {
+  const [c, g] = canvas(W, H);
+  const img = g.createImageData(W, H), d = img.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    fn(x, y, d, i);
+    d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
+// A normal map from a height field (0..1, wraps at the edges).
+function normalMap(W, H, hgt, strength) {
+  return paint(W, H, (x, y, d, i) => {
+    const xl = x ? x - 1 : W - 1, xr = x + 1 === W ? 0 : x + 1, yu = y ? y - 1 : H - 1, yd = y + 1 === H ? 0 : y + 1;
+    const dx = (hgt[y * W + xr] - hgt[y * W + xl]) * strength, dy = (hgt[yd * W + x] - hgt[yu * W + x]) * strength;
+    const l = Math.hypot(dx, dy, 1);
+    d[i] = (-dx / l * 0.5 + 0.5) * 255;
+    d[i + 1] = (dy / l * 0.5 + 0.5) * 255;
+    d[i + 2] = (1 / l * 0.5 + 0.5) * 255;
+  });
+}
+
+// '#rrggbb' -> [r, g, b] 0..255 as written (the canvas is sRGB already).
+const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+// Carpet tiles: 50 cm squares laid quarter-turned, heathered loop pile
+// (rows of loops ~3 mm apart), a little soiling. One texture = 1 m (2 x 2
+// tiles) at 1 mm a pixel.
 function carpetCanvases() {
-  const S = 512, r = rng(3);
-  const [c, g] = canvas(S);
-  const [hc, hg] = canvas(S);
-  g.fillStyle = '#50565e';
-  g.fillRect(0, 0, S, S);
-  hg.fillStyle = '#808080';
-  hg.fillRect(0, 0, S, S);
-  const T = S / 2;
-  for (let ty = 0; ty < 2; ty++) for (let tx = 0; tx < 2; tx++) {
-    const vertical = (tx + ty) % 2 === 0;
-    for (let i = 0; i < 2600; i++) {
-      const x = tx * T + r() * T, y = ty * T + r() * T, len = 3 + r() * 6;
-      const v = r();
-      g.strokeStyle = v < 0.5 ? `rgba(30,34,40,${0.25 + r() * 0.3})` : `rgba(120,128,138,${0.15 + r() * 0.25})`;
-      hg.strokeStyle = v < 0.5 ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)';
-      g.lineWidth = hg.lineWidth = 1.2;
-      for (const [cx, col] of [[g, 0], [hg, 1]]) {
-        cx.beginPath();
-        if (vertical) { cx.moveTo(x, y); cx.lineTo(x, y + len); } else { cx.moveTo(x, y); cx.lineTo(x + len, y); }
-        cx.stroke();
-      }
-    }
-    // Tile seams.
-    g.strokeStyle = 'rgba(15,17,20,0.5)';
-    g.lineWidth = 1;
-    g.strokeRect(tx * T + 0.5, ty * T + 0.5, T - 1, T - 1);
-    hg.strokeStyle = '#000';
-    hg.strokeRect(tx * T + 0.5, ty * T + 0.5, T - 1, T - 1);
-  }
-  return [c, normalFrom(hc, 1.5)];
+  const S = 1024, T = S / 2;
+  const low = fbm(S, S, 3, 3, 301), mid = fbm(S, S, 48, 2, 302);
+  const yarn = [rgb('#4d545d'), rgb('#5d6570'), rgb('#3c4148'), rgb('#7b848f')];
+  const h = new Float32Array(S * S);
+  const col = paint(S, S, (x, y, d, i) => {
+    const k = y * S + x, turned = ((x < T ? 0 : 1) + (y < T ? 0 : 1)) % 2 === 1;
+    const u = turned ? y : x, w = turned ? x : y;              // across the rows / along them
+    const rib = 0.5 + 0.5 * Math.cos(u * 2.1);
+    const loop = 0.5 + 0.5 * Math.cos(w * 2.4 + (u >> 2) * 1.7);
+    const seam = x % T < 2 || y % T < 2 ? 0.6 : 1;
+    const ht = rib * (0.55 + 0.45 * loop) * (0.75 + 0.25 * hash(x, y, 7)) * (0.8 + 0.4 * mid[k]) * seam;
+    h[k] = ht;
+    const pick = hash(x >> 1, y >> 1, 11);                     // heathered yarn, 2 mm flecks
+    const c = yarn[pick < 0.45 ? 0 : pick < 0.8 ? 1 : pick < 0.97 ? 2 : 3];
+    const tone = (0.78 + 0.34 * ht) * (0.9 + 0.2 * low[k]) * (turned ? 0.96 : 1.03) * seam;
+    d[i] = c[0] * tone; d[i + 1] = c[1] * tone; d[i + 2] = c[2] * tone;
+  });
+  return [col, normalMap(S, S, h, 3)];
 }
 
-// Acoustic ceiling tile, 60 x 60 cm with the metal T-grid on two edges.
+// Acoustic ceiling tile, 60 x 60 cm: fissured mineral fibre with pinholes,
+// the white T-grid on two edges and a shadowed tile edge beside it.
 function ceilingCanvases() {
-  const S = 256, r = rng(7);
-  const [c, g] = canvas(S);
-  const [hc, hg] = canvas(S);
-  g.fillStyle = '#e9e8e3';
-  g.fillRect(0, 0, S, S);
-  hg.fillStyle = '#c0c0c0';
-  hg.fillRect(0, 0, S, S);
-  for (let i = 0; i < 1400; i++) {
-    const x = r() * S, y = r() * S, rad = 0.6 + r() * 1.6;
-    g.fillStyle = `rgba(120,118,110,${0.15 + r() * 0.25})`;
-    g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
-    hg.fillStyle = 'rgba(0,0,0,0.6)';
-    hg.beginPath(); hg.arc(x, y, rad, 0, Math.PI * 2); hg.fill();
-  }
-  // T-grid (white painted steel), with a groove beside it.
-  g.fillStyle = '#f4f4f1';
-  g.fillRect(0, 0, S, 7);
-  g.fillRect(0, 0, 7, S);
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  g.fillRect(0, 7, S, 2);
-  g.fillRect(7, 0, 2, S);
-  hg.fillStyle = '#fff';
-  hg.fillRect(0, 0, S, 7);
-  hg.fillRect(0, 0, 7, S);
-  hg.fillStyle = '#000';
-  hg.fillRect(0, 7, S, 3);
-  hg.fillRect(7, 0, 3, S);
-  return [c, normalFrom(hc, 2.5)];
+  const S = 512, G = 17;
+  const tone = fbm(S, S, 4, 3, 401), fis = fbm(S, S, 20, 3, 402), fine = fbm(S, S, 96, 1, 403);
+  const h = new Float32Array(S * S);
+  const col = paint(S, S, (x, y, d, i) => {
+    const k = y * S + x, grid = x < G || y < G, edge = !grid && (x < G + 4 || y < G + 4);
+    const r = 1 - Math.abs(2 * fis[k] - 1), crack = r > 0.95 ? (r - 0.95) / 0.05 : 0;
+    const pin = !grid && hash(x, y, 5) < 0.006;
+    h[k] = grid ? 1 : 0.8 - crack * 0.5 - (pin ? 0.3 : 0) + (fine[k] - 0.5) * 0.08 - (edge ? 0.2 : 0);
+    const v = grid ? 247 : (233 + (tone[k] - 0.5) * 14 + (fine[k] - 0.5) * 10) * (1 - crack * 0.28) * (pin ? 0.8 : 1) * (edge ? 0.88 : 1);
+    d[i] = v; d[i + 1] = v * 0.995; d[i + 2] = v * 0.975;
+  });
+  return [col, normalMap(S, S, h, 2.5)];
 }
 
-// Painted drywall: faint roller texture (a normal map only).
-function drywallNormal() {
-  const S = 256, r = rng(11);
-  const [c, g] = canvas(S);
-  g.fillStyle = '#808080';
-  g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 6000; i++) {
-    g.fillStyle = r() < 0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-    const s = 1 + r() * 3;
-    g.fillRect(r() * S, r() * S, s, s);
-  }
-  return normalFrom(c, 1.2);
+// Painted drywall, 1 m: faint blotches in the paint (a near-white map the
+// wall colour multiplies) and a fine roller "orange peel" (normal map).
+function drywallCanvases() {
+  const S = 512;
+  const blot = fbm(S, S, 3, 3, 501), peel = fbm(S, S, 128, 2, 502, 0.6);
+  const col = paint(S, S, (x, y, d, i) => {
+    const k = y * S + x, v = 247 + (blot[k] - 0.5) * 14 + (peel[k] - 0.5) * 6;
+    d[i] = d[i + 1] = d[i + 2] = v;
+  });
+  return [col, normalMap(S, S, peel, 1.6)];
 }
 
-// Woven panel fabric.
+// Cubicle panel fabric, 50 cm: a plain weave of ~1.5 mm heathered threads.
 function fabricCanvases(color) {
-  const S = 256, r = rng(19);
-  const [c, g] = canvas(S);
-  const [hc, hg] = canvas(S);
-  g.fillStyle = color;
-  g.fillRect(0, 0, S, S);
-  for (let y = 0; y < S; y += 2) for (let x = 0; x < S; x += 2) {
-    const up = ((x >> 1) + (y >> 1)) % 2 === 0;
-    const k = 0.05 + r() * 0.08;
-    g.fillStyle = up ? `rgba(255,255,255,${k})` : `rgba(0,0,0,${k})`;
-    g.fillRect(x, y, 2, 2);
-    hg.fillStyle = up ? '#aaa' : '#555';
-    hg.fillRect(x, y, 2, 2);
-  }
-  return [c, normalFrom(hc, 1)];
+  const S = 512, base = rgb(color);
+  const cloud = fbm(S, S, 6, 3, 601);
+  const h = new Float32Array(S * S);
+  const col = paint(S, S, (x, y, d, i) => {
+    const k = y * S + x, cx = (x / 3) | 0, cy = (y / 3) | 0, over = (cx + cy) % 2 === 0;
+    const across = over ? y % 3 : x % 3;                        // position across the thread
+    const round = 1 - Math.abs(across - 1) * 0.5;
+    const shade = hash(over ? cy : cx, over ? cx >> 2 : cy >> 2, over ? 13 : 17); // each thread's own shade, varying along it
+    const fleck = hash(cx, cy, 19) < 0.03 ? 1.18 : 1;
+    h[k] = (over ? 0.8 : 0.45) * round;
+    const t = (0.88 + 0.18 * shade) * (0.94 + 0.12 * cloud[k]) * (0.87 + 0.18 * round) * fleck;
+    d[i] = base[0] * t; d[i + 1] = base[1] * t; d[i + 2] = base[2] * t;
+  });
+  return [col, normalMap(S, S, h, 1.2)];
+}
+
+// Wood: growth lines warped by noise, darker latewood, fine pores along the
+// grain. Lines run along x (or y with along: 'y').
+function woodCanvas(W, H, light, dark, seed, { along = 'x', lines = 18, warp = 2.5 } = {}) {
+  const n = fbm(W, H, 4, 3, seed), pore = fbm(W, H, along === 'x' ? 96 : 12, 2, seed + 7);
+  const a = rgb(light), b = rgb(dark);
+  return paint(W, H, (x, y, d, i) => {
+    const k = y * W + x, across = along === 'x' ? y / H : x / W;
+    const g = Math.pow(0.5 + 0.5 * Math.sin((across * lines + n[k] * warp) * Math.PI * 2), 6);
+    const c = mix(a, b, Math.max(0, Math.min(1, g * 0.4 + (pore[k] - 0.5) * 0.3 + (n[k] - 0.5) * 0.2 + 0.15)));
+    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+  });
 }
 
 // Wood veneer with long straight grain (doors, desks in private offices).
 function veneerCanvas(base, dark) {
-  const W = 256, H = 1024, r = rng(23);
-  const [c, g] = canvas(W, H);
-  g.fillStyle = base;
-  g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 260; i++) {
-    let x = r() * W;
-    const a = 0.04 + r() * 0.12, w = 0.6 + r() * 2.4;
-    g.strokeStyle = `rgba(${dark},${a})`;
-    g.lineWidth = w;
-    g.beginPath();
-    g.moveTo(x, 0);
-    for (let y = 0; y <= H; y += 32) { x += (r() - 0.5) * 2.2; g.lineTo(x, y); }
-    g.stroke();
-  }
-  return c;
+  return woodCanvas(256, 1024, base, dark, 23, { along: 'y', lines: 36, warp: 0.7 });
 }
 
 // Light maple laminate for work surfaces.
 function laminateCanvas() {
-  const [c, g] = canvas(512, 256);
-  const r = rng(29);
-  g.fillStyle = '#d6c4a4';
-  g.fillRect(0, 0, 512, 256);
-  for (let i = 0; i < 180; i++) {
-    let y = r() * 256;
-    g.strokeStyle = `rgba(150,110,70,${0.05 + r() * 0.08})`;
-    g.lineWidth = 0.5 + r() * 1.5;
-    g.beginPath();
-    g.moveTo(0, y);
-    for (let x = 0; x <= 512; x += 32) { y += (r() - 0.5) * 1.5; g.lineTo(x, y); }
-    g.stroke();
-  }
-  return c;
+  return woodCanvas(1024, 512, '#dac9a9', '#b59670', 29, { along: 'x', lines: 30, warp: 1.2 });
+}
+
+// Polished stone floor tiles (the lobby): 50 cm tiles, 4 x 4 per 2 m
+// texture; each tile its own shade and veining, thin grout lines.
+export function stoneTileCanvas(a, b) {
+  const S = 1024, T = S / 4;
+  const cloud = fbm(S, S, 8, 4, 701), vein = fbm(S, S, 6, 4, 702);
+  const A = rgb(a), B2 = rgb(b);
+  return paint(S, S, (x, y, d, i) => {
+    const tx = (x / T) | 0, ty = (y / T) | 0;
+    // Each tile samples the noise somewhere else, so no two match.
+    const ox = (x + tx * 311 + ty * 157) % S, oy = (y + ty * 263 + tx * 97) % S, k = oy * S + ox;
+    const grout = x % T < 2 || y % T < 2;
+    const r = 1 - Math.abs(2 * vein[k] - 1), v = r > 0.975 ? (r - 0.975) / 0.025 : 0;
+    const c = mix(A, B2, hash(tx, ty, 3) * 0.6 + cloud[k] * 0.4);
+    const t = grout ? 0.66 : (0.94 + (cloud[k] - 0.5) * 0.1) * (1 - v * 0.09);
+    d[i] = c[0] * t; d[i + 1] = c[1] * t; d[i + 2] = c[2] * t;
+  });
+}
+
+// Vinyl composition tile (the hallway): 30 cm tiles, 4 x 4 per 1.2 m, with
+// the typical chips of colour.
+export function vinylTileCanvas(a, b) {
+  const S = 1024, T = S / 4;
+  const cloud = fbm(S, S, 16, 3, 801);
+  const A = rgb(a), B2 = rgb(b);
+  return paint(S, S, (x, y, d, i) => {
+    const tx = (x / T) | 0, ty = (y / T) | 0, k = y * S + x;
+    const seam = x % T < 2 || y % T < 2;
+    const chip = hash(x >> 2, y >> 2, tx * 7 + ty);
+    const c = (tx + ty) % 2 ? A : B2;
+    const t = seam ? 0.7 : (0.94 + (cloud[k] - 0.5) * 0.12) * (chip < 0.08 ? 0.82 : chip > 0.94 ? 1.12 : 1);
+    d[i] = c[0] * t; d[i + 1] = c[1] * t; d[i + 2] = c[2] * t;
+  });
+}
+
+// Broom-finished concrete with expansion joints (outside), 2 m.
+export function concreteCanvas() {
+  const S = 512;
+  const cloud = fbm(S, S, 6, 5, 901), streak = fbm(S, S, 4, 2, 902);
+  return paint(S, S, (x, y, d, i) => {
+    const k = y * S + x, joint = x < 3 || y < 3;
+    const broom = 0.5 + 0.5 * Math.sin(y * 1.9 + streak[k] * 8);
+    const t = joint ? 0.55 : 0.86 + (cloud[k] - 0.5) * 0.24 + (broom - 0.5) * 0.05 + (hash(x, y, 9) - 0.5) * 0.08;
+    d[i] = 167 * t; d[i + 1] = 163 * t; d[i + 2] = 155 * t;
+  });
 }
 
 // What's on a monitor: a spreadsheet, an email client, or a slide.
@@ -325,24 +381,35 @@ export function makeMaterials() {
   const [carpetC, carpetN] = carpetCanvases();
   const [ceilC, ceilN] = ceilingCanvases();
   const [fabC, fabN] = fabricCanvases('#6f7780');
-  const dryN = drywallNormal();
+  const [dryC, dryN] = drywallCanvases();
   const std = (o) => new THREE.MeshStandardMaterial(o);
+  // Materials with userData.tile (metres per texture repeat) get world-scale
+  // UVs on the boxes they're used on (worldUV): the pattern keeps its real
+  // size on a 24 m wall and a 1 m pillar alike.
+  const perMetre = (m, tile) => { m.userData.tile = tile; return m; };
   const M = {
-    carpet: std({ map: texture(carpetC), normalMap: texture(carpetN, { srgb: false }), normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1 }),
-    ceiling: std({ map: texture(ceilC), normalMap: texture(ceilN, { srgb: false }), roughness: 0.95 }),
-    wall: std({ color: '#e2ded5', normalMap: texture(dryN, { srgb: false }), normalScale: new THREE.Vector2(0.25, 0.25), roughness: 0.88 }),
-    accentWall: std({ color: '#4f6475', normalMap: texture(dryN, { srgb: false }), normalScale: new THREE.Vector2(0.25, 0.25), roughness: 0.88 }),
+    carpet: perMetre(std({ map: texture(carpetC), normalMap: texture(carpetN, { srgb: false }), normalScale: new THREE.Vector2(0.7, 0.7), roughness: 1 }), 1),
+    ceiling: perMetre(std({ map: texture(ceilC), normalMap: texture(ceilN, { srgb: false }), roughness: 0.95 }), 0.6),
+    wall: perMetre(std({ color: '#e6e2d9', map: texture(dryC), normalMap: texture(dryN, { srgb: false }), normalScale: new THREE.Vector2(0.15, 0.15), roughness: 0.88 }), 1),
+    accentWall: perMetre(std({ color: '#52687a', map: texture(dryC), normalMap: texture(dryN, { srgb: false }), normalScale: new THREE.Vector2(0.15, 0.15), roughness: 0.88 }), 1),
     baseboard: std({ color: '#3b3d40', roughness: 0.6 }),
-    fabric: std({ map: texture(fabC), normalMap: texture(fabN, { srgb: false }), normalScale: new THREE.Vector2(0.5, 0.5), roughness: 1 }),
+    fabric: perMetre(std({ map: texture(fabC), normalMap: texture(fabN, { srgb: false }), normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1 }), 0.5),
+    lobbyFloor: perMetre(std({ map: texture(stoneTileCanvas('#dcd6ca', '#c7bfb0')), roughness: 0.18 }), 2),
+    hallFloor: perMetre(std({ map: texture(vinylTileCanvas('#bdb8ae', '#aca597')), roughness: 0.32 }), 1.2),
     panelTrim: std({ color: '#b9bec4', metalness: 0.7, roughness: 0.35 }),
     laminate: std({ map: texture(laminateCanvas()), roughness: 0.45 }),
-    veneer: std({ map: texture(veneerCanvas('#8a5a36', '60,32,15')), roughness: 0.42 }),
+    veneer: std({ map: texture(veneerCanvas('#8f5e39', '#5e3820')), roughness: 0.42 }),
     doorFrame: std({ color: '#3c4146', metalness: 0.5, roughness: 0.45 }),
     steel: std({ color: '#c9ccd0', metalness: 1, roughness: 0.28 }),
     blackPlastic: std({ color: '#1b1c1e', roughness: 0.55 }),
     greyPlastic: std({ color: '#5a5e63', roughness: 0.6 }),
+    // Powder-coated steel file cabinets (metalness >= 0.4: bullet holes look like metal).
+    cabinet: std({ color: '#c3c0b8', roughness: 0.42, metalness: 0.45 }),
+    cabinetDark: std({ color: '#7b7973', roughness: 0.5, metalness: 0.45 }),
     mesh: std({ color: '#26292c', roughness: 0.85 }),
-    glass: new THREE.MeshPhysicalMaterial({ color: '#dfe8ea', roughness: 0.04, metalness: 0, transmission: 0.9, thickness: 0.01, transparent: true, opacity: 0.25, envMapIntensity: 1.5 }),
+    // Plain see-through glass with reflections. (Transmission would make the
+    // renderer draw the whole room a second time every frame: ~1/3 slower.)
+    glass: new THREE.MeshPhysicalMaterial({ color: '#dfe8ea', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.2, envMapIntensity: 1.5 }),
     frosted: new THREE.MeshStandardMaterial({ color: '#f3f5f5', roughness: 0.6, transparent: true, opacity: 0.75 }),
     troffer: std({ color: '#ffffff', emissive: '#fffaf0', emissiveIntensity: 3.2, roughness: 0.4 }),
     whiteboard: std({ map: texture(whiteboardCanvas()), roughness: 0.18 }),
@@ -362,10 +429,25 @@ export function makeMaterials() {
 }
 
 // Set texture repeats for a surface of w x h metres (tile = metres per repeat).
+// Materials with userData.tile get world-scale UVs instead (worldUV): as is.
 export function tiled(mat, w, h, tile) {
+  if (mat.userData.tile) return mat;
   const m = mat.clone();
   for (const k of ['map', 'normalMap']) if (m[k]) { m[k] = m[k].clone(); m[k].repeat.set(w / tile, h / tile); m[k].needsUpdate = true; }
   return m;
+}
+
+// UVs in metres / tile on a w x h x d BoxGeometry, so a texture that covers
+// `tile` metres keeps that size on any box. (BoxGeometry faces: +x, -x, +y,
+// -y, +z, -z, four vertices each, UVs 0..1 across the face.)
+export function worldUV(geo, w, h, d, tile) {
+  const uv = geo.attributes.uv, faces = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) {
+    const i = f * 4 + v;
+    uv.setXY(i, uv.getX(i) * faces[f][0] / tile, uv.getY(i) * faces[f][1] / tile);
+  }
+  uv.needsUpdate = true;
+  return geo;
 }
 
 // ---- builders ---------------------------------------------------------------------
@@ -559,6 +641,32 @@ export function extinguisher(M) {
   g.add(C(0.075, 0.075, 0.5, M.red, 0, 0.25, 0, 16));
   g.add(C(0.03, 0.05, 0.08, M.blackPlastic, 0, 0.54, 0, 10));
   g.add(B(0.12, 0.02, 0.03, M.blackPlastic, 0.04, 0.6, 0));
+  return g;
+}
+
+// A run of lateral file cabinets side by side (powder-coated steel, three
+// drawers each with a pull and a label holder, drawers facing +z): waist-high
+// cover in the office. Its body stops rounds (userData.solids).
+export function lateralFiles(M, { units = 2, unitW = 0.91, h = 1.1, d = 0.5 } = {}) {
+  const g = new THREE.Group();
+  const W = units * unitW;
+  const body = B(W, h - 0.02, d, M.cabinetDark, 0, (h - 0.02) / 2, 0);
+  g.add(body);
+  g.add(B(W + 0.01, 0.02, d + 0.01, M.cabinet, 0, h - 0.01, 0)); // top
+  for (const sx of [-1, 1]) g.add(B(0.012, h - 0.02, d, M.cabinet, sx * (W / 2 + 0.006), (h - 0.02) / 2, 0, { shadow: false })); // end panels
+  g.add(B(W, h - 0.08, 0.012, M.cabinet, 0, h / 2, -d / 2 - 0.006, { shadow: false })); // back panel
+  const n = 3, base = 0.08, dh = (h - base - 0.03) / n;
+  for (let u = 0; u < units; u++) {
+    const cx = -W / 2 + unitW * (u + 0.5);
+    for (let i = 0; i < n; i++) {
+      const cy = base + dh * (i + 0.5);
+      g.add(B(unitW - 0.014, dh - 0.01, 0.014, M.cabinet, cx, cy, d / 2 + 0.007, { shadow: false }));      // drawer front
+      g.add(B(0.22, 0.018, 0.03, M.steel, cx, cy + dh * 0.1, d / 2 + 0.025, { shadow: false }));           // pull
+      g.add(B(0.075, 0.032, 0.004, M.paper, cx, cy + dh * 0.32, d / 2 + 0.016, { shadow: false }));        // label
+    }
+  }
+  g.add(B(W - 0.04, base - 0.01, 0.01, M.blackPlastic, 0, base / 2, d / 2 - 0.02, { shadow: false })); // toe kick
+  g.userData.solids = [body];
   return g;
 }
 

@@ -241,8 +241,8 @@ export const CONFIG = {
     hemiIntensity: 0.45,
     sunIntensity: 2.2,      // outside
     roomLight: 9,          // indoor point lights (candela)
-    muzzleLight: 5,        // a suspect's muzzle flash lights up the room this much (candela) for a moment
-    muzzleLightRange: 5,   // metres
+    muzzleLight: 30,       // a suspect's muzzle flash lights up the room this much (candela) for a moment
+    muzzleLightRange: 6,   // metres
     // Your own muzzle flash lighting the room for `time` s: peak intensity
     // (candela), range m, offset from your eye (right, down, forward) m.
     myMuzzle: { light: 25, time: 0.06, range: 12, at: [0.2, -0.3, 0.6] },
@@ -267,6 +267,26 @@ export const CONFIG = {
     partitionHeight: 1.15,  // metres; low cubicle walls (people show from the chest up)
     callTime: 6.0,          // seconds outside while the radio call plays
     lookAround: 0.12,       // radians of slow left-right scanning in the office
+    lookAroundFade: 0.8,    // seconds the scanning takes to settle once someone appears
+    // Everyone appears where their body (0.9-1.8 m up, 0.3 m either side)
+    // is on screen from where you stop, this far in from the edges (fraction
+    // of half the screen). A suspect who is off screen anyway holds his fire.
+    onScreenMargin: 0.04,
+    // A suspect behind waist-high cover (the file cabinets in the aisle, or a
+    // cubicle wall): crouched out of sight (sunk `down` m), he rises in `rise`
+    // s until his head, shoulders and gun clear the top (sunk `up` m), aims
+    // for the Setup fire delay x aimK x aim (random), fires `shots` rounds
+    // `refire` s apart, ducks `after` s after the last one (in `duck` s),
+    // stays down `downTime` s while he moves along behind the cover
+    // (shiftSpeed m/s) and comes up somewhere else. podChance: share of the
+    // other cubicle suspects who fight like this.
+    peek: { down: 0.95, up: 0.12, rise: 0.25, duck: 0.2, aimK: 0.4, aim: [0.9, 1.3], shots: [1, 2], refire: [0.35, 0.6], after: 0.25, downTime: [1.2, 2.4], shiftSpeed: 1.2, podChance: 0.35 },
+    // Your cover: the file cabinets just ahead of where you stop (height m).
+    // Hold X, the right mouse button or the Controller's Cover button to
+    // crouch behind them (eyes at `eye` m, `time` s to get down or up). Once
+    // you're more than `safe` of the way down, a suspect's round hits the
+    // cabinets (clang = steel sound for a plate this size, inches).
+    cover: { height: 1.1, eye: 0.85, time: 0.3, safe: 0.6, clang: 20 },
     riseTime: 0.35,         // seconds to pop up from behind a cubicle wall
     stepOutTime: 0.9,       // seconds to step out of an office door
     fireDelay: [3.0, 4.5],  // seconds a suspect aims at you (once fully in view) before he fires
@@ -288,6 +308,7 @@ export const CONFIG = {
       victimVoice: true,    // the wounded man in the lobby asks for help
       alarm: false,         // fire alarm going: wall strobes flash and the horn sounds (stress)
       lightsOut: false,     // power cut: ceiling lights and monitors off, battery emergency lights only
+      peeker: true,         // one suspect crouches behind cover and pops up to shoot (some behind cubicle walls too)
     },
     // A suspect who fires often fires again quickly: that round misses (a
     // ricochet off the wall beside you) and doesn't count as a hit on you.
@@ -327,8 +348,21 @@ export const CONFIG = {
     aoIntensity: 1.0,       // 0..1 blend
     bloomStrength: 0.18,    // glow around bright lights
     bloomThreshold: 2.0,    // only light sources (troffers, windows) glow
-    checkFrames: 90,        // frames averaged before dropping effects
-    slowMs: 30,             // average frame time above this drops AO, then bloom
+    checkFrames: 60,        // frames averaged before stepping down (Auto)
+    slowMs: 24,             // Auto: an average frame slower than this steps down a level
+    // Quality levels, best first: ambient occlusion, bloom, highest pixel
+    // ratio (render resolution on high-DPI screens), shadow map size (px).
+    steps: [
+      { name: 'high', ao: true, bloom: true, dpr: 2, shadow: 2048 },
+      { name: 'high, 1.5x resolution', ao: true, bloom: true, dpr: 1.5, shadow: 2048 },
+      { name: 'medium', ao: true, bloom: true, dpr: 1, shadow: 1024 },
+      { name: 'medium, no AO', ao: false, bloom: true, dpr: 1, shadow: 1024 },
+      { name: 'low', ao: false, bloom: false, dpr: 1, shadow: 1024 },
+      { name: 'lowest', ao: false, bloom: false, dpr: 0.75, shadow: 1024 },
+    ],
+    // Setup -> 3D graphics: the level each choice uses (Auto starts at the top).
+    modes: { auto: 0, high: 0, medium: 2, low: 4 },
+    quality: 'auto',        // the current choice (main.js sets it from Setup)
   },
 
   // ---- Judgment scenarios in 3D (judge3d.js) ------------------------------------

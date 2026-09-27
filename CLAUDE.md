@@ -105,8 +105,8 @@ web/                    the app; deploy this folder as-is
   js/holes3d.js         3D bullet holes left on walls, desks, glass, cars and ground (office, lot, judgment scenes)
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol
   js/office3d.js        3D office active-shooter scenario: OfficeView + OfficeRunner
-  js/interior3d.js      realistic interior kit: canvas materials, doors, workstations, chairs, blinds, fixtures; mergeStatic (merge static meshes per material)
-  js/post3d.js          screen-space effects (ambient occlusion, bloom, SMAA) with a slow-frame fallback
+  js/interior3d.js      realistic interior kit: generated textures (noise, ~1 mm/px), world-scale UVs, doors, workstations, chairs, file cabinets, blinds, fixtures; mergeStatic (merge static meshes per material)
+  js/post3d.js          screen-space effects (ambient occlusion, bloom, SMAA) and quality levels (Setup -> 3D graphics; Auto steps down on slow frames, never recompiling shaders)
   js/judge3d.js         judgment scenarios (scenarios.js scripts) in 3D with realistic people, in the parking lot
   js/people3d.js        realistic people: Rocketbox avatars (MIT) + motion-capture clips, as char3d.js rigs
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D
