@@ -13,7 +13,7 @@
 import { CONFIG } from './config.js';
 import { Runner, State, f2 } from './run.js';
 import { dressActor } from './scenarios.js';
-import { footstep, penaltyBuzz } from './audio.js';
+import { footstep, penaltyBuzz, voice } from './audio.js';
 
 const K = () => CONFIG.knife;
 const rand = ([a, b]) => a + Math.random() * (b - a);
@@ -34,6 +34,7 @@ export class KnifeRunner extends Runner {
     this.x0 = 0;           // lateral offset at the start (metres)
     this.shots = 0;
     this.hits = 0;
+    this.headShot = false;   // a head shot: he drops silently
     this.premature = 0;
     this.chargeAt = 0;
     this.firstShot = null;
@@ -103,6 +104,8 @@ export class KnifeRunner extends Runner {
         this.phase = 'charging';
         m.pose = 'charge';
         this.chargeAt = nowMs;
+        voice('charge', this.loud());
+        this.yelledAgain = false;
       }
     } else if (this.phase === 'charging') {
       this.v = Math.min(this.top, this.v + this.accel * dt);
@@ -110,6 +113,7 @@ export class KnifeRunner extends Runner {
       const before = m.stride;
       m.stride += (dt * Math.PI) / k.strideTime * Math.max(0.35, this.v / this.top);
       if (Math.floor(m.stride / Math.PI) !== Math.floor(before / Math.PI)) footstep(Math.min(1, 2.5 / this.d));
+      if (!this.yelledAgain && this.d <= k.voice.yellAgainAt) { this.yelledAgain = true; voice('charge', this.loud()); }
       if (this.d <= k.reach) {
         this.phase = 'stabbed';
         this.stabAt = nowMs;
@@ -123,12 +127,16 @@ export class KnifeRunner extends Runner {
       if (this.v <= 0.2 && m.downAt == null) {
         m.downAt = nowMs / 1000;
         this.phase = 'down';
+        if (!this.headShot) voice('death', this.loud());
         this.endAt = nowMs + 1200;
       }
     }
     this.place();
     if (this.endAt && nowMs >= this.endAt) this.finish();
   }
+
+  // Voice loudness by distance: full within voice.nearFull metres.
+  loud() { return Math.min(1, K().voice.nearFull / Math.max(0.5, this.d)); }
 
   onShot(score) {
     if (this.state !== State.Running) return;
@@ -141,7 +149,14 @@ export class KnifeRunner extends Runner {
     if (this.firstShot == null) this.firstShot = (score.t - this.chargeAt) / 1000;
     if (score.kind !== 'actor' || !score.threat) return;
     this.hits++;
-    if (score.bodyZone === 'Head' || this.hits >= K().stopHits) {
+    const stops = score.bodyZone === 'Head' || this.hits >= K().stopHits;
+    // A grunt when hit (a head shot is silent), harder for the stopping hit.
+    if (score.bodyZone === 'Head') this.headShot = true;
+    else {
+      const loud = this.loud(), sev = stops ? 3 : Math.min(2, this.hits - 1);
+      setTimeout(() => voice('pain', loud, sev), K().voice.painDelay * 1000);
+    }
+    if (stops) {
       this.phase = 'stopping';
       this.man.stopped = true;
       this.stopAt = (score.t - this.chargeAt) / 1000;

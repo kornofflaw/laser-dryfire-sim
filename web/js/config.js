@@ -145,6 +145,10 @@ export const CONFIG = {
     focalFrac: 1.1,         // focal length as a fraction of viewport height
     horizonY: 0.4,          // horizon as a fraction of viewport height
     strideTime: 0.3,        // seconds per footstep while sprinting
+    // His voice (recorded, CC0): a yell as he charges and again at yellAgainAt
+    // metres, a grunt when hit (louder for the stopping hit), a groan as he
+    // goes down (not after a head shot). Louder as he closes: nearFull metres.
+    voice: { yellAgainAt: 3.2, nearFull: 3, painDelay: 0.12 }, // painDelay: s after the hit (reaction)
   },
 
   // ---- 3D parking lot (knife3d.js) -------------------------------------------------
@@ -463,6 +467,7 @@ export const CONFIG = {
       outdoorTail: 0.5,   // real pistol report + echo under your shot outdoors
       recordedShot: 1.4,  // the real pistol report alone (Sound choices: R), into the gunshot compressor
       ricochet: 0.8,      // a suspect's near miss ricocheting beside you (office), x Gunshot volume
+      voice: 1.1,         // the knife attacker's yells and grunts
       distantShot: 0.35,  // range ambience: shots from other bays
       rateJitter: 0.08,   // +- playback speed so repeats don't sound identical
     },

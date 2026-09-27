@@ -595,6 +595,15 @@ export function distantShot(into) {
   src.start(t0);
 }
 
+// A man's voice (recorded, CC0; the knife attacker): 'charge' (a yell),
+// 'pain' (severity 0..3 = light grunt .. hard hit) or 'death' (a groan).
+// loudness 0..1 (distance). No generated stand-in: silent if not loaded.
+export function voice(kind, loudness = 1, severity) {
+  if (forwarded('voice', arguments)) return;
+  if (!ctx) return;
+  playSample('voice_' + kind, CONFIG.sound.samples.voice * Math.min(1, Math.max(0.1, loudness)), { take: severity });
+}
+
 // A round passing close and ricocheting off the wall beside you (office near
 // misses): a recorded ricochet (CC0, CREDITS.md) to your left or right,
 // following the Gunshot slider. If it isn't loaded: a sharp generated crack.
@@ -623,7 +632,7 @@ function decode(bytes) {
 // impacts / footsteps (CC0). Loaded after the first tap; until a set has
 // loaded (or if it fails), playSample returns false and the generated sound
 // is used instead.
-const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2 };
+const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1 };
 const samples = {};
 let samplesLoading = false;
 function loadSamples() {
