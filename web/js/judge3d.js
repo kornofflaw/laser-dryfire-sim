@@ -117,6 +117,7 @@ export class Judge3DView extends Lot3DView {
   pose(p, now, dt) {
     const { a, char } = p;
     const o = char.obj;
+    if (p.flee && now >= p.flee.at && !char.down && a.downAt == null) { this.runAway(p, now, dt); return; }
     if (!char.down) o.position.x = this.worldX(a);
     const walking = !!a.vx && a.downAt == null;
     // Facing: turned away, along the walk, or at the shooter.
@@ -155,9 +156,35 @@ export class Judge3DView extends Lot3DView {
     for (const p of this.people.values()) {
       if (p.char.down) continue;
       const already = p.startle != null && now < p.cowerUntil;
-      if (!already) { p.startle = now + r(R.delay); p.flinched = false; p.cowerTurn = Math.random() < 0.5 ? -1 : 1; }
+      if (!already) {
+        p.startle = now + r(R.delay); p.flinched = false; p.cowerTurn = Math.random() < 0.5 ? -1 : 1;
+        // Some bystanders run instead of cowering (not anyone still in the script).
+        const a = p.a, F = R.flee;
+        if (!p.flee && !a.vx && !a.moreScript && ['empty', 'back', 'phone'].includes(a.pose) && Math.random() < F.chance) {
+          p.flee = { at: p.startle + r(F.after), speed: r(F.speed), dir: Math.sign(p.char.obj.position.x) || (Math.random() < 0.5 ? -1 : 1) };
+        }
+      }
       p.cowerUntil = now + r(R.cower);
     }
+  }
+
+  // Running for cover: sideways (the way they're nearer), a little away from
+  // you, until they're out of the scene; then gone (and can't be hit).
+  runAway(p, now, dt) {
+    const { char } = p, o = char.obj, F = p.flee;
+    char.pose = null;
+    char.play('run');
+    o.position.x += F.dir * F.speed * dt;
+    o.position.z -= F.speed * 0.3 * dt;
+    const yaw = Math.atan2(F.dir, -0.3);
+    const d = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw));
+    p.yaw += Math.sign(d) * Math.min(Math.abs(d), J().turnRate * 1.5 * dt);
+    o.rotation.y = p.yaw;
+    char.update(dt, now);
+    char.gun.visible = false;
+    p.phone.visible = p.a.pose === 'phone'; // still holding the phone
+    p.wallet.visible = false;
+    if (Math.abs(o.position.x) > J().spread / 2 + J().react.flee.offBy) o.visible = false;
   }
 
   // Surrendering: the pistol falls at their feet.

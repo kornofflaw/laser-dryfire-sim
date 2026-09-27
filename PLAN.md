@@ -257,9 +257,9 @@ recording (with credits) rather than pure synthesis.
 
 ## Realism queue (hourly realism pass takes the top item)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
-2. Judgment scenes: bystanders run for cover (needs the scenario scripts to allow people to leave their marks; grading reads the 3D bodies).
-3. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
-4. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
+2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
+3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
+4. Judgment scenes: runners take cover behind a parked car and peek out, instead of leaving the scene.
 
 ---
 
@@ -383,6 +383,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27 (realism pass): the knife attacker has a voice (2D and 3D; knife.js, audio.js voice(), CONFIG.knife.voice, CONFIG.sound.samples.voice): a yell as he starts his charge and another at 3.2 m, a grunt 0.12 s after each body hit (light for the first, hard for the stopping hit), a groan as he goes down; a head shot drops him silently. Louder as he closes (full within 3 m). Recorded CC0 male voice from Warfork (voice_*.wav, 174 KB).
 - 2026-09-27 (realism pass): people in the office and judgment scenes cry out when hit (audio.js hitCry; CONFIG.sound.hitCry): a grunt 0.12 s after the hit, harder with each hit on that person, a light one on body armour, none for a head shot; men and women get their own recorded CC0 voice (Warfork male / female sets; Character.sex from people3d CAST); loudness falls off beyond 4 m. Suspects, bystanders and hostages alike. Scoring unchanged (j3).
 - 2026-09-27 (realism pass): ...and groan as they go down (audio.js downCry, CONFIG.sound.hitCry.downDelay 0.45 s): office suspects stopped by body hits, a hostage you hit, judgment-scene people the script drops; silent after a head shot; woman's groan for women (voice_f_death_0.wav). Fix: a judgment-scene person marked down by the script now always gets their fall - before, if no 3D frame was drawn within the script's 0.25 s fall time (a very slow machine), they vanished instead of falling.
+- 2026-09-27 (realism pass): judgment-scene bystanders run for cover (judge3d.js runAway, CONFIG.judge3d.react.flee): after a shot, half of the people just standing / turned away / on the phone sprint sideways out of the scene (run clip, 3.5-5 m/s) instead of cowering, then are gone (unhittable). Never anyone the script still has plans for: ScenarioRunner marks each actor's moreScript (a later pose change pending), so a 'bystander' who reveals a gun later never runs off. Someone shot while running falls. Scoring unchanged (j3).
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

@@ -90,6 +90,9 @@ export class ScenarioRunner extends Runner {
       }
       if (ev.pose === 'surrender' && wasThreat) a.surrendered = true;
     }
+    // Who the script still has plans for (the 3D view lets only the others
+    // run for cover when shots are fired).
+    for (const a of this.actors) a.moreScript = this.pending.some(ev => this.actors[ev.actor] === a);
 
     // End when the script is done and nobody armed is still up, after a short
     // hold, or at the scene's duration.

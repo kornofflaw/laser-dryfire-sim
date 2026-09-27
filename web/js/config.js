@@ -323,7 +323,11 @@ export const CONFIG = {
     // the last shot), turned `turn` rad away from you. Someone showing a gun,
     // a wallet or surrendering keeps showing it (that's what you judge);
     // walkers flinch and keep walking.
-    react: { delay: [0.1, 0.35], cower: [2.5, 4.5], turn: 0.6 },
+    react: { delay: [0.1, 0.35], cower: [2.5, 4.5], turn: 0.6,
+      // Some of those bystanders (chance) run for cover instead: after `after`
+      // s they sprint sideways out of the scene at `speed` m/s and are gone
+      // `offBy` m past its edge. Never anyone the script still has plans for.
+      flee: { chance: 0.5, after: [0.3, 0.8], speed: [3.5, 5], offBy: 4 } },
   },
 
   // ---- Photo-realistic 3D range for the fundamentals (range3d.js) ------------------
