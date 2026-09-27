@@ -495,6 +495,15 @@ export const CONFIG = {
     // (beam m wide), held `rest` radians to one side until its activator
     // falls, then a damped pendulum (period s, damping 1/s).
     swinger: { pivotY: 2.95, beam: 1.9, rest: 1.0, period: 2.5, damping: 0.16 },
+    // Drop turner (stage paper with turn: { by }): edge-on until its activator
+    // falls, then turns face-on in `time` s, stays `show` s and turns away
+    // (a disappearing target: misses on it aren't penalised once it's been
+    // activated). box = the turner's steel housing, w x h x d m. Turned more
+    // than ~75 degrees from you (face . line of fire < edge) it can't be hit.
+    turner: { time: 0.3, show: 1.0, box: [0.26, 0.22, 0.26], edge: 0.26 },
+    // Activators (a popper for a swinger or turner) release it by a cable as
+    // they fall: this many seconds after the hit.
+    activateDelay: 0.3,
     // Walk the targets (I, after a run): the camera takes `time` s to walk up
     // to each paper, framing `frame` x the target's height, standing `raise`
     // x that frame higher (so the target sits below the label at the top).

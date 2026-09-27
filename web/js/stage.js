@@ -13,8 +13,16 @@
 //
 // Target ids come from stageTargets() (courses.js): P1.. paper, NS1..
 // no-shoots, S1.. steel; range3d.js gives each hit the same id.
+//
+// Disappearing targets (a drop turner: paper with turn: { by }): once its
+// activator steel is down it shows for a moment and turns away. Its missing
+// hits aren't penalised if it was activated (USPSA); if its activator was
+// never hit, they're misses as usual. The run counts it as engaged once it
+// has turned away.
 
 import { CONFIG } from './config.js';
+
+const T = () => CONFIG.range3d.turner;
 import { DrillRunner, State, isHit, f2 } from './run.js';
 import { stageTargets } from './courses.js';
 import { startBeep, parBeep, say } from './audio.js';
@@ -25,12 +33,18 @@ export class StageRunner extends DrillRunner {
     const items = stageTargets(this.course.stage);
     this.papers = items.filter(i => i.type === 'paper').map(i => i.id);
     this.steel = items.filter(i => i.steel).map(i => i.id);
+    this.vanish = items.filter(i => i.turn).map(i => ({ id: i.id, by: i.turn.by, show: i.turn.show ?? T().show }));
   }
+
+  // A disappearing paper: was it activated, and has it turned away (ms)?
+  activated(v) { return this.downAt[v.by] != null; }
+  gone(v, nowMs) { return this.activated(v) && nowMs - this.downAt[v.by] >= (CONFIG.range3d.activateDelay + 2 * T().time + v.show) * 1000; }
 
   clearRun() {
     super.clearRun();
     this.paperHits = {};        // id -> [{ zone, points }, ...]
     this.down = new Set();      // steel ids down
+    this.downAt = {};           // steel id -> when it went down (ms)
     this.nsHits = 0;
   }
 
@@ -45,6 +59,7 @@ export class StageRunner extends DrillRunner {
     const e = this.elapsed(nowMs);
     if (!this.parPlayed && e >= this.course.parTime) { this.parPlayed = true; parBeep(); }
     if (e >= this.course.parTime + CONFIG.timer.incompleteGrace) this.finish(false);
+    else if (this.vanish.length && this.engaged) this.finish(true); // the last turner just turned away
   }
 
   onShot(score) {
@@ -52,7 +67,7 @@ export class StageRunner extends DrillRunner {
     if (this.state !== State.Running) return;
     const id = score.targetId;
     if (score.zone === 'NS') this.nsHits++;
-    else if (score.zone === 'Steel' && id) this.down.add(id);
+    else if (score.zone === 'Steel' && id) { this.down.add(id); this.downAt[id] ??= score.t; }
     else if (isHit(score.zone) && this.papers.includes(id)) (this.paperHits[id] ??= []).push({ zone: score.zone, points: score.points });
     if (this.engaged) this.finish(true);
     else if (this.course.maxShots && this.shots >= this.course.maxShots) this.finish(false);
@@ -60,8 +75,9 @@ export class StageRunner extends DrillRunner {
 
   get perPaper() { return this.course.stage.perPaper ?? CONFIG.stage.perPaper; }
   get engaged() {
+    const now = performance.now();
     return this.steel.every(id => this.down.has(id)) &&
-      this.papers.every(id => (this.paperHits[id]?.length || 0) >= this.perPaper);
+      this.papers.every(id => (this.paperHits[id]?.length || 0) >= this.perPaper || this.vanish.some(v => v.id === id && this.gone(v, now)));
   }
 
   // Stage points and the misses they include, and the score sheet: one row
@@ -74,12 +90,14 @@ export class StageRunner extends DrillRunner {
     const counted = { A: 0, C: 0, D: 0 }, sheet = [];
     for (const id of this.papers) {
       const best = [...(this.paperHits[id] || [])].sort((a, b) => b.points - a.points).slice(0, this.perPaper);
+      const v = this.vanish.find(v => v.id === id);
+      const free = v && this.activated(v); // disappeared: no miss penalty
       const miss = this.perPaper - best.length;
       const pts = best.reduce((a, b) => a + b.points, 0);
       for (const b of best) counted[letter(b.zone)] = (counted[letter(b.zone)] || 0) + 1;
-      sheet.push({ id, marks: [...best.map(b => letter(b.zone)), ...Array(miss).fill('M')], points: pts + miss * S.missPenalty });
+      sheet.push({ id, marks: [...best.map(b => letter(b.zone)), ...Array(miss).fill(free ? '–' : 'M')], points: pts + (free ? 0 : miss * S.missPenalty) });
       points += pts;
-      mikes += miss;
+      if (!free) mikes += miss;
     }
     for (const id of this.steel) {
       const down = this.down.has(id);

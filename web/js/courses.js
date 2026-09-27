@@ -116,6 +116,8 @@ const FLIP = [
 // paints that many cm in from that edge black; hits there can't score.
 // swing: { by: 'S1', rest? } hangs a paper as a swinger released by that steel
 // (its activator); it waits held to one side, behind cover.
+// turn: { by: 'S1', show? } makes a paper a drop turner: edge-on until that
+// steel falls, then it faces you for `show` s and turns away (disappearing).
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
 // (port = an opening to shoot through, y = its centre height, m) and
 // { type: 'barrel', x, yd }. They stop rounds.
@@ -174,6 +176,16 @@ const STAGES = [
         { type: 'paper', x: 3.4, yd: 7 },
       ],
       props: [{ type: 'wall', x: 2.65, yd: 8.2, w: 1.22, h: 2.44 }],
+    } },
+  { name: 'Drop Turner', category: 'Stages', parTime: 8.0, maxShots: 12,
+    desc: 'Two paper, then the popper: it turns the middle target to face you for one second. Catch it with two before it turns away. Misses on it aren\'t penalised once it has turned.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.2, yd: 7 },
+        { type: 'paper', x: 0.3, yd: 8, turn: { by: 'S1' } },
+        { type: 'paper', x: 2.4, yd: 7 },
+        { type: 'popper', x: -0.9, yd: 11 },
+      ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

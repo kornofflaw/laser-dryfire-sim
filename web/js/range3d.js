@@ -406,6 +406,7 @@ export class Range3DView {
     this.cards = [];
     this.movers = [];
     this.swingers = [];
+    this.turners = [];
     this.steel = null;
     this.walk = this.inspecting = null;
     this.layoutGroup = new THREE.Group();
@@ -575,6 +576,7 @@ export class Range3DView {
     card.pivot = pivot;
     card.id = opts.id || 'target3d-' + slot;
     if (opts.swing) this.hangSwinger(group, card, base, opts.swing);
+    if (opts.turn) this.mountTurner(group, card, opts.turn);
     return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
@@ -616,11 +618,52 @@ export class Range3DView {
     this.swingers.push(s);
   }
 
+  // A drop turner (USPSA activated target): the paper stands on a steel
+  // shaft in a turner box, edge-on to the shooter (nothing to see or hit)
+  // until its activator steel falls; then it turns to face you, stays
+  // `show` s and turns away again: a disappearing target.
+  // turn: { by, show? (s) }.
+  mountTurner(group, card, turn) {
+    const T = R().turner;
+    group.children.filter(o => o !== card.pivot).forEach(o => o.removeFromParent());
+    card.pivot.children.filter(o => o !== card.face).forEach(o => o.removeFromParent());
+    this.solids = this.solids.filter(o => o.parent);
+    this.layoutSolids = this.layoutSolids.filter(o => o.parent);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(T.box[0], T.box[1], T.box[2]), this.steelMats.frame);
+    box.position.set(0, T.box[1] / 2, -0.03);
+    group.add(box);
+    // The shaft turns with the target (a 1x2 behind the face bolted to it).
+    const y0 = T.box[1] - card.pivot.position.y, y1 = card.face.position.y + Ucfg().height / 200 * 0.6;
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.03, y1 - y0, 0.02), this.steelMats.frame);
+    shaft.position.set(0, (y0 + y1) / 2, -0.012);
+    card.pivot.add(shaft);
+    for (const m of [box, shaft]) { m.castShadow = m.receiveShadow = true; m.userData.surface = 'steel-frame'; }
+    this.addSolids([box, shaft]);
+    // Edge-on to the shooter (at the origin), not just turned 90 degrees:
+    // off to one side, a quarter turn would still show a sliver.
+    const w = group.getWorldPosition(new THREE.Vector3());
+    const rest = Math.atan2(-w.z, w.x);
+    card.yaw = rest;
+    this.turners.push({ card, by: turn.by, rest, show: turn.show ?? T.show, t0: null });
+  }
+
+  // Turn the released turners (render()): face on, hold, edge-on again.
+  updateTurners(now) {
+    const T = R().turner;
+    for (const s of this.turners) {
+      const u = s.t0 == null ? -1 : now - s.t0;
+      s.card.yaw = u < 0 ? s.rest
+        : u < T.time ? s.rest * (1 - smooth(u / T.time))
+        : u < T.time + s.show ? 0
+        : s.rest * smooth((u - T.time - s.show) / T.time);
+    }
+  }
+
   // Swing the released swingers (render()).
   updateSwingers(now) {
     const W = R().swinger;
     for (const s of this.swingers) {
-      if (s.t0 == null) { s.arm.rotation.z = s.rest; continue; }
+      if (s.t0 == null || now < s.t0) { s.arm.rotation.z = s.rest; continue; }
       const u = now - s.t0;
       s.arm.rotation.z = s.rest * Math.cos((2 * Math.PI * u) / W.period) * Math.exp(-W.damping * u);
     }
@@ -690,7 +733,7 @@ export class Range3DView {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
       this.targets.push(this.makeTarget(it.x, slot++, {
-        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       }));
     }
     if (steel.length) {
@@ -801,6 +844,7 @@ export class Range3DView {
   resetTargets() {
     this.cards.forEach(c => this.resetCard(c));
     this.swingers?.forEach(s => { s.t0 = null; });
+    this.turners?.forEach(s => { s.t0 = null; });
     this.steel?.reset();
     this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
     this.clearMarks();
@@ -914,10 +958,11 @@ export class Range3DView {
         rx += c.jolt.rx * s;
         if (k > 1.2) c.jolt = null;
       }
-      t.pivot.rotation.set(rx, ry, 0);
+      t.pivot.rotation.set(rx, ry + (c.yaw || 0), 0);
     }
     if (this.movers?.length) this.updateMovers(dt, now);
     if (this.swingers?.length) this.updateSwingers(now);
+    if (this.turners?.length) this.updateTurners(now);
     if (this.walk) this.updateWalk(now);
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
@@ -961,6 +1006,8 @@ export class Range3DView {
         const cm = { x: (h.uv.x - 0.5) * U.width, y: (h.uv.y - 0.5) * U.height };
         const zone = classifyUspsa(cm.x, cm.y);
         if (!zone) continue; // outside the die-cut shape: the round goes past
+        // A turner nearly edge-on: the round slips past the cardboard's edge.
+        if (card.yaw && Math.abs(o.getWorldDirection(new THREE.Vector3()).dot(dir)) < R().turner.edge) continue;
         // Hard cover stops the round: it can't score (a hole in the paint, a miss).
         if (inHardCover(card.meta.hard, cm)) return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm, hardCover: true };
         const base = { zone, points: CONFIG.points[zone], local: cm, point: h.point, dir, card, uv: h.uv };
@@ -1014,7 +1061,8 @@ export class Range3DView {
       else {
         this.steel.hit(score.steel, score.point, score.dir, now);
         // An activator: releases its swinger.
-        for (const s of this.swingers || []) if (s.t0 == null && s.by === score.targetId) s.t0 = now;
+        // (released by a cable as it falls: activateDelay s later)
+        for (const s of [...(this.swingers || []), ...(this.turners || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
       }
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
@@ -1078,7 +1126,7 @@ export class Range3DView {
   // Is anything moving whose shadow would change?
   get moving() {
     return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving || this.movers?.length > 0 ||
-      this.swingers?.some(s => s.t0 != null) ||
+      this.swingers?.some(s => s.t0 != null) || this.turners?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 2 * R().turner.time + s.show) ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }
 

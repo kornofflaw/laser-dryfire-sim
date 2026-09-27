@@ -571,3 +571,12 @@ he reports a problem.
   the next one, Esc (or I after the last) walks back to the firing line.
   Shots don't count while downrange; Space comes straight back and starts.
   CONFIG.range3d.inspect.
+- Drop turner (USPSA activated, disappearing target): a paper on a steel
+  shaft in a turner box, edge-on (can't be seen or hit) until its popper
+  falls; then it turns to face you for 1 s and turns away. Scored as at a
+  match: once it has turned, missing hits on it aren't penalised (shown as
+  – on the sheet); if its popper was never hit they're misses. The run ends
+  by itself once it has turned away. New stage "Drop Turner". Activated
+  targets (turner and swinger) now release 0.3 s after the popper is hit,
+  as the popper falls and pulls the cable (CONFIG.range3d.turner,
+  activateDelay).
