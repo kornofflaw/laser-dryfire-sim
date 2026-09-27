@@ -22,6 +22,8 @@
 //   minAHits / minBodyHits / minHeadHits   pass criteria
 //   perTargetMin   every bay target needs at least this many hits
 //   order: 'ltr'   hits must go left to right across the bay targets
+//   sequence       what each shot in turn must hit: 'Head', 'A' or 'body'
+//                  (A / C / D), e.g. FAST: two head, then four body
 //   desc           one line shown in the drill panel
 
 import { SCENARIOS } from './scenarios.js';
@@ -42,12 +44,22 @@ const DRILLS = [
     desc: '3 rounds, all in the head box.' },
   { name: 'Mozambique', category: 'Fundamentals', layout: 'single', requiredShots: 3, parTime: 2.5,
     minBodyHits: 2, minHeadHits: 1, desc: '2 to the body, 1 to the head.' },
+  // Standard drills, with the par times shooters use for them.
+  { name: '5x5 Drill', category: 'Fundamentals', layout: 'single', requiredShots: 5, parTime: 5.0, minAHits: 5,
+    desc: '5 rounds in 5 seconds, all in the A zone (the "5-inch circle" at 5 yards).' },
+  { name: 'FAST', category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 5.0,
+    sequence: ['Head', 'Head', 'body', 'body', 'body', 'body'],
+    desc: 'Fundamentals, Accuracy & Speed Test: 2 to the head, reload, 4 to the body. Under 5 s is Advanced.' },
+  { name: '1-Reload-1', category: 'Fundamentals', layout: 'single', requiredShots: 2, parTime: 3.0, minAHits: 2,
+    desc: 'One A-zone hit, a slide-lock reload, another A-zone hit.' },
 
   // Transitions
   { name: 'Transitions 1-1-1', category: 'Transitions', layout: 'bay', requiredShots: 3, parTime: 2.0,
     perTargetMin: 1, order: 'ltr', desc: 'One round on each target, left to right.' },
   { name: 'Transitions 2-2-2', category: 'Transitions', layout: 'bay', requiredShots: 6, parTime: 3.5,
     perTargetMin: 2, order: 'ltr', desc: 'Two rounds on each target, left to right.' },
+  { name: 'Blake Drill', category: 'Transitions', layout: 'bay', requiredShots: 6, parTime: 2.5,
+    perTargetMin: 2, order: 'ltr', minAHits: 6, desc: 'Two A-zone hits on each target, left to right. Under 2.5 s; the best do it in under 2.' },
   { name: 'El Presidente (dry)', category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
     perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
 

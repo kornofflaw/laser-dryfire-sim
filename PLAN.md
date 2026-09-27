@@ -259,12 +259,12 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-1. Standard drills with their real par times: Blake Drill, 5x5, FAST (head box + body with a reload break), Rhythm drill, 1-reload-1, Doubles at 3 distances.
-3. USPSA-style results: the hits as letters (A A C A D ...), points, hit factor and a "stage score sheet" for stages.
-4. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
-5. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
-6. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
-7. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
+1. USPSA-style results: the hits as letters (A A C A D ...), points, hit factor and a "stage score sheet" for stages.
+2. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
+3. Bay props for stages: wooden walls / barricades with ports, barrels, a fault line and shooting box where you'd see them.
+4. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
+5. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
+6. More standard drills: Rhythm drill (3 targets, even splits), Doubles at 3/7/15 yards, Accelerator, Criss-cross.
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -529,3 +529,8 @@ he reports a problem.
   count, first shot and par, then every shot with its time from the beep,
   the split and what it hit (A / C / D / H / S, misses in red); the last
   12 shots if there are more (CONFIG.timer.reviewRows). Also on the Controller.
+- 2026-09-27 (range & drills): Standard drills with the par times shooters
+  use: 5x5 Drill (5 A hits in 5 s), FAST (2 head, reload, 4 body; under 5 s
+  = Advanced), 1-Reload-1 (A, reload, A in 3 s) and the Blake Drill (2 A hits
+  on each of 3 targets, left to right, 2.5 s). New drill field `sequence`
+  checks what each shot in turn must hit (courses.js, run.js).

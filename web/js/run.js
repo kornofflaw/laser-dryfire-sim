@@ -51,7 +51,7 @@ export class DrillRunner extends Runner {
 
   get usesCriteria() {
     const d = this.course;
-    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order);
+    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order || d.sequence);
   }
 
   clearRun() {
@@ -150,6 +150,12 @@ export class DrillRunner extends Runner {
       for (const s of this.slots) per[s]++;
       const low = per.map((n, i) => (n < d.perTargetMin ? ['left', 'centre', 'right'][i] : null)).filter(Boolean);
       if (low.length) out.push(`needs ${d.perTargetMin}+ on ${low.join(', ')}`);
+    }
+    if (d.sequence) {
+      const ok = { Head: z => z === 'Head', A: z => z === 'A', body: z => z === 'A' || z === 'C' || z === 'D' };
+      const name = { Head: 'head', A: 'A zone', body: 'body' };
+      const bad = d.sequence.findIndex((want, i) => !ok[want](this.shotZones[i]));
+      if (bad >= 0) out.push(`shot ${bad + 1} should be ${name[d.sequence[bad]]} (got ${this.shotZones[bad] || 'none'})`);
     }
     if (d.order === 'ltr' && this.slots.some((s, i) => i > 0 && s < this.slots[i - 1])) {
       out.push('out of order (go left to right)');
