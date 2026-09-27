@@ -588,3 +588,7 @@ he reports a problem.
   recording: birds and open air, looped seamlessly) instead of generated
   wind; the distant shots from other bays stay. The generated wind plays
   only until the file loads or if it can't (CONFIG.sound.ambience.rangeBed).
+- Setup -> Sound: "Ding on paper hits" (on by default; off = silent paper,
+  like real cardboard - you judge hits by the sights and walking the
+  targets). Also on the Controller. The RO commands label now mentions the
+  closing commands.

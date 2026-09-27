@@ -55,6 +55,7 @@ const settings = Object.assign({
   volGun: 1,          // gunshot volume (Setup slider, 1 = normal)
   volAmb: 1,          // background sound volume (Setup slider)
   roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
+  paperDing: true,    // a ding on paper hits (real cardboard is silent)
   paste: true,        // 3D range: paste holes between runs
   powerFactor: 'minor', // USPSA scoring of C and D hits (CONFIG.powerFactor)
   soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
@@ -295,7 +296,7 @@ function shoot(nx, ny, tMs, source) {
   shotPop({ indoor: range.layout === 'office3d', outdoor: range.layout !== 'office3d' }); // the office echoes; outside, a recorded echo
   if (score.zone === 'Steel' || score.zone === 'Tile' || score.noFall) steelPing(score.size, { dist: score.dist, pan: nx * 2 - 1 }); // bigger plates ring lower and longer; far steel later and quieter
   else if (score.zone === 'NS' || score.wrongDot || score.wrongTile) penaltyBuzz();
-  else if (['A', 'C', 'D', 'Head'].includes(score.zone) && score.kind !== 'actor') hitDing(); // people react instead of dinging
+  else if (['A', 'C', 'D', 'Head'].includes(score.zone) && score.kind !== 'actor' && settings.paperDing) hitDing(); // people react instead of dinging
 }
 
 camera.onShot = (nx, ny, t) => {
@@ -921,9 +922,11 @@ $('#test-step').onclick = () => { for (let i = 0; i < 6; i++) setTimeout(() => f
 $('#test-glass').onclick = () => glassBreak();
 $('#test-distant').onclick = () => distantShot();
 $('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = e.target.checked; persist(); };
+$('#opt-ding').onchange = e => { settings.paperDing = e.target.checked; persist(); };
 $('#opt-paste').onchange = e => { settings.paste = CONFIG.range3d.paste.on = e.target.checked; persist(); };
 function refreshSound() {
   $('#opt-ro').checked = settings.roCommands;
+  $('#opt-ding').checked = settings.paperDing;
   $('#opt-paste').checked = settings.paste;
   const c = soundChoices();
   for (const [key, id] of Object.entries(SOUND_SELECTS)) $(id).value = String(c[key]);
