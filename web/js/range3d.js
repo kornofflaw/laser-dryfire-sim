@@ -405,6 +405,7 @@ export class Range3DView {
     this.targets = [];
     this.cards = [];
     this.movers = [];
+    this.swingers = [];
     this.steel = null;
     this.layoutGroup = new THREE.Group();
     this.scene.add(this.layoutGroup);
@@ -571,7 +572,56 @@ export class Range3DView {
     this.addSolids(solids);
     card.pivot = pivot;
     card.id = opts.id || 'target3d-' + slot;
+    if (opts.swing) this.hangSwinger(group, card, base, opts.swing);
     return { x, slot, group, pivot, face, card, solids, id: card.id };
+  }
+
+  // A swinger (USPSA activated target): the paper hangs on a steel arm from
+  // an overhead beam, held to one side (behind cover) until its activator
+  // steel (swing.by, a stage steel id) is hit; then it swings back and forth
+  // as a damped pendulum and comes to rest hanging straight down.
+  // swing: { by, rest? (radians, + = held to the right) }.
+  hangSwinger(group, card, base, swing) {
+    const W = R().swinger, U = Ucfg();
+    // No stand: drop the base, feet, stakes and contact shadow.
+    group.children.filter(o => o !== card.pivot).forEach(o => o.removeFromParent());
+    card.pivot.children.filter(o => o !== card.face).forEach(o => o.removeFromParent());
+    this.solids = this.solids.filter(o => o.parent);
+    this.layoutSolids = this.layoutSolids.filter(o => o.parent);
+    const hub = new THREE.Group();
+    hub.position.set(group.position.x, W.pivotY, group.position.z);
+    const arm = new THREE.Group();
+    hub.add(arm);
+    group.position.set(0, -W.pivotY, 0);
+    arm.add(group);
+    const top = R().targetCenterY + U.height / 200;
+    const rod = new THREE.Mesh(new THREE.BoxGeometry(0.03, W.pivotY - top + 0.05, 0.02), this.steelMats.frame);
+    rod.position.set(0, -(W.pivotY - top + 0.05) / 2, -0.015);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(W.beam, 0.08, 0.08), this.steelMats.frame);
+    beam.position.set(0, 0.06, -0.05);
+    hub.add(beam);
+    for (const sx of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, W.pivotY + 0.1, 0.08), this.steelMats.frame);
+      post.position.set(sx * W.beam / 2, -(W.pivotY - 0.1) / 2 + 0.05, -0.05);
+      hub.add(post);
+    }
+    arm.add(rod);
+    for (const m of [rod, beam, ...hub.children.filter(o => o.isMesh)]) { m.castShadow = m.receiveShadow = true; m.userData.surface = 'steel-frame'; }
+    this.layoutGroup.add(hub);
+    this.addSolids([rod, beam]);
+    const s = { arm, by: swing.by, rest: swing.rest ?? W.rest, t0: null };
+    arm.rotation.z = s.rest;
+    this.swingers.push(s);
+  }
+
+  // Swing the released swingers (render()).
+  updateSwingers(now) {
+    const W = R().swinger;
+    for (const s of this.swingers) {
+      if (s.t0 == null) { s.arm.rotation.z = s.rest; continue; }
+      const u = now - s.t0;
+      s.arm.rotation.z = s.rest * Math.cos((2 * Math.PI * u) / W.period) * Math.exp(-W.damping * u);
+    }
   }
 
   // Movers: a timber track across the bay, targets on stands sliding along it.
@@ -638,7 +688,7 @@ export class Range3DView {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
       this.targets.push(this.makeTarget(it.x, slot++, {
-        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       }));
     }
     if (steel.length) {
@@ -748,6 +798,7 @@ export class Range3DView {
   // Clear holes, strike marks and stand the steel back up (a new run).
   resetTargets() {
     this.cards.forEach(c => this.resetCard(c));
+    this.swingers?.forEach(s => { s.t0 = null; });
     this.steel?.reset();
     this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
     this.clearMarks();
@@ -794,6 +845,7 @@ export class Range3DView {
       t.pivot.rotation.set(rx, ry, 0);
     }
     if (this.movers?.length) this.updateMovers(dt, now);
+    if (this.swingers?.length) this.updateSwingers(now);
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
       for (const c of this.popups || []) {
@@ -886,7 +938,11 @@ export class Range3DView {
     }
     if (score.steel != null && this.steel) {
       if (score.noFall) this.steel.nudge(score.steel, score.point, now);
-      else this.steel.hit(score.steel, score.point, score.dir, now);
+      else {
+        this.steel.hit(score.steel, score.point, score.dir, now);
+        // An activator: releases its swinger.
+        for (const s of this.swingers || []) if (s.t0 == null && s.by === score.targetId) s.t0 = now;
+      }
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
       this.fx.push(dustPuff(this.scene, score.point, score.dir.clone().negate(), '#b9b9b4', 0.5));
@@ -949,6 +1005,7 @@ export class Range3DView {
   // Is anything moving whose shadow would change?
   get moving() {
     return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving || this.movers?.length > 0 ||
+      this.swingers?.some(s => s.t0 != null) ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }
 

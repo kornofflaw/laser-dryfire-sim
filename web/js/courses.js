@@ -114,6 +114,8 @@ const FLIP = [
 // dy raises (+) or lowers (-) one, in metres. Plates may set h (stand height).
 // Paper may carry hard cover: hard: { side: 'left'|'right'|'top'|'bottom', cm }
 // paints that many cm in from that edge black; hits there can't score.
+// swing: { by: 'S1', rest? } hangs a paper as a swinger released by that steel
+// (its activator); it waits held to one side, behind cover.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
 // (port = an opening to shoot through, y = its centre height, m) and
 // { type: 'barrel', x, yd }. They stop rounds.
@@ -161,6 +163,17 @@ const STAGES = [
         { type: 'paper', x: 0.9, yd: 8 },
       ],
       props: [{ type: 'wall', x: 0, yd: 1.7, w: 3.2, h: 2.2, port: { x: 0, y: 1.55, w: 0.62, h: 0.46 } }],
+    } },
+  { name: 'Swinger', category: 'Stages', parTime: 9.0, maxShots: 14,
+    desc: 'Hit the popper to release the swinger from behind the wall, then catch it as it swings. Plus two paper. 2 per paper.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.4, yd: 7 },
+        { type: 'popper', x: -0.9, yd: 12 },
+        { type: 'paper', x: 1.2, yd: 9, swing: { by: 'S1', rest: 1.0 } },
+        { type: 'paper', x: 3.4, yd: 7 },
+      ],
+      props: [{ type: 'wall', x: 2.65, yd: 8.2, w: 1.22, h: 2.44 }],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

@@ -491,6 +491,10 @@ export const CONFIG = {
     markers: { yards: [5, 10, 15, 20, 25], x: 6.7, height: 0.6, sign: [0.3, 0.2], turn: 0.35 },
     // Stage props: plywood walls (w x h m, raised `lift` off the ground,
     // `thick` m, colour tint on the wood photo) and 55-gallon plastic barrels.
+    // Swinger (stage paper with swing: { by }): hangs from a beam pivotY m up
+    // (beam m wide), held `rest` radians to one side until its activator
+    // falls, then a damped pendulum (period s, damping 1/s).
+    swinger: { pivotY: 2.95, beam: 1.9, rest: 1.0, period: 2.5, damping: 0.16 },
     props: { wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] }, barrel: { r: 0.29, h: 0.88, color: '#24569e' } },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving

@@ -555,3 +555,7 @@ he reports a problem.
   cut in them) and blue 55-gallon barrels; they stop rounds (a miss). New
   stage "Through the Port" (2 paper + 2 plates seen through a port in a wall
   in front of you); a barrel dresses "Paper and Steel" (CONFIG.range3d.props).
+- Swinger (USPSA activated target): a paper on a steel arm hung from an
+  overhead frame, held to one side behind a wall until its popper falls, then
+  it swings as a damped pendulum and settles hanging straight. New stage
+  "Swinger" (CONFIG.range3d.swinger; courses.js swing: { by }).
