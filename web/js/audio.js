@@ -3,6 +3,15 @@ import { CONFIG } from './config.js';
 
 let ctx = null;
 
+// Sound choices (Setup -> Sound choices), so Andrew can compare versions:
+//   'rec' recorded only, 'synth' generated only, 'mix' recorded + generated.
+// gunTake: which recorded pistol shot (-1 = random). A recording that hasn't
+// loaded falls back to the generated sound.
+const choice = { gun: 'mix', gunTake: -1, steel: 'mix', step: 'rec', glass: 'mix', distant: 'rec' };
+export function setSoundChoices(c = {}) { Object.assign(choice, c); }
+const useRec = k => choice[k] !== 'synth';
+const useSynth = k => choice[k] !== 'rec';
+
 // Volume sliders (Setup): gunshots and background, 1 = normal.
 const mix = { gun: 1, amb: 1 };
 export function setVolumes(v = {}) {
@@ -135,7 +144,8 @@ export function steelPing(size) {
   // Size ratio to an 8" plate: bigger steel rings lower and longer.
   const SR = CONFIG.sound.steelRing;
   const r = Math.min(SR.range[1], Math.max(SR.range[0], (size || SR.ref) / SR.ref));
-  playSample('steel', CONFIG.sound.samples.steel, { rate: 1 / Math.sqrt(r) });
+  const clank = useRec('steel') && playSample('steel', CONFIG.sound.samples.steel, { rate: 1 / Math.sqrt(r) });
+  if (!useSynth('steel') && clank) return;
   const base = CONFIG.sound.steelHz / Math.pow(r, SR.pitch) * (0.96 + Math.random() * 0.08);
   const long = Math.pow(r, SR.decay);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
@@ -194,7 +204,7 @@ export function clack() {
 export function footstep(loudness) {
   if (forwarded('footstep', arguments)) return;
   if (!ctx) return;
-  if (playSample('step_concrete', Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.samples.step)) return;
+  if (useRec('step') && playSample('step_concrete', Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.samples.step)) return;
   const n = Math.floor(ctx.sampleRate * 0.08);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -306,36 +316,40 @@ export function enemyShot(opts = {}) {
   comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 4;
   comp.attack.value = 0.001; comp.release.value = 0.12;
   out.connect(comp).connect(ctx.destination);
-  const env = (node, peak, decay) => {
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(peak, t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
-    node.connect(g).connect(out);
-    return g;
+  const synthShot = () => {
+    const env = (node, peak, decay) => {
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(peak, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+      node.connect(g).connect(out);
+      return g;
+    };
+    const noise = () => { const s = ctx.createBufferSource(); s.buffer = gunNoise; s.start(t0); s.stop(t0 + 0.6); return s; };
+    // Crack: bright, very short.
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 1500;
+    noise().connect(hp);
+    env(hp, G.crack, 0.08);
+    // Thump: low-passed noise, the body of the report.
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t0); lp.frequency.exponentialRampToValueAtTime(180, t0 + 0.2);
+    noise().connect(lp);
+    env(lp, G.thump, 0.3);
+    // Boom: a falling low tone, saturated so small speakers carry it.
+    const osc = ctx.createOscillator();
+    osc.frequency.setValueAtTime(G.boomFrom, t0);
+    osc.frequency.exponentialRampToValueAtTime(G.boomTo, t0 + G.boomTime);
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = driveCurve(G.drive);
+    osc.connect(shaper);
+    env(shaper, G.boom, G.boomTime);
+    osc.start(t0); osc.stop(t0 + G.boomTime + 0.05);
   };
-  const noise = () => { const s = ctx.createBufferSource(); s.buffer = gunNoise; s.start(t0); s.stop(t0 + 0.6); return s; };
-  // Crack: bright, very short.
-  const hp = ctx.createBiquadFilter();
-  hp.type = 'highpass'; hp.frequency.value = 1500;
-  noise().connect(hp);
-  env(hp, G.crack, 0.08);
-  // Thump: low-passed noise, the body of the report.
-  const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t0); lp.frequency.exponentialRampToValueAtTime(180, t0 + 0.2);
-  noise().connect(lp);
-  env(lp, G.thump, 0.3);
-  // Boom: a falling low tone, saturated so small speakers carry it.
-  const osc = ctx.createOscillator();
-  osc.frequency.setValueAtTime(G.boomFrom, t0);
-  osc.frequency.exponentialRampToValueAtTime(G.boomTo, t0 + G.boomTime);
-  const shaper = ctx.createWaveShaper();
-  shaper.curve = driveCurve(G.drive);
-  osc.connect(shaper);
-  env(shaper, G.boom, G.boomTime);
-  osc.start(t0); osc.stop(t0 + G.boomTime + 0.05);
-  // Outdoors: a real pistol report with its echo off buildings / berms under
-  // the generated crack and boom.
-  if (opts.outdoor) playSample('shot_near', CONFIG.sound.samples.outdoorTail, { out });
+  // The recorded pistol: under the generated shot outdoors ('mix'), or on
+  // its own ('rec', indoors too, where the room echo is added below).
+  const recorded = choice.gun === 'rec' || (choice.gun === 'mix' && opts.outdoor);
+  const played = recorded && playSample('shot_near', choice.gun === 'rec' ? CONFIG.sound.samples.recordedShot : CONFIG.sound.samples.outdoorTail, { out, take: choice.gunTake });
+  if (choice.gun !== 'rec' || !played) synthShot();
   if (opts.indoor) {
     const wet = ctx.createGain();
     wet.gain.value = CONFIG.sound.indoorEchoMix;
@@ -370,7 +384,8 @@ function roomEcho() {
 export function glassBreak() {
   if (forwarded('glassBreak', arguments)) return;
   if (!ctx) return;
-  playSample('glass', CONFIG.sound.samples.glass);
+  const hit = useRec('glass') && playSample('glass', CONFIG.sound.samples.glass);
+  if (!useSynth('glass') && hit) return;
   const n = Math.floor(ctx.sampleRate * 0.9);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -483,19 +498,30 @@ export function setAmbience(kind) {
     const next = () => {
       amb.timer = setTimeout(() => {
         if (amb?.kind !== 'range') return;
-        if (playSample(Math.random() < 0.6 ? 'shot_far' : 'shot_near', CONFIG.sound.samples.distantShot * (0.5 + Math.random() * 0.5) / (A.level * CONFIG.sound.volume), { out, lowpass: 2500 })) { next(); return; }
-        const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), t0 = ctx.currentTime;
-        src.buffer = noiseBuffer(0.5, false);
-        lp.type = 'lowpass'; lp.frequency.value = 700;
-        g.gain.setValueAtTime(0.5 + Math.random() * 0.4, t0);
-        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
-        src.connect(lp).connect(g).connect(out);
-        src.start(t0);
+        distantShot(out);
         next();
       }, (A.distantShots[0] + Math.random() * (A.distantShots[1] - A.distantShots[0])) * 1000);
     };
     next();
   }
+}
+
+// A shot from another bay: a real far-off pistol ('rec') or low-passed noise
+// ('synth'). into: the ambience bed (default: the speakers, for the Test button).
+export function distantShot(into) {
+  if (forwarded('distantShot', arguments)) return;
+  if (!ctx) return;
+  const A = CONFIG.sound.ambience;
+  const bed = into ? A.level * CONFIG.sound.volume : 1; // the bed's own gain
+  if (useRec('distant') && playSample(Math.random() < 0.6 ? 'shot_far' : 'shot_near', CONFIG.sound.samples.distantShot * (0.5 + Math.random() * 0.5) / bed, { out: into || null, lowpass: 2500 })) return;
+  const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), t0 = ctx.currentTime;
+  src.buffer = noiseBuffer(0.5, false);
+  lp.type = 'lowpass'; lp.frequency.value = 700;
+  const lvl = into ? 1 : A.level * CONFIG.sound.volume * mix.amb;
+  g.gain.setValueAtTime((0.5 + Math.random() * 0.4) * lvl, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
+  src.connect(lp).connect(g).connect(into || ctx.destination);
+  src.start(t0);
 }
 
 // ---- Recorded sounds -------------------------------------------------------------
@@ -517,19 +543,20 @@ function loadSamples() {
       fetch(new URL(`${name}_${i}.wav`, base))
         .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
         .then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
-        .then(buf => samples[name].push(buf))
+        .then(buf => { samples[name][i] = buf; })
         .catch(() => { /* keep the generated sound */ });
     }
   }
 }
 // Play a random take from a set; opts.out: node to play into (default the
-// speakers); opts.lowpass: Hz; opts.rate: playback speed. Returns false if
+// speakers); opts.lowpass: Hz; opts.rate: playback speed; opts.take: a
+// particular file (else random). Returns false if
 // nothing is loaded.
 function playSample(name, level, opts = {}) {
-  const takes = samples[name];
-  if (!ctx || !takes?.length) return false;
+  const takes = (samples[name] || []).filter(Boolean);
+  if (!ctx || !takes.length) return false;
   const src = ctx.createBufferSource(), g = ctx.createGain();
-  src.buffer = takes[Math.floor(Math.random() * takes.length)];
+  src.buffer = samples[name][opts.take] || takes[Math.floor(Math.random() * takes.length)];
   src.playbackRate.value = (opts.rate ?? 1) * (1 + (Math.random() * 2 - 1) * CONFIG.sound.samples.rateJitter);
   g.gain.value = level * (opts.out ? 1 : CONFIG.sound.volume);
   let node = src;

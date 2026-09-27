@@ -406,6 +406,7 @@ export const CONFIG = {
       step: 1.3,          // concrete footsteps (knife attacker)
       glass: 0.9,         // glass impact under the generated shatter
       outdoorTail: 0.5,   // real pistol report + echo under your shot outdoors
+      recordedShot: 1.4,  // the real pistol report alone (Sound choices: R), into the gunshot compressor
       distantShot: 0.35,  // range ambience: shots from other bays
       rateJitter: 0.08,   // +- playback speed so repeats don't sound identical
     },

@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
@@ -51,6 +51,7 @@ const settings = Object.assign({
   flipVariable: false, // flip grid: vary each time up and pause
   volGun: 1,          // gunshot volume (Setup slider, 1 = normal)
   volAmb: 1,          // background sound volume (Setup slider)
+  sounds: {},         // Sound choices (compare): overrides of SOUND_DEFAULTS
 }, load(CONFIG.storage.settings, {}));
 const persist = () => save(CONFIG.storage.settings, settings);
 // Older versions kept one 3D distance (for the paper targets).
@@ -794,7 +795,28 @@ for (const [id, key] of [['#vol-gun', 'volGun'], ['#vol-amb', 'volAmb']]) {
     refreshSound();
   };
 }
+// Sound choices (compare recorded / generated versions); ▶ Test buttons.
+const SOUND_DEFAULTS = { gun: 'mix', gunTake: -1, steel: 'mix', step: 'rec', glass: 'mix', distant: 'rec' };
+const SOUND_SELECTS = { gun: '#snd-gun', gunTake: '#snd-gun-take', steel: '#snd-steel', step: '#snd-step', glass: '#snd-glass', distant: '#snd-distant' };
+const soundChoices = () => ({ ...SOUND_DEFAULTS, ...settings.sounds });
+setSoundChoices(soundChoices());
+for (const [key, id] of Object.entries(SOUND_SELECTS)) {
+  $(id).onchange = e => {
+    settings.sounds = { ...settings.sounds, [key]: key === 'gunTake' ? Number(e.target.value) : e.target.value };
+    persist();
+    setSoundChoices(soundChoices());
+  };
+}
+$('#test-gun-out').onclick = () => shotPop({ outdoor: true });
+$('#test-gun-in').onclick = () => shotPop({ indoor: true });
+$('#test-steel-small').onclick = () => steelPing(CONFIG.sound.steelRing.ref);
+$('#test-steel-big').onclick = () => steelPing(CONFIG.range3d.steel.popper.height * CONFIG.sound.steelRing.popperSize);
+$('#test-step').onclick = () => { for (let i = 0; i < 6; i++) setTimeout(() => footstep(0.3 + i * 0.14), i * CONFIG.knife.strideTime * 1000); };
+$('#test-glass').onclick = () => glassBreak();
+$('#test-distant').onclick = () => distantShot();
 function refreshSound() {
+  const c = soundChoices();
+  for (const [key, id] of Object.entries(SOUND_SELECTS)) $(id).value = String(c[key]);
   const M = CONFIG.sound.mix;
   for (const [id, v] of [['vol-gun', settings.volGun], ['vol-amb', settings.volAmb]]) {
     const el = $('#' + id);
