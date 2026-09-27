@@ -30,17 +30,17 @@ function holeMaterial(kind) {
   if (mats[kind]) return mats[kind];
   const L = LOOKS[kind] || LOOKS.plaster;
   const c = document.createElement('canvas');
-  c.width = c.height = 64;
+  c.width = c.height = L.cracks ? 128 : 64; // glass is drawn larger (windshield spiderwebs)
   const g = c.getContext('2d');
-  const R = 32;
+  const R = c.width / 2, px = c.width / 64;
   if (L.cracks) {
     // Radial cracks with a few rings: light lines on the glass.
     g.strokeStyle = 'rgba(235,242,245,0.85)';
-    g.lineWidth = 1.2;
+    g.lineWidth = 1.1 * px;
     for (let i = 0; i < L.cracks; i++) {
       const a = (i / L.cracks) * Math.PI * 2 + Math.random() * 0.4, r1 = R * (0.55 + Math.random() * 0.43);
       g.beginPath(); g.moveTo(R, R);
-      for (let r = 4; r < r1; r += 5) g.lineTo(R + Math.cos(a + (Math.random() - 0.5) * 0.15) * r, R + Math.sin(a + (Math.random() - 0.5) * 0.15) * r);
+      for (let r = 4 * px; r < r1; r += 5 * px) g.lineTo(R + Math.cos(a + (Math.random() - 0.5) * 0.15) * r, R + Math.sin(a + (Math.random() - 0.5) * 0.15) * r);
       g.stroke();
     }
     for (const rr of [0.25, 0.42]) { g.beginPath(); g.arc(R, R, R * rr * (0.9 + Math.random() * 0.2), 0, Math.PI * 2); g.globalAlpha = 0.5; g.stroke(); g.globalAlpha = 1; }
@@ -87,12 +87,14 @@ export class BulletHoles {
   }
 
   // point, normal: world space; object: the mesh that was hit (the hole rides
-  // on it); kind: 'plaster' | 'wood' | 'metal' | 'ground'.
+  // on it); kind: 'plaster' | 'wood' | 'metal' | 'ground' | 'glass' | 'windshield'.
   add(point, normal, object, kind = 'plaster') {
     if (!point || !normal || !object) return;
     geo ??= new THREE.PlaneGeometry(1, 1);
-    const m = new THREE.Mesh(geo, holeMaterial(kind));
-    const size = (H().sizeCm / 100) * (kind === 'ground' ? 2.5 : kind === 'glass' ? 4 : 1) * (0.85 + Math.random() * 0.3);
+    // A windshield (laminated) cracks in a wider spiderweb than a pane.
+    const m = new THREE.Mesh(geo, holeMaterial(kind === 'windshield' ? 'glass' : kind));
+    const scale = { ground: 2.5, glass: 4, windshield: H().windshield }[kind] || 1;
+    const size = (H().sizeCm / 100) * scale * (0.85 + Math.random() * 0.3);
     m.scale.set(size, size, 1);
     m.position.copy(point).addScaledVector(normal, 0.002);
     m.lookAt(point.clone().add(normal));

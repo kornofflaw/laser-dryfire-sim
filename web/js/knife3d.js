@@ -29,6 +29,7 @@ import { KnifeRunner } from './knife.js';
 import { GroundDrops } from './blood3d.js';
 import { Character } from './char3d.js';
 import { BulletHoles, surfaceKind } from './holes3d.js';
+import { glassBreak } from './audio.js';
 import { People, attachProp } from './people3d.js';
 
 const K = () => CONFIG.knife;
@@ -572,6 +573,13 @@ export class Lot3DView {
     if (!this.ready || !score.point) return;
     if (score.kind === 'actor' && score.hit) {
       this.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
+    } else if (score.surface === 'car' && carGlass(score.object)) {
+      // Windshield (laminated: holds together) or a lamp lens: a hole with a
+      // spiderweb of cracks, glinting chips, the sound of glass.
+      const big = carGlass(score.object) === 'windshield';
+      this.holes.add(score.point, score.normal, score.object, big ? 'windshield' : 'glass');
+      this.effects.push(glassChips(this.scene, score.point, score.normal || score.dir.clone().negate(), big ? V().glassChips : Math.ceil(V().glassChips / 3)));
+      glassBreak();
     } else if (score.surface === 'car' || score.surface === 'building') {
       this.effects.push(puff(this.scene, score.point, '#ffcf8a', 0.15, 0.12, true));
       this.holes.add(score.point, score.normal, score.object, score.surface === 'car' ? 'metal' : surfaceKind(score.object, 'plaster'));
@@ -856,6 +864,44 @@ function makeKnife() {
 }
 
 // A short-lived puff (dust, sparks, fabric) at a point.
+// Car glass by material: 'windshield' (the big glass) or 'lens' (lamps).
+function carGlass(o) {
+  const n = [].concat(o?.material)[0]?.name || '';
+  if (!/glass/i.test(n)) return null;
+  return /taillight|projector|lamp|light/i.test(n) ? 'lens' : 'windshield';
+}
+
+// Glass chips thrown off a hit: tiny bright flakes that tumble down and fade.
+function glassChips(scene, point, normal, n) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: '#e8f2f6', transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+  const geo = new THREE.PlaneGeometry(0.012, 0.009);
+  const bits = [];
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.copy(point);
+    const v = normal.clone().multiplyScalar(0.8 + Math.random() * 1.6)
+      .add(new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 1.2, (Math.random() - 0.5) * 2));
+    bits.push({ m, v, spin: new THREE.Vector3(Math.random() * 20, Math.random() * 20, Math.random() * 20) });
+    group.add(m);
+  }
+  scene.add(group);
+  const t0 = performance.now() / 1000;
+  let last = t0;
+  return { obj: group, done: false, update(now) {
+    const dt = Math.min(0.05, Math.max(0, now - last)); last = now;
+    const k = (now - t0) / 1.2;
+    for (const b of bits) {
+      b.v.y -= 9.8 * dt;
+      b.m.position.addScaledVector(b.v, dt);
+      if (b.m.position.y < 0.005) { b.m.position.y = 0.005; b.v.set(0, 0, 0); }
+      b.m.rotation.x += b.spin.x * dt; b.m.rotation.y += b.spin.y * dt;
+    }
+    mat.opacity = 0.9 * Math.max(0, 1 - Math.max(0, k - 0.5) * 2);
+    if (k >= 1) { this.done = true; geo.dispose(); mat.dispose(); }
+  } };
+}
+
 function puff(scene, point, color, size, life, additive = false) {
   const mat = new THREE.SpriteMaterial({ map: puff.tex || (puff.tex = glowTexture()), color, transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending });
   const s = new THREE.Sprite(mat);

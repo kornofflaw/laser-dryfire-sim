@@ -184,6 +184,7 @@ export const CONFIG = {
       headlight: 40, headlightRange: 28,
     },
     carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
+    glassChips: 14,         // glass flakes thrown off a windshield hit (a third for a lamp lens)
     // Rain (Setup): wet asphalt (roughness x wet, colour x darken, glassy
     // puddles where the ground dips), falling streaks around the camera, and
     // by day an overcast sky. drops: streak count in a box `area` (x, depth,
@@ -326,6 +327,7 @@ export const CONFIG = {
   holes: {
     sizeCm: 2.2,            // decal size: 9 mm hole plus the damaged ring around it
     max: 80,                // oldest holes are recycled past this
+    windshield: 9,          // a windshield's spiderweb crack, x sizeCm
   },
 
   // ---- Life-size 3D (Setup) --------------------------------------------------------
