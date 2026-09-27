@@ -269,6 +269,7 @@ export class Judge3DView extends Lot3DView {
     this.lastT = now;
     this.sync(now, dt);
     this.updateRain(dt);
+    this.updateMuzzle(now);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => { if (fx.done) fx.obj.removeFromParent(); return !fx.done; });
     this.renderer.render(this.scene, this.camera);
@@ -309,6 +310,7 @@ export class Judge3DView extends Lot3DView {
   onShot(score) {
     if (!this.ready) return;
     this.startle(performance.now() / 1000);
+    this.flashMuzzle();
     if (!score.point) return;
     if (score.char) {
       score.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);

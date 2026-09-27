@@ -189,6 +189,9 @@ export const CONFIG = {
     },
     carDetailDist: 14,      // metres: cars further than this use the low-detail model (car_lod.glb)
     glassChips: 14,         // glass flakes thrown off a windshield hit (a third for a lamp lens)
+    // Your muzzle flash lighting the lot for `time` s (shows at night): peak
+    // intensity, reach (m), and where the gun is from your eyes (right, down, forward m).
+    muzzle: { light: 90, time: 0.06, range: 22, at: [0.2, -0.3, 0.6] },
     // Rain (Setup): wet asphalt (roughness x wet, colour x darken, glassy
     // puddles where the ground dips), falling streaks around the camera, and
     // by day an overcast sky. drops: streak count in a box `area` (x, depth,

@@ -260,7 +260,8 @@ recording (with credits) rather than pure synthesis.
 2. 3D range: sharper morning/evening skies (2k gain-map HDR JPGs need the gain-map decoder library vendored) and a sun-ahead glare option (needs a sky photo with no buildings on the sun side).
 3. Parking lot: saloon cars with side windows that shatter (tempered glass) - the parked cars are open roadsters (windshield only).
 4. Judgment scenes: a real crouch animation (Rocketbox / mocap clip) instead of sinking behind the car.
-5. Office: fleeing workers take cover (behind a pillar / in an office) instead of only running to the exit.
+5. Office: your muzzle flash lighting the room too (the office is bright; matters with a lights-out option).
+6. Office: a lights-out / emergency-lighting option (power cut: only exit signs and emergency lights).
 
 ---
 
@@ -387,6 +388,7 @@ recording (with credits) rather than pure synthesis.
 - 2026-09-27 (realism pass): judgment-scene bystanders run for cover (judge3d.js runAway, CONFIG.judge3d.react.flee): after a shot, half of the people just standing / turned away / on the phone sprint sideways out of the scene (run clip, 3.5-5 m/s) instead of cowering, then are gone (unhittable). Never anyone the script still has plans for: ScenarioRunner marks each actor's moreScript (a later pose change pending), so a 'bystander' who reveals a gun later never runs off. Someone shot while running falls. Scoring unchanged (j3).
 - 2026-09-27 (realism pass): ...to a parked car when one is within 14 m (judge3d.js coverPath / inCover, CONFIG.judge3d.react.flee.cover): they run round its near end to the far side, in line with you so the car hides them, crouch (sunk 0.6 m into the ground - the car hides the legs; there's no crouch clip) with hands over the head, and every 2-4 s rise to peek over it for a second, facing you. Cover you can see is preferred; one runner per car; none within reach -> they run off as before.
 - 2026-09-27 (realism pass): office workers standing with raised hands at the cubicles duck behind the cubicle wall 0.15-0.4 s after any shot (yours or a suspect's), hands over their heads (cower pose, sunk 0.85 m), peek over every 2-4 s, and stand up with raised hands again 3-5 s after the last shot (office3d.js applyHide, CONFIG.office3d.hide). Grading unchanged (still no-shoots).
+- 2026-09-27 (realism pass): your muzzle flash lights the parking lot (knife attack + 3D judgment scenes; knife3d.js flashMuzzle / updateMuzzle, CONFIG.knife3d.muzzle): every shot, hit or miss, a warm point light at your gun (0.2 m right, 0.3 m down, 0.6 m forward of your eyes) flashes for 60 ms. At night it briefly lights the attacker and the ground in front of you; by day it's lost in the daylight. Office queue item 'fleeing workers take cover' dropped: they already escape through the exit, the realistic outcome.
 - 2026-09-25 (hourly review): Start is refused while a 3D range/scene is still
   loading (the run used to begin with no targets or people shown).
 - 2026-09-25: Realistic people (Rocketbox, MIT) in the 3D judgment scenes

@@ -150,6 +150,23 @@ export class Lot3DView {
     sun.shadow.normalBias = 0.02;
     this.scene.add(sun, sun.target);
     this.sun = sun;
+    // Your muzzle flash: a brief orange light at your gun (always in the
+    // scene, dark between shots, so shaders don't recompile). It shows at
+    // night; by day it's lost in the daylight, as in life.
+    this.muzzle = new THREE.PointLight('#ffc27a', 0, V().muzzle.range, 2);
+    this.scene.add(this.muzzle);
+  }
+
+  // A shot: the flash lights the scene for a moment.
+  flashMuzzle() { this.muzzleT = performance.now() / 1000; }
+  updateMuzzle(now) {
+    const M = V().muzzle, k = this.muzzleT != null ? (now - this.muzzleT) / M.time : 9;
+    this.muzzle.intensity = k >= 0 && k < 1 ? M.light * (1 - k) * (1 - k) : 0;
+    if (this.muzzle.intensity > 0) {
+      // Just in front of you, low and to the right (the gun).
+      const c = this.camera, off = new THREE.Vector3(M.at[0], M.at[1], -M.at[2]).applyQuaternion(c.quaternion);
+      this.muzzle.position.copy(c.position).add(off);
+    }
   }
 
   buildGround(renderer) {
@@ -538,6 +555,7 @@ export class Lot3DView {
     // The man: clip, hit reactions, fall (char3d.js Character).
     this.char?.update(dt, now);
     this.updateRain(dt);
+    this.updateMuzzle(now);
     for (const fx of this.effects) fx.update(now);
     this.effects = this.effects.filter(fx => {
       if (fx.done) fx.obj.removeFromParent();
@@ -570,7 +588,9 @@ export class Lot3DView {
   // Reaction to a shot: body reaction + blood on the man, dust on the ground,
   // sparks on metal.
   onShot(score) {
-    if (!this.ready || !score.point) return;
+    if (!this.ready) return;
+    this.flashMuzzle();
+    if (!score.point) return;
     if (score.kind === 'actor' && score.hit) {
       this.char.hit(score.point, score.dir, performance.now() / 1000, this.scene, this.groundDrops, this.blood);
     } else if (score.surface === 'car' && carGlass(score.object)) {
