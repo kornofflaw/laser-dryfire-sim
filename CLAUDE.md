@@ -113,7 +113,7 @@ web/                    the app; deploy this folder as-is
   js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, flip grid, Texas Star (rotation from star.js)
   js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
-  assets/sounds/        recorded pistol reports, steel clanks, footsteps, glass, rain (see CREDITS.md)
+  assets/sounds/        recorded pistol reports, steel clanks, footsteps, glass, rain, range background (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)
   js/range.js           layouts, movement, hit testing, holes/strikes, drawing
   js/uspsa.js           USPSA metric target shape: drawing + zone scoring

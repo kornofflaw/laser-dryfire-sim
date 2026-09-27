@@ -610,10 +610,13 @@ export const CONFIG = {
       rateJitter: 0.08,   // +- playback speed so repeats don't sound identical
     },
     // Background sound per 3D scene (quiet, under the shots): the outdoor
-    // range has wind and now and then a distant shot from another bay; the
-    // office an air-handling hum; the parking lot distant traffic and wind.
+    // range has a recorded early-morning field recording (birds, air;
+    // generated wind until it loads) and now and then a distant shot from
+    // another bay; the office an air-handling hum; the parking lot distant
+    // traffic and wind.
     ambience: {
       level: 0.35,          // overall (x volume)
+      rangeBed: 0.8,        // the range recording, x level
       fade: 1.5,            // seconds to fade in / out when the scene changes
       distantShots: [3, 14], // seconds between distant shots at the range
     },

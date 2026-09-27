@@ -584,3 +584,7 @@ he reports a problem.
   you are finished, unload and show clear." ... "If clear, hammer down,
   holster." ... "Range is clear.", as at a match (CONFIG.timer.commands
   after / afterPause). Starting the next run or cancelling stops them.
+- Range background sound is now a real recording (CC0 early-morning field
+  recording: birds and open air, looped seamlessly) instead of generated
+  wind; the distant shots from other bays stay. The generated wind plays
+  only until the file loads or if it can't (CONFIG.sound.ambience.rangeBed).

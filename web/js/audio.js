@@ -464,7 +464,7 @@ let ambWanted = null; // started once audio is unlocked
 export function setAmbience(kind) {
   ambWanted = kind ?? null;
   if (ambWanted !== 'office') fireAlarm(false); // left the office
-  if (!ctx || ctx.state !== 'running' || (amb?.kind ?? null) === ambWanted) return;
+  if (!ctx || ctx.state !== 'running' || ((amb?.kind ?? null) === ambWanted && !amb?.stale)) return;
   const A = CONFIG.sound.ambience, t = ctx.currentTime;
   if (amb) { // fade the old bed out, then stop it
     const old = amb;
@@ -488,7 +488,16 @@ export function setAmbience(kind) {
     nodes.push(src, fl, g);
     return { src, fl, g };
   };
-  if (kind === 'range' || kind === 'lot') {
+  // The range: a recorded outdoor bed (birds, air) when it has loaded.
+  const bed = kind === 'range' && samples.range?.[0];
+  if (bed) {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = bed; src.loop = true;
+    g.gain.value = A.rangeBed;
+    src.connect(g).connect(out);
+    src.start(0, Math.random() * bed.duration);
+    nodes.push(src, g);
+  } else if (kind === 'range' || kind === 'lot') {
     // Wind: band-passed noise whose level and pitch drift in gusts.
     const w = filtered(noiseBuffer(4, false), 'bandpass', 500, 0.6, 0.6);
     nodes.push(lfo(0.13, 0.4, w.g.gain, 0.6), lfo(0.07, 180, w.fl.frequency, 520));
@@ -506,7 +515,7 @@ export function setAmbience(kind) {
     hum.connect(hg).connect(out); hum.start();
     nodes.push(hum, hg);
   }
-  amb = { kind, gain: out, nodes, timer: null };
+  amb = { kind, gain: out, nodes, timer: null, stale: false };
   if (kind === 'range') {
     // A shot from another bay now and then: muffled by distance.
     const next = () => {
@@ -665,10 +674,11 @@ function decode(bytes) {
 // ---- Recorded sounds -------------------------------------------------------------
 // Small WAV files in web/assets/sounds (sources and licences in CREDITS.md):
 // real pistol reports with street echo (ShotSpotter, CC BY 4.0) and Kenney
-// impacts / footsteps (CC0). Loaded after the first tap; until a set has
+// impacts / footsteps (CC0), and the outdoor range's background (CC0 field
+// recording). Loaded after the first tap; until a set has
 // loaded (or if it fails), playSample returns false and the generated sound
 // is used instead.
-const SAMPLE_SETS = { shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4, voice_f_death: 1 };
+const SAMPLE_SETS = { range: 1, shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4, voice_f_death: 1 };
 const samples = {};
 let samplesLoading = false;
 function loadSamples() {
@@ -681,7 +691,11 @@ function loadSamples() {
       fetch(new URL(`${name}_${i}.wav`, base))
         .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
         .then(decode)
-        .then(buf => { samples[name][i] = buf; })
+        .then(buf => {
+          samples[name][i] = buf;
+          // The range bed arrived while the generated wind plays: swap it in.
+          if (name === 'range' && amb?.kind === 'range') { amb.stale = true; setAmbience('range'); }
+        })
         .catch(() => { /* keep the generated sound */ });
     }
   }
