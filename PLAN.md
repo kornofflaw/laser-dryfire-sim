@@ -666,3 +666,6 @@ he reports a problem.
   more Steel Challenge style courses: "Wide Open" (five big rectangles
   spread wide, 7-20 yd) and "Near and Far" (close 12" plates, 10" plates at
   25 yd, rectangle stop plate).
+- Shot review (V) for Steel Challenge runs: each string's shots are timed
+  from that string's own beep (no split across strings), instead of all
+  from the last string's beep.

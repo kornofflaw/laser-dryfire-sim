@@ -203,6 +203,7 @@ export class StringsRunner extends StageRunner {
   }
 
   get nStrings() { return this.course.strings ?? SC().strings; }
+  shotZero() { return this.runStart; } // the review times each string from its own beep
   get plates() { return this.steel.filter(id => id !== this.stopId); }
 
   start(nowMs) {

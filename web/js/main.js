@@ -310,7 +310,7 @@ function shoot(nx, ny, tMs, source) {
   // A runner may re-judge a shot before it counts (Dot Torture: wrong dot = miss).
   score = active().judge?.(score) ?? score;
   lastInput = source;
-  if (active().busy) review.recordShot(score);
+  if (active().busy) review.recordShot(score, active().shotZero?.());
   game.registerScoredShot(score);
   range.onShot(nx, ny, score, tMs / 1000);
   shotPop({ indoor: range.layout === 'office3d', outdoor: range.layout !== 'office3d' }); // the office echoes; outside, a recorded echo

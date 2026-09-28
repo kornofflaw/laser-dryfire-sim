@@ -37,11 +37,13 @@ export class ShotReview {
     this.current = { course: course.name, type: course.type, startMs, zeroMs: null, zeroLabel: 'start', shots: [] };
   }
 
-  recordShot(score) {
+  // zeroMs (optional): what this shot's time counts from, when that changes
+  // during a run (Steel Challenge strings: each string's own beep).
+  recordShot(score, zeroMs) {
     const run = this.current;
     if (!run || run.shots.length >= this.maxShots) return;
     const shot = {
-      n: run.shots.length + 1, t: score.t, nx: score.nx, ny: score.ny,
+      n: run.shots.length + 1, t: score.t, nx: score.nx, ny: score.ny, zero: zeroMs,
       zone: score.zone, points: score.points, label: zoneLabel(score), source: score.source,
     };
     run.shots.push(shot);
@@ -78,8 +80,9 @@ export class ShotReview {
     run.zeroMs = zeroMs ?? run.startMs;
     run.zeroLabel = zeroLabel;
     run.shots.forEach((s, i) => {
-      s.time = (s.t - run.zeroMs) / 1000;
-      s.split = i ? (s.t - run.shots[i - 1].t) / 1000 : null;
+      s.time = (s.t - (s.zero ?? run.zeroMs)) / 1000;
+      // (no split across strings: the first shot of a string has none)
+      s.split = i && s.zero === run.shots[i - 1].zero ? (s.t - run.shots[i - 1].t) / 1000 : null;
     });
     this.pendingFinal = run; // captured after the next render
     this.runs.unshift(run);
