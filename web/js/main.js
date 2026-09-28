@@ -611,7 +611,7 @@ function adjustPar(dir) {
 }
 
 // The 3D range's time of day: the course's own (a night stage) or Setup's.
-const rangeTime = () => course().time || settings.rangeTime;
+const rangeTime = () => course().time || match?.def.time || settings.rangeTime; // (a night match makes all its stages night)
 
 // Pick a course: set its runner and put up its targets.
 function selectCourse(i, announce = true) {

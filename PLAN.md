@@ -260,10 +260,10 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
-2. Pop-up targets released by an activator plate in stages.
-3. More matches (e.g. a night match mixing the low-light stage).
+2. Rain on the steel: water sheeting and duller paint; puddles on the bay floor.
+3. A stage builder: Andrew picks targets, props and distances in a simple form and saves his own stages (browser storage).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -735,3 +735,5 @@ he reports a problem.
   hinge (can't be hit) until its activator falls, then springs up with a
   small overshoot and stays up - not a disappearing target, so misses
   count. New stage "Pop-up Surprise" (CONFIG.range3d.popUp).
+- "Night Match: 3 Stages" (Low Light, Pop-up Surprise, Drop Turner), all
+  under the floodlight: a match can set the time of day for its stages.
