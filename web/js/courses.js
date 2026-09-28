@@ -139,7 +139,8 @@ const FLIP = [
 // day for it, whatever Setup says.
 // positions: [{ x, yd, look?: { x, yd } }, ...] (in stage): where you shoot
 // from (x m, yd forward); items with pos: k are shot from position k (default
-// 0). Once that array is done the view runs to the next position.
+// 0). Once that array is done the view runs to the next position
+// (onMove: true - it walks there slowly and shots count on the way).
 // strings: [{ name, say? }, ...] (in stage, course type 'classifier'): the
 // stage is shot once per string, steel reset between them, paper scored at
 // the end.
@@ -347,6 +348,19 @@ const STAGES = [
         { type: 'popper', x: 2.6, yd: 13, pos: 1 },
       ],
       props: [{ type: 'wall', x: 0, yd: 5, w: 1.22, h: 2.2 }],
+    } },
+  { name: 'Walk and Shoot', category: 'Stages', parTime: 12.0, maxShots: 18,
+    desc: 'Start left: two paper. Then walk right (slowly - shots count on the way) and engage the next two paper while moving, finishing with the popper from where you stop. 2 per paper, popper down.',
+    stage: {
+      start: 'standing at position 1, hands relaxed at your sides',
+      positions: [{ x: -3, yd: 0 }, { x: 3, yd: 0, onMove: true }],
+      items: [
+        { type: 'paper', x: -4.2, yd: 7 },
+        { type: 'paper', x: -2.2, yd: 8 },
+        { type: 'paper', x: 0.2, yd: 9, pos: 1 },
+        { type: 'paper', x: 2.4, yd: 8, pos: 1 },
+        { type: 'popper', x: 3.4, yd: 13, pos: 1 },
+      ],
     } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',

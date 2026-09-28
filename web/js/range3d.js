@@ -36,6 +36,7 @@ import { rainStreaks, moveRain } from './rain3d.js';
 import { RANGE3D_KIND, DOT_POSITIONS, PAPER } from './range.js';
 import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D, DuelingTree } from './steel3d.js';
 import { stageTargets } from './courses.js';
+import { footstep } from './audio.js';
 
 const R = () => CONFIG.range3d;
 const Ucfg = () => CONFIG.uspsa;
@@ -1208,8 +1209,10 @@ export class Range3DView {
     const to = this.homeView();
     if (instant) { this.walk = null; this.homeCamera(); return; }
     const from = { pos: this.camera.position.clone(), look: (this.look || to.look).clone() };
-    const M = R().move, time = Math.max(M.min, from.pos.distanceTo(to.pos) / M.speed);
-    this.walk = { from, to, t0: performance.now() / 1000, back: true, time };
+    // (a position with onMove: you walk there shooting; shots count on the way)
+    const M = R().move, onMove = !!this.builtStage?.positions?.[k]?.onMove;
+    const time = Math.max(M.min, from.pos.distanceTo(to.pos) / (onMove ? M.shootSpeed : M.speed));
+    this.walk = { from, to, t0: performance.now() / 1000, back: true, time, shootable: onMove, stride: onMove ? M.shootStride : M.stride, steps: 0 };
   }
 
   // Shooting on the move: stand at x m across, yd downrange of the line
@@ -1255,7 +1258,7 @@ export class Range3DView {
     return this.targets.filter(t => t.card?.face && t.card.meta.kind !== 'popup' && t.card.meta.mover == null && !t.card.meta.hides);
   }
 
-  get walking() { return !!this.walk; }
+  get walking() { return !!this.walk && !this.walk.shootable; } // (walking while shooting doesn't count)
 
   // Walk to target i of inspectable() (null or past the last = back to the
   // line; instant = no walk). Returns { i, n, id, noShoot, zones } for the
@@ -1302,6 +1305,10 @@ export class Range3DView {
     this.camera.position.lerpVectors(w.from.pos, w.to.pos, u);
     this.look = new THREE.Vector3().lerpVectors(w.from.look, w.to.look, u);
     this.camera.lookAt(this.look);
+    if (w.stride && u < 1) { // moving between positions: footsteps
+      const n = Math.floor((now - w.t0) / w.stride);
+      if (n > w.steps) { w.steps = n; footstep(R().move.step); }
+    }
     if (w.back && u >= 1) { this.walk = null; this.homeCamera(); }
   }
 

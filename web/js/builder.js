@@ -14,12 +14,14 @@ const TYPES = {
   noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
   plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
   position: 'You run to here (next position)',
+  walkto: 'You walk to here, shooting on the way',
 };
 const STEEL = ['popper', 'mini', 'plate'];
+const MOVES = ['position', 'walkto']; // rows that are places you shoot from, not targets
 const PROPS = ['wall', 'barrel', 'clamshell'];
 const ACTIVATED = ['pop', 'turn', 'swing', 'bob', 'run', 'clamshell']; // released by a steel (row.by); a mover runs to row.to
 const PAPER = ['paper', 'pop', 'turn', 'swing', 'bob', 'run']; // may carry hard cover (row.hard: a side of CONFIG.builder.hardCover)
-// A 'position' row: you run there; the targets listed after it are shot
+// A 'position' row: you run there ('walkto': you walk there, shooting on the way); the targets listed after it are shot
 // from there (the first position is the start, x 0 at the firing line).
 
 // Stage ids of the steel rows, in order (as courses.js stageTargets gives them).
@@ -32,8 +34,9 @@ export function stageCourse(s) {
   const positions = [{ x: 0, yd: 0 }], items = [], props = [];
   for (const r of s.rows) {
     const pos = positions.length - 1;
-    if (r.type === 'position' && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd }; // before any target: where you start
+    if (MOVES.includes(r.type) && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd }; // before any target: where you start
     else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
+    else if (r.type === 'walkto') positions.push({ x: r.x, yd: r.yd, onMove: true });
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
     else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)) });
   }
@@ -62,7 +65,7 @@ export function stageRows(course) {
   const n = st.positions?.length || 1;
   for (let k = 0; k < n; k++) {
     const P = st.positions?.[k];
-    if (k || (P && (P.x || P.yd))) rows.push({ type: 'position', x: P.x || 0, yd: P.yd || 0 });
+    if (k || (P && (P.x || P.yd))) rows.push({ type: k && P.onMove ? 'walkto' : 'position', x: P.x || 0, yd: P.yd || 0 });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
       const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
       const hard = it.hard?.side ? { hard: it.hard.side } : {};
@@ -108,9 +111,9 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     g.textAlign = 'center';
     for (const r of rows) {
       const x = px(r.x), y = py(r.yd);
-      if (r.type === 'position' && !target && !start) { start = [x, y]; continue; } // where you start
-      if (r.type !== 'position' && !PROPS.includes(r.type)) target = true;
-      if (r.type === 'position') { pos++; g.fillStyle = '#2e7d32'; g.fillRect(x - 8, y - 8, 16, 12); g.fillStyle = '#fff'; g.fillText(pos, x, y + 2); continue; }
+      if (MOVES.includes(r.type) && !target && !start) { start = [x, y]; continue; } // where you start
+      if (!MOVES.includes(r.type) && !PROPS.includes(r.type)) target = true;
+      if (MOVES.includes(r.type)) { pos++; g.fillStyle = r.type === 'walkto' ? '#1565c0' : '#2e7d32'; g.fillRect(x - 8, y - 8, 16, 12); g.fillStyle = '#fff'; g.fillText(pos, x, y + 2); continue; }
       if (r.type === 'wall') { g.fillStyle = '#8d6e3f'; g.fillRect(x - 12, y - 2, 24, 4); continue; }
       if (r.type === 'barrel') { g.fillStyle = '#24569e'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); continue; }
       if (r.type === 'clamshell') { g.strokeStyle = '#6d4c2f'; g.setLineDash([3, 2]); g.strokeRect(x - 8, y - 2, 16, 4); g.setLineDash([]); continue; }
@@ -144,11 +147,11 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const name = $('#b-name').value.trim() || `My stage ${loadStages().length + 1}`;
     const par = Math.max(1, Number($('#b-par').value) || B.par);
     const ids = steelIds(rows);
-    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: r.type === 'position' ? clamp(r.yd, 0, B.maxRun) : clamp(r.yd, B.yards[0], B.yards[1]),
+    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: MOVES.includes(r.type) ? clamp(r.yd, 0, B.maxRun) : clamp(r.yd, B.yards[0], B.yards[1]),
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}),
       ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}),
       ...(PAPER.includes(r.type) && B.hardCover[r.hard] ? { hard: r.hard } : {}) }));
-    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'position')) return toast('Add at least one target to shoot.');
+    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);

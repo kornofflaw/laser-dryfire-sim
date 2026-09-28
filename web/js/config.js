@@ -580,7 +580,10 @@ export const CONFIG = {
     activateDelay: 0.3,
     // Stages with shooting positions: you run between them at `speed` m/s
     // (at least `min` s).
-    move: { speed: 3.5, min: 0.8 },
+    // Moving between stage positions: running at speed m/s (no shots count,
+    // a footstep every stride s), or walking at shootSpeed while shooting
+    // (a position with onMove), footsteps every shootStride s.
+    move: { speed: 3.5, min: 0.8, stride: 0.3, shootSpeed: 0.9, shootStride: 0.55, step: 0.4 },
     // Lean (Q / E): lean out left or right of a wall edge, m sideways, head
     // dropped `drop` m and tilted `roll` rad, taking `time` s.
     lean: { m: 0.4, drop: 0.06, roll: 0.1, time: 0.3 },
