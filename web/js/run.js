@@ -51,7 +51,7 @@ export class DrillRunner extends Runner {
 
   get usesCriteria() {
     const d = this.course;
-    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order || d.sequence || d.evenSplits);
+    return !!(d.minAHits || d.minBodyHits || d.minHeadHits || d.perTargetMin || d.order || d.sequence || d.evenSplits || d.called);
   }
 
   clearRun() {
@@ -62,6 +62,8 @@ export class DrillRunner extends Runner {
     this.shotZones = [];     // what each shot hit (A, C, D, Head, Steel, Miss...)
     this.shotTargets = [];   // which target each shot hit (null = a miss)
     this.slots = [];         // bay slot of each hit, in order
+    this.shotSlots = [];     // bay slot of every shot (null = a miss)
+    this.callSeq = [];       // called drills: the target numbers called (0-based slots)
     this.early = 0;
     this.backs = 0;          // dueling tree: hits that swung a paddle back
     this.points = 0;
@@ -146,6 +148,7 @@ export class DrillRunner extends Runner {
       startBeep();
       this.runStart = nowMs;
       this.state = State.Running;
+      if (this.course.called) this.callNext(nowMs + CONFIG.timer.called.first * 1000);
     }
     if (this.state !== State.Running) return;
 
@@ -160,6 +163,16 @@ export class DrillRunner extends Runner {
         elapsed >= d.parTime + CONFIG.timer.incompleteGrace) {
       this.finish(false);
     }
+  }
+
+  // Called drills (course.called { rounds, calls }): the RO calls a target
+  // number (1-3, left to right); `rounds` on it, then the next call.
+  callNext(atMs) {
+    const n = this.callSeq.length, prev = this.callSeq[n - 1];
+    let k;
+    do k = Math.floor(Math.random() * 3); while (k === prev);
+    this.callSeq.push(k);
+    (this.calls ??= []).push({ at: atMs, text: CONFIG.timer.called.words[k] });
   }
 
   elapsed(nowMs) { return (nowMs - this.runStart) / 1000; }
@@ -178,9 +191,11 @@ export class DrillRunner extends Runner {
     this.points += score.points;
     this.counts[score.zone] = (this.counts[score.zone] || 0) + 1;
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
+    this.shotSlots.push(isHit(score.zone) ? score.slot ?? null : null);
     if (score.back) this.backs++;
 
     const d = this.course;
+    if (d.called && this.shots % d.called.rounds === 0 && this.callSeq.length < d.called.calls) this.callNext(performance.now() + CONFIG.timer.called.next * 1000);
     if (d.clearSteel) {
       // Done when the steel is cleared (dueling tree: every paddle over).
       if (score.clears) this.finish(true);
@@ -222,6 +237,10 @@ export class DrillRunner extends Runner {
       const s = this.shotTimes, splits = s.slice(1).map((t, i) => t - s[i]);
       const spread = Math.max(...splits) - Math.min(...splits);
       if (spread > d.evenSplits) out.push(`splits uneven: ${f2(Math.min(...splits))}–${f2(Math.max(...splits))} s (spread ${f2(spread)} > ${f2(d.evenSplits)})`);
+    }
+    if (d.called) {
+      const r = d.called.rounds, wrong = this.callSeq.map((k, i) => (this.shotSlots.slice(i * r, i * r + r).every(s => s === k) ? null : `call ${i + 1} (target ${k + 1})`)).filter(Boolean);
+      if (wrong.length) out.push(`wrong target or a miss: ${wrong.join(', ')}`);
     }
     if (d.order === 'ltr' && this.slots.some((s, i) => i > 0 && s < this.slots[i - 1])) {
       out.push('out of order (go left to right)');
