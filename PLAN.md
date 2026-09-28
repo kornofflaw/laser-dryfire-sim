@@ -698,3 +698,8 @@ he reports a problem.
 - A course can set its own time of day (course.time); new stage "Low
   Light: Under the Lights" is always shot at night (floodlight, plates in
   the half-dark), whatever Setup says; other courses go back to Setup's.
+- Stage panel shows a written stage briefing, as posted at a match:
+  scoring (Comstock with the minimum round count, or Virginia Count with
+  the exact count), targets (paper, no-shoots, steel, activated), start
+  position (CONFIG.stage.start unless a stage sets start), positions and
+  par (per string for classifier stages).

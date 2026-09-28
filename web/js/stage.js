@@ -212,8 +212,26 @@ export class StageRunner extends DrillRunner {
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;
     }
-    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${need}  ·  par ${d.parTime.toFixed(1)}s` +
-      (this.virginia ? `\n<b>Virginia Count</b>: exactly ${this.roundCount} rounds` : '') + '\n' + footer;
+    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n` + this.briefing() + '\n' + footer;
+  }
+
+  // The written stage briefing, as posted at a match: round count, scoring,
+  // targets, start position, par.
+  briefing() {
+    const st = this.course.stage, n = t => this.items.filter(i => i.type === t).length;
+    const steel = this.steel.length, ns = n('noshoot'), act = this.items.filter(i => i.swing || i.turn || i.run || i.bob).length;
+    const targets = [`${this.papers.length} paper`, ns ? `${ns} no-shoot${ns > 1 ? 's' : ''}` : '', steel ? `${steel} steel` : '', act ? `${act} activated` : '']
+      .filter(Boolean).join(', ');
+    const strings = st.strings?.length || 1, per = this.perString ?? this.perPaper;
+    const min = (this.papers.length * per + steel) * strings;
+    const scoring = this.virginia ? `Virginia Count: exactly ${this.roundCount} rounds` : `Comstock · minimum ${min} rounds`;
+    const lines = [
+      `<b>Scoring</b> ${scoring}${strings > 1 ? ` (${strings} strings)` : ''}`,
+      `<b>Targets</b> ${targets} · ${per} per paper`,
+      `<b>Start</b> ${st.start || CONFIG.stage.start}${this.positions ? ` · ${this.positions.length} positions` : ''}`,
+      `<b>Par</b> ${this.course.parTime.toFixed(1)}s${strings > 1 ? ' per string' : ''}`,
+    ];
+    return `<span class="small">${lines.join('\n')}</span>`;
   }
 }
 

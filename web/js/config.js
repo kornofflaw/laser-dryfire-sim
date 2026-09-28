@@ -55,7 +55,8 @@ export const CONFIG = {
   // Stage points never go below zero. Hit factor = points / time.
   // Virginia Count stages (stage.scoring 'virginia'): exactly the round count
   // (hits per paper + one per steel); each extra shot is a procedural.
-  stage: { perPaper: 2, missPenalty: -10, procedural: -10 },
+  // `start`: the start position in the stage briefing unless a stage has its own.
+  stage: { perPaper: 2, missPenalty: -10, procedural: -10, start: 'standing in the box, hands relaxed at your sides' },
 
   // ---- Targets -------------------------------------------------------------
   targets: {
