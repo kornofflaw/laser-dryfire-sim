@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot, setRain } from './audio.js';
+import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot, setRain, say } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
 import { Game } from './game.js';
@@ -252,6 +252,23 @@ function runDone(result) {
   review.finishRun(result, zero, label);
   const walk = isRange3D(range.layout) && views3d[range.layout]?.inspectable?.().length;
   setTimeout(() => { if (!review.isOpen) toast(walk ? 'Press V to review your shots, I to walk up to the targets' : 'Press V to review your shots'); }, 900);
+}
+
+// The RO's call on a target, as at a match: "Two alpha", "Alpha, charlie",
+// "Alpha, mike", "No-shoot, clean". A stage target is called from its score
+// sheet row (its best hits and misses), anything else from its holes.
+function scoreCall(w) {
+  const NUM = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+  const WORD = { A: 'alpha', C: 'charlie', D: 'delta', M: 'mike', NS: 'no-shoot' };
+  const cap = t => t[0].toUpperCase() + t.slice(1) + '.';
+  if (w.noShoot) return cap(!w.zones.length ? 'no-shoot, clean' : w.zones.length > 1 ? `${NUM[w.zones.length] || w.zones.length} hits on the no-shoot` : 'no-shoot hit');
+  const row = active().result?.sheet?.find(t => t.id === w.id);
+  const marks = row ? row.marks.filter(m => m !== '–') : w.zones;
+  if (!marks.length) return row ? 'Disappearing target, no penalty.' : 'No hits.';
+  const counts = {};
+  for (const m of marks) counts[m] = (counts[m] || 0) + 1;
+  const parts = ['A', 'C', 'D', 'M'].filter(z => counts[z]).map(z => (counts[z] > 1 ? `${NUM[counts[z]] || counts[z]} ${WORD[z]}` : WORD[z]));
+  return cap(parts.join(', '));
 }
 
 // Walking the targets: which one this is and what each hole scored.
@@ -602,7 +619,10 @@ const actions = {
     if (!isRange3D(range.layout) || !v?.ready) return toast('Walk the targets works on the 3D range.');
     if (active().busy) return toast('Finish or cancel the run first (Esc).');
     const cur = v.inspecting;
-    if (!v.inspect(cur ? cur.i + 1 : 0) && !cur) toast('No paper targets to walk to here.');
+    const w = v.inspect(cur ? cur.i + 1 : 0);
+    if (!w && !cur) toast('No paper targets to walk to here.');
+    if (w) active().stopCalls?.(); // the RO is done talking and goes to score
+    if (w && CONFIG.timer.commands.on) say(scoreCall(w), { rate: 1.0 }); // and calls each target
   },
 };
 

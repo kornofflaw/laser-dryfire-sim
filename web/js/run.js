@@ -95,6 +95,8 @@ export class DrillRunner extends Runner {
     for (const [text, gap] of C.after) { this.calls.push({ at: t, text }); t += gap * 1000; }
   }
 
+  stopCalls() { this.calls = []; }
+
   // Speak the RO's calls that are due (before the beep and after the run).
   speakCalls(nowMs) {
     if (this.state === State.Running) return;

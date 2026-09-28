@@ -630,3 +630,7 @@ he reports a problem.
   no-shoot, two plates, and a popper that both releases a swinger from
   behind a wall and drops a clamshell off the middle paper (one activator
   can drive several activated targets).
+- Walking the targets, the RO calls each one out loud as at a match ("Two
+  alpha.", "Alpha, charlie.", "Alpha, mike.", "No-shoot, clean.") - a stage
+  target from its score-sheet row, a drill target from its holes. Walking
+  up cuts the closing commands short. Off with Setup -> RO commands.
