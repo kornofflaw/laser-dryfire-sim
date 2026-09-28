@@ -703,3 +703,6 @@ he reports a problem.
   the exact count), targets (paper, no-shoots, steel, activated), start
   position (CONFIG.stage.start unless a stage sets start), positions and
   par (per string for classifier stages).
+- Setup -> 3D range -> Wind: Calm / Light breeze (default, as before) /
+  Windy: the grass sways harder and the paper targets twist and lean in
+  gusts (up to ~2 degrees; scoring follows the target). CONFIG.range3d.winds.

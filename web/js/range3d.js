@@ -252,11 +252,13 @@ export class Range3DView {
     }
     const mat = new THREE.MeshStandardMaterial({ map: grassTexture(), alphaTest: 0.45, alphaToCoverage: true, side: THREE.DoubleSide, roughness: 0.95 });
     this.wind = { value: 0 };
+    this.gust = { value: R().winds[this.windKind || 'breezy'].grass };
     mat.onBeforeCompile = sh => {
       sh.uniforms.uWind = this.wind;
-      sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      sh.uniforms.uGust = this.gust;
+      sh.vertexShader = 'uniform float uWind;\nuniform float uGust;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
         float ph = instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 1.3;
-        float bend = position.y * position.y * ${Number(W.wind).toFixed(2)};
+        float bend = position.y * position.y * ${Number(W.wind).toFixed(2)} * uGust;
         transformed.x += sin(uWind * 1.7 + ph) * 0.07 * bend;
         transformed.z += cos(uWind * 1.2 + ph * 0.7) * 0.04 * bend;`);
     };
@@ -398,6 +400,14 @@ export class Range3DView {
     this.sun.color.set(T ? T.sunColor : '#fff3df');
     this.sun.intensity = T ? T.sun : R().sunIntensity;
     this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  // Wind (Setup): 'calm', 'breezy' (default) or 'windy' - grass sway and how
+  // much the paper targets twist and lean (looks only; scoring is unchanged).
+  setWind(kind) {
+    if (!R().winds[kind]) return;
+    this.windKind = kind;
+    if (this.gust) this.gust.value = R().winds[kind].grass;
   }
 
   // The night floodlight: a spot on a pole behind and above the shooter.
@@ -1110,7 +1120,10 @@ export class Range3DView {
     for (const t of this.targets) {
       // A light breeze, plus the jolt of a hit (a damped spring).
       const c = t.card;
-      let ry = Math.sin(now * 0.8 + c.phase) * 0.01, rx = Math.sin(now * 0.53 + c.phase * 2) * 0.0015;
+      // Wind (Setup): the cardboard twists and leans more in gusts.
+      const Wd = R().winds[this.windKind || 'breezy'], gust = 0.6 + 0.4 * Math.sin(now * 0.37 + c.phase * 0.5);
+      let ry = (Math.sin(now * 0.8 + c.phase) * 0.01 + Math.sin(now * 3.3 + c.phase * 3) * 0.004 * gust) * Wd.flutter,
+        rx = (Math.sin(now * 0.53 + c.phase * 2) * 0.0015 - 0.002 * gust) * Wd.flutter;
       if (c.jolt) {
         const k = now - c.jolt.t0, s = joltAt(k);
         ry += c.jolt.ry * s;
