@@ -18,6 +18,7 @@
 //   requiredShots  run ends after this many rounds (0 = ends at the par beep)
 //   requiredHits   run ends after this many hits (pop-ups, movers, steel)
 //   maxShots       with requiredHits: out of ammo after this many rounds = fail
+//   reloadAfter    the reload comes after this shot: the timer shows the reload time
 //   clearSteel     with requiredHits: ends when the steel is cleared (a
 //                  dueling tree: every paddle over), not at a hit count
 //   parTime        seconds from the beep
@@ -50,12 +51,12 @@ const DRILLS = [
   // Standard drills, with the par times shooters use for them.
   { name: '5x5 Drill', category: 'Fundamentals', layout: 'single', requiredShots: 5, parTime: 5.0, minAHits: 5,
     desc: '5 rounds in 5 seconds, all in the A zone (the "5-inch circle" at 5 yards).' },
-  { name: 'FAST', category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 5.0,
+  { name: 'FAST', reloadAfter: 2, category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 5.0,
     sequence: ['Head', 'Head', 'body', 'body', 'body', 'body'],
     desc: 'Fundamentals, Accuracy & Speed Test: 2 to the head, reload, 4 to the body. Under 5 s is Advanced.' },
   { name: 'Rhythm Drill', category: 'Fundamentals', layout: 'single', requiredShots: 6, parTime: 3.0, minBodyHits: 6,
     evenSplits: 0.08, desc: '6 body hits at an even pace: every split within 0.08 s of the others. Shoot to a rhythm, not a rush.' },
-  { name: '1-Reload-1', category: 'Fundamentals', layout: 'single', requiredShots: 2, parTime: 3.0, minAHits: 2,
+  { name: '1-Reload-1', reloadAfter: 1, category: 'Fundamentals', layout: 'single', requiredShots: 2, parTime: 3.0, minAHits: 2,
     desc: 'One A-zone hit, a slide-lock reload, another A-zone hit.' },
 
   // Transitions
@@ -65,7 +66,7 @@ const DRILLS = [
     perTargetMin: 2, order: 'ltr', desc: 'Two rounds on each target, left to right.' },
   { name: 'Blake Drill', category: 'Transitions', layout: 'bay', requiredShots: 6, parTime: 2.5,
     perTargetMin: 2, order: 'ltr', minAHits: 6, desc: 'Two A-zone hits on each target, left to right. Under 2.5 s; the best do it in under 2.' },
-  { name: 'El Presidente (dry)', category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
+  { name: 'El Presidente (dry)', reloadAfter: 6, category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
     perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
 
   // Movement

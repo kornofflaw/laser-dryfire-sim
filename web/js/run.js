@@ -298,13 +298,17 @@ export class DrillRunner extends Runner {
           const i = from + k, z = this.shotZones[i];
           const cls = z === 'Miss' || z === 'NS' ? ' class="bad"' : '';
           // Split goal (Setup): a split slower than the goal is flagged.
-          const split = i ? t - s[i - 1] : null, slow = goal > 0 && split != null && split > goal;
+          const reload = d.reloadAfter && i === d.reloadAfter; // the split across the reload
+          const split = i ? t - s[i - 1] : null, slow = goal > 0 && split != null && split > goal && !reload;
           const tr = i && isTransition(i) ? '→' : ''; // moved to another target
-          return `<tr${cls}><td>${i + 1}</td><td>${f2(t)}</td><td${slow ? ' class="slow"' : ''}>${i ? tr + f2(split) : '—'}</td><td>${letter(z)}</td></tr>`;
+          return `<tr${cls}><td>${i + 1}</td><td>${f2(t)}</td><td${slow ? ' class="slow"' : ''}>${i ? (reload ? 'R ' : tr) + f2(split) : '—'}</td><td>${letter(z)}</td></tr>`;
         }).join('');
-        const splits = s.slice(1).map((t, i) => t - s[i]);
+        const isReload = i => d.reloadAfter && i === d.reloadAfter; // shot i came after the reload
+        const all = s.slice(1).map((t, i) => t - s[i]); // all[i]: the split before shot i + 1
+        const splits = all.filter((_, i) => !isReload(i + 1));
+        const reloadLine = d.reloadAfter && s.length > d.reloadAfter ? `<span class="small">Reload (R): <b>${f2(s[d.reloadAfter] - s[d.reloadAfter - 1])}</b> s, shot ${d.reloadAfter} to ${d.reloadAfter + 1}</span>\n` : '';
         const under = splits.filter(v => v <= goal).length;
-        const trans = splits.filter((_, i) => isTransition(i + 1)), same = splits.filter((_, i) => T[i + 1] && T[i] && !isTransition(i + 1));
+        const trans = all.filter((_, i) => !isReload(i + 1) && isTransition(i + 1)), same = all.filter((_, i) => !isReload(i + 1) && T[i + 1] && T[i] && !isTransition(i + 1));
         const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
         const transLine = trans.length && same.length ? `<span class="small">Splits on a target avg ${f2(avg(same))} · transitions (→) avg ${f2(avg(trans))}</span>\n` : '';
         const goalLine = goal > 0 && splits.length ? `<span class="small">Split goal ${f2(goal)}: ${under} of ${splits.length} splits made it${under < splits.length ? ` (slowest ${f2(Math.max(...splits))})` : ''}</span>\n` : '';
@@ -312,7 +316,7 @@ export class DrillRunner extends Runner {
           `${r.shots} shot${r.shots === 1 ? '' : 's'} · 1st ${r.firstShot == null ? '--' : f2(r.firstShot)} · par ${d.parTime.toFixed(2)}\n` +
           (s.length ? `<table class="shots"><tr><th>#</th><th>time</th><th>split</th><th>hit</th></tr>${rows}</table>` +
             (from ? `<span class="muted small">(first ${from} not shown)</span>\n` : '') : '') +
-          goalLine + transLine + (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
+          reloadLine + goalLine + transLine + (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
           this.sessionLine() +
           `<span class="muted small">[Space] run again</span>`;
       }

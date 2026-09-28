@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Reload drills: detect the reload gap (the longest split) and show it as the reload time.
+3. Draw time: first-shot time goal on the timer (e.g. 1.5 s draw) flagged like the split goal.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -794,3 +794,7 @@ he reports a problem.
 - Shot timer review: a split that moved to another target is marked →,
   and on multi-target drills a line compares "Splits on a target avg 0.22 ·
   transitions (→) avg 0.35".
+- Reload drills (FAST, 1-Reload-1, El Presidente): the shot timer shows the
+  reload time ("Reload (R): 1.42 s, shot 2 to 3"), marks that split R, and
+  leaves it out of the split goal and split averages. Course field
+  reloadAfter.
