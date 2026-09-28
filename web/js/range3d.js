@@ -408,6 +408,7 @@ export class Range3DView {
     this.swingers = [];
     this.turners = [];
     this.trolleys = [];
+    this.clamshells = [];
     this.steel = null;
     this.walk = this.inspecting = null;
     this.layoutGroup = new THREE.Group();
@@ -687,6 +688,17 @@ export class Range3DView {
     this.trolleys.push({ group, by: run.by, x0, x1, speed: run.speed ?? T.speed, t0: null });
   }
 
+  // Drop the released clamshells (render()): they fall flat toward the
+  // shooter, speeding up like a falling board, with a small bounce.
+  updateClamshells(now) {
+    const C = R().props.clamshell;
+    for (const s of this.clamshells) {
+      const u = s.t0 == null ? 0 : Math.max(0, now - s.t0) / C.fall;
+      const a = u < 1 ? u * u : 1 - C.bounce * Math.max(0, Math.sin(Math.PI * (u - 1) / 0.35)) * Math.exp(-3 * (u - 1)) * (u < 2.4 ? 1 : 0);
+      s.hinge.rotation.x = (Math.PI / 2 - 0.02) * a;
+    }
+  }
+
   // Run the released trolleys (render()).
   updateTrolleys(now) {
     const a = R().trolley.accel;
@@ -796,6 +808,19 @@ export class Range3DView {
     for (const pr of def.props || []) this.addProp(pr);
   }
 
+  // Plywood (walls, clamshells): the photo-like canvas, tiled per 4 x 8 ft sheet.
+  plywoodMaterial() {
+    if (!this.plywood) {
+      const t = new THREE.CanvasTexture(plywoodCanvas());
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(1 / 1.22, 1 / 2.44); // one 4 x 8 ft sheet per repeat (UVs are metres)
+      t.anisotropy = 8;
+      this.plywood = new THREE.MeshStandardMaterial({ map: t, roughness: 0.88, color: new THREE.Color().setRGB(...R().props.wall.tint) });
+    }
+    return this.plywood;
+  }
+
   // Stage props (courses.js): a plywood 'wall' (optionally with a shooting
   // 'port' cut in it) on 2x4 legs, or a 55-gallon 'barrel'. They stop rounds.
   addProp(pr) {
@@ -803,7 +828,24 @@ export class Range3DView {
     const group = new THREE.Group();
     group.position.set(pr.x, 0, z);
     const parts = [];
-    if (pr.type === 'wall') {
+    if (pr.type === 'clamshell') {
+      // Clamshell (drop-down cover): plywood on a hinge at its foot, in front
+      // of a target; its activator steel (pr.by) drops it flat toward you.
+      const C = P.clamshell, w = pr.w ?? C.w, h = pr.h ?? C.h;
+      const hinge = new THREE.Group();
+      hinge.position.set(0, C.lift, 0);
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(w, h, P.wall.thick), this.plywoodMaterial());
+      panel.position.set(0, h / 2, -P.wall.thick / 2);
+      hinge.add(panel);
+      panel.userData.surface = 'wood';
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w + 0.1, 0.05, 0.05), this.steelMats.frame);
+      bar.position.set(0, C.lift / 2, -0.03);
+      bar.userData.surface = 'steel-frame';
+      group.add(bar, hinge);
+      for (const m of [panel, bar]) m.castShadow = m.receiveShadow = true;
+      this.addSolids([panel, bar]); // (not in parts: those are re-parented to the group)
+      this.clamshells.push({ hinge, by: pr.by, t0: null });
+    } else if (pr.type === 'wall') {
       const w = pr.w ?? P.wall.w, h = pr.h ?? P.wall.h, lift = P.wall.lift;
       const shape = new THREE.Shape();
       shape.moveTo(-w / 2, 0); shape.lineTo(w / 2, 0); shape.lineTo(w / 2, h); shape.lineTo(-w / 2, h); shape.closePath();
@@ -813,15 +855,7 @@ export class Range3DView {
         hole.moveTo(px - pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py + ph / 2); hole.lineTo(px - pw / 2, py + ph / 2); hole.closePath();
         shape.holes.push(hole);
       }
-      if (!this.plywood) {
-        const t = new THREE.CanvasTexture(plywoodCanvas());
-        t.colorSpace = THREE.SRGBColorSpace;
-        t.wrapS = t.wrapT = THREE.RepeatWrapping;
-        t.repeat.set(1 / 1.22, 1 / 2.44); // one 4 x 8 ft sheet per repeat (UVs are metres)
-        t.anisotropy = 8;
-        this.plywood = new THREE.MeshStandardMaterial({ map: t, roughness: 0.88, color: new THREE.Color().setRGB(...P.wall.tint) });
-      }
-      const panel = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: P.wall.thick, bevelEnabled: false }), this.plywood);
+      const panel = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: P.wall.thick, bevelEnabled: false }), this.plywoodMaterial());
       panel.position.set(0, lift, -P.wall.thick / 2);
       parts.push(panel);
       // 2x4 legs and braces behind it.
@@ -898,6 +932,7 @@ export class Range3DView {
     this.swingers?.forEach(s => { s.t0 = null; });
     this.turners?.forEach(s => { s.t0 = null; });
     this.trolleys?.forEach(s => { s.t0 = null; });
+    this.clamshells?.forEach(s => { s.t0 = null; });
     this.steel?.reset();
     this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
     this.clearMarks();
@@ -1017,6 +1052,7 @@ export class Range3DView {
     if (this.swingers?.length) this.updateSwingers(now);
     if (this.turners?.length) this.updateTurners(now);
     if (this.trolleys?.length) this.updateTrolleys(now);
+    if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
@@ -1116,7 +1152,7 @@ export class Range3DView {
         this.steel.hit(score.steel, score.point, score.dir, now);
         // An activator: releases its swinger.
         // (released by a cable as it falls: activateDelay s later)
-        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
+        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || []), ...(this.clamshells || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
       }
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
@@ -1182,6 +1218,7 @@ export class Range3DView {
     return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving || this.movers?.length > 0 ||
       this.swingers?.some(s => s.t0 != null) || this.turners?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 2 * R().turner.time + s.show) ||
       this.trolleys?.some(s => s.t0 != null && Math.abs(s.group.position.x - s.x1) > 1e-4) ||
+      this.clamshells?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 3 * R().props.clamshell.fall) ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }
 

@@ -521,7 +521,14 @@ export const CONFIG = {
     // to each paper, framing `frame` x the target's height, standing `raise`
     // x that frame higher (so the target sits below the label at the top).
     inspect: { time: 1.2, frame: 1.5, raise: 0.05 },
-    props: { wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] }, barrel: { r: 0.29, h: 0.88, color: '#24569e' } },
+    // Clamshell (drop-down cover): a plywood panel w x h m on a steel hinge
+    // bar at its foot (`lift` m up), standing in front of a target; its
+    // activator drops it flat toward you in `fall` s (bounce: rebound).
+    props: {
+      wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] },
+      barrel: { r: 0.29, h: 0.88, color: '#24569e' },
+      clamshell: { w: 0.8, h: 1.85, lift: 0.05, fall: 0.7, bounce: 0.05 },
+    },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render

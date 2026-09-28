@@ -121,8 +121,10 @@ const FLIP = [
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
-// (port = an opening to shoot through, y = its centre height, m) and
-// { type: 'barrel', x, yd }. They stop rounds.
+// (port = an opening to shoot through, y = its centre height, m),
+// { type: 'barrel', x, yd } and { type: 'clamshell', x, yd, by: 'S1' } (a
+// drop-down cover in front of a target that falls when that steel is hit).
+// They stop rounds.
 // Every paper needs 2 hits and every piece of steel has to fall (CONFIG.stage).
 const STAGES = [
   { name: 'Mini Poppers', category: 'Steel', parTime: 5.0, maxShots: 10,
@@ -202,6 +204,17 @@ const STAGES = [
         { type: 'wall', x: -2.6, yd: 8.3, w: 1.22, h: 1.83 },
         { type: 'wall', x: 2.6, yd: 8.3, w: 1.22, h: 1.83 },
       ],
+    } },
+  { name: 'Clamshell', category: 'Stages', parTime: 8.0, maxShots: 12,
+    desc: 'The middle target is behind a drop-down cover. Hit the plate to drop it, then shoot all three, two each.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.0, yd: 7 },
+        { type: 'paper', x: 0, yd: 9 },
+        { type: 'paper', x: 2.0, yd: 7 },
+        { type: 'plate', x: 3.6, yd: 10 },
+      ],
+      props: [{ type: 'clamshell', x: 0, yd: 8.6, by: 'S1' }],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

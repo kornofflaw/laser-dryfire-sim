@@ -601,3 +601,9 @@ he reports a problem.
   shooters before you hit them (8-34 pasters, mostly around the A zone, a
   few on no-shoots, none on hard cover), so your fresh holes stand out
   among old pasters (CONFIG.range3d.paste.earlier / spreadCm).
+- Clamshell (drop-down cover): a plywood panel on a steel hinge bar at its
+  foot, standing in front of a target and stopping rounds, until its
+  activator steel is hit; then it falls flat toward you (speeding up like a
+  falling board, a small bounce). New stage "Clamshell"
+  (CONFIG.range3d.props.clamshell; courses.js props { type: 'clamshell',
+  by }).
