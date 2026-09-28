@@ -1477,8 +1477,16 @@ export class Range3DView {
     const n = normal || new THREE.Vector3(0, 1, 0);
     // Dirt kicks up off the surface and back toward the shooter.
     const kick = n.clone().multiplyScalar(0.8).addScaledVector(dir, -0.4).normalize();
-    this.fx.push(debris(this.scene, point, kick, '#6e5a44', 22, [1.0, 3.5], 0.012, 1.2));
-    this.fx.push(dustPuff(this.scene, point, n));
+    if (this.raining) {
+      // Wet ground: mud and a splash of water droplets, no dust.
+      const Sp = R().rain.splash;
+      this.fx.push(debris(this.scene, point, kick, '#3f352b', 14, [1.0, 3.0], 0.01, 0.9));
+      this.fx.push(debris(this.scene, point, n, Sp.color, Sp.drops, Sp.speed, Sp.size, Sp.life));
+      this.fx.push(dustPuff(this.scene, point, n, Sp.mist, Sp.mistSize));
+    } else {
+      this.fx.push(debris(this.scene, point, kick, '#6e5a44', 22, [1.0, 3.5], 0.012, 1.2));
+      this.fx.push(dustPuff(this.scene, point, n));
+    }
     this.marks.push(strikeMark(this.scene, point, n));
     if (this.marks.length > 60) this.marks.shift().removeFromParent();
   }

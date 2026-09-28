@@ -525,6 +525,9 @@ export const CONFIG = {
       sun: 0.15, env: 0.45, bg: 1, haze: '#8a9098', hazeMix: 0.8, hazeNear: 10, hazeFar: 120, darken: 0.72,
       cardDarken: 0.78, cardRoughness: 0.8, // soaked cardboard
       steelDarken: 0.8, steelRoughness: 0.35, // wet painted steel
+      // A round into wet ground: water droplets (colour, count, speed m/s, size m,
+      // life s) and a thin mist instead of dust.
+      splash: { color: '#c9d2da', drops: 26, speed: [1.5, 4], size: 0.009, life: 0.8, mist: '#aab4bc', mistSize: 0.45 },
       // Puddles: count flat ellipses (size m) scattered over area [x, depth] m.
       puddles: { count: 11, size: [0.3, 1.0], area: [11, 22], color: '#2e3134', roughness: 0.15, opacity: 0.7, reflect: 0.35 },
       sky: ['#5c636c', '#7a8189', '#a2a8ae'], // overcast backdrop, top to horizon (not at night)
