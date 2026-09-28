@@ -207,7 +207,8 @@ Built 2026-09-25 as code-drawn people (no image files) in an indoor room.
 - **Vercel**, project `laser-dryfire-sim` (Hobby plan, account kornofflaw), linked to
   this GitHub repo. Root directory `web/`, no framework, no build command.
 - Production URL: https://laser-dryfire-sim.vercel.app. Pushing to `main`
-  deploys production; other branches get preview URLs.
+  deploys production. claude/** branches don't build (web/vercel.json) - the
+  Hobby plan allows 100 deployments a day.
 - Vercel Authentication is ON (the default): only people logged in to the
   kornofflaw Vercel account can open the site. To share it with anyone else,
   turn it off in Vercel → project → Settings → Deployment Protection.
@@ -818,5 +819,5 @@ he reports a problem.
 - 2026-09-28: New match "Field Match: 5 Stages": Walk and Shoot, Low Port, Swinging No-Shoot, Barricade, Hard Cover in a row with match results.
 - 2026-09-28: Stage builder: swingers (paper or no-shoot) can be held left or right until released, and a "Wall (4 x 8 ft)" row that hides a held swinger; copies of stock stages keep 8 ft walls and left-held swingers.
 - 2026-09-28: Stages with positions: a shooting box of 2x4 boards on the ground at each position (CONFIG.range3d.props.box).
-- 2026-09-28: Deploy note: push main before the branch - Vercel skipped production builds when the same commit had already been built from the branch.
+- 2026-09-28: Deploys paused: the Hobby plan allows 100 deployments a day and every push built twice (main + the claude/ branch). web/vercel.json now turns off builds for claude/** branches, so only main deploys.
 - 2026-09-28: Stage briefing: a Positions line when a stage has kneeling / prone / walk-while-shooting positions ("1 standing · 2 kneeling · 3 prone").
