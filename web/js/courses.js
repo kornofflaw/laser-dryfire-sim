@@ -66,8 +66,8 @@ const DRILLS = [
     perTargetMin: 2, order: 'ltr', desc: 'Two rounds on each target, left to right.' },
   { name: 'Blake Drill', category: 'Transitions', layout: 'bay', requiredShots: 6, parTime: 2.5,
     perTargetMin: 2, order: 'ltr', minAHits: 6, desc: 'Two A-zone hits on each target, left to right. Under 2.5 s; the best do it in under 2.' },
-  { name: 'El Presidente (dry)', reloadAfter: 6, category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
-    perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
+  { name: 'El Presidente (dry)', reloadAfter: 6, turnStart: true, category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
+    perTargetMin: 4, desc: 'Start facing uprange, hands above your shoulders: at the beep turn (the view swings round), draw, 2 on each target, reload, 2 on each again. Timer runs through the turn and the reload.' },
 
   // Movement
   // Kneeling / prone (3D): the view is at that eye height.

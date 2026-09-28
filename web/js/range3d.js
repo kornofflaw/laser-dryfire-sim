@@ -1242,6 +1242,26 @@ export class Range3DView {
     if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
   }
 
+  // Start facing uprange (El Presidente): back = true turns you round
+  // (instant); back = false at the beep turns you to the targets over
+  // turn.time s (no shots count while turning).
+  setFacing(back) {
+    if (!!this.facingBack === back) return;
+    this.facingBack = back;
+    if (back) { this.turn = null; if (!this.walk && !this.inspecting) this.faceCamera(1); }
+    else this.turn = { t0: performance.now() / 1000 };
+  }
+
+  // Camera at home, turned `k` of the way round (1 = facing uprange).
+  faceCamera(k) {
+    const h = this.homeView(), dir = h.look.clone().sub(h.pos), yaw = Math.PI * k * (R().turnAround.side || 1);
+    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.camera.position.copy(h.pos);
+    this.look = h.pos.clone().add(dir);
+    this.camera.lookAt(this.look);
+    if (!k) this.look = h.look;
+  }
+
   // A drill's stance ('kneel' / 'prone' / null = standing): the eyes drop.
   // (animate: get down / up over the stance's time; no shots count meanwhile)
   setStance(s, animate = false) {
@@ -1288,7 +1308,7 @@ export class Range3DView {
     return this.targets.filter(t => t.card?.face && t.card.meta.kind !== 'popup' && t.card.meta.mover == null && !t.card.meta.hides);
   }
 
-  get walking() { return !!this.walk && !this.walk.shootable; } // (walking while shooting doesn't count)
+  get walking() { return (!!this.walk && !this.walk.shootable) || !!this.turn; } // (walking while shooting doesn't count)
 
   // Walk to target i of inspectable() (null or past the last = back to the
   // line; instant = no walk). Returns { i, n, id, noShoot, zones } for the
@@ -1371,7 +1391,11 @@ export class Range3DView {
     if (this.bobbers?.length) this.updateBobbers(now);
     if (this.poppers?.length) this.updatePopUps(now);
     if (this.clamshells?.length) this.updateClamshells(now);
-    if (this.walk) this.updateWalk(now);
+    if (this.turn) { // turning round from uprange at the beep
+      const u = smooth((now - this.turn.t0) / R().turnAround.time);
+      this.faceCamera(1 - u);
+      if (u >= 1) this.turn = null;
+    } else if (this.walk) this.updateWalk(now);
     else if (!this.inspecting && (this.lean || this.leanNow)) this.updateLean(dt);
     if (this.raining && this.rain) moveRain(this.rain, R().rain, dt, this.camera.position.x, this.camera.position.z);
     if (this.flashAt != null && this.time !== 'night') this.flashAt = null;

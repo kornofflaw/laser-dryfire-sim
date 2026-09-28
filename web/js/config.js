@@ -618,6 +618,9 @@ export const CONFIG = {
       // Barricade (VTAC style): a 4 x 7 ft panel with a port per stance.
       barricade: { w: 1.22, h: 2.13, ports: [{ y: 1.55, w: 0.3, h: 0.36 }, { y: 1.0, w: 0.3, h: 0.36 }, { y: 0.36, w: 0.34, h: 0.26 }] },
     },
+    // Drills that start facing uprange (course turnStart): the turn to the
+    // targets at the beep takes `time` s (side 1 / -1: which way round).
+    turnAround: { time: 0.55, side: 1 },
     // Stage positions with a stance (kneel / prone): eye height m and the
     // height it looks at downrange (low ports sit low).
     // `time`: seconds at least to get into (or up from) that stance.
