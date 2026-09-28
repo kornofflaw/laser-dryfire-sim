@@ -70,6 +70,16 @@ const DRILLS = [
     perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
 
   // Movement
+  // Shooting on the move (3D): the view walks after the beep; shots count on the way.
+  { name: 'Walk Up', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 6.0, perTargetMin: 2,
+    advance: { from: [0, -6], to: [0, -1], speed: 0.9 }, minBodyHits: 6,
+    desc: 'Shooting on the move: at the beep you walk forward (5 yd, slow heel-to-toe) - 2 on each target while moving. Keep the dot steady as the view bobs.' },
+  { name: 'Back Up', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 6.0, perTargetMin: 2,
+    advance: { from: [0, 2], to: [0, -3], speed: 0.8 }, minBodyHits: 6,
+    desc: 'Shooting while retreating: at the beep you back away 5 yd from close targets - 2 on each while moving.' },
+  { name: 'Crossing Fire', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 7.0, perTargetMin: 2,
+    advance: { from: [-3, -2], to: [3, -2], speed: 0.9 }, minBodyHits: 6,
+    desc: 'Moving across: at the beep you walk 6 m to the right, parallel to the targets - 2 on each while moving.' },
   { name: 'Movers', category: 'Movement', layout: 'movers', requiredHits: 4, maxShots: 10, parTime: 8.0,
     desc: 'Hit 4 moving targets. 10 rounds max.' },
 

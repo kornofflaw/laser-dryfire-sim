@@ -260,10 +260,10 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
-2. Shooting on the move: a drill where the view walks forward (or across) at walking pace after the beep and shots count on the way (USPSA-style moving shots).
+2. Shooting on the move in stages: a builder row "walk while shooting" between positions (shots count on the way), like the Movement drills.
 3. Partial no-shoot overlap in the builder: a no-shoot hung in front of a paper target, covering part of it (dx / dy offsets).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -807,3 +807,4 @@ he reports a problem.
 - 2026-09-28: 3D range: Setup -> 3D range -> 3-target distances: staggered puts the bay's 2nd and 3rd targets 5 and 10 yd further back (smaller, finer-printed cards), for transition drills with distance changes.
 - 2026-09-28: Stage builder: paper rows (plain and activated) can carry hard cover (left third / right third / lower half / head), painted black on the target; hits there don't score. Kept in stage codes and in copies of stock stages.
 - 2026-09-28: 3D range: Q / E lean out left / right of a wall or barricade (0.4 m over, head dropped and tilted; press again to stand upright). Shots count while leaning; resets with each run and position. Controller: Lean left / Lean right buttons. CONFIG.range3d.lean.
+- 2026-09-28: Movement drills (3D): Walk Up (walk 5 yd toward three targets), Back Up (retreat 5 yd) and Crossing Fire (walk 6 m across) - at the beep the view walks at a slow shooting pace with footsteps and a slight head bob, and shots count on the way; it stops where the walk got to and goes back to the start for the next run. Course field advance { from, to, speed }; CONFIG.range3d.advance.

@@ -1194,6 +1194,8 @@ export class Range3DView {
       const lx = P.look?.x ?? P.x, lyd = P.look?.yd ?? (P.yd || 0) + this.lookYards;
       return { pos: new THREE.Vector3(P.x || 0, CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, R().aimY.stage, -lyd * YARD) };
     }
+    const s = this.step; // shooting on the move: where the walk has got to
+    if (s) return { pos: new THREE.Vector3(s.x, CONFIG.knife.eyeHeight + s.bob, -s.yd * YARD), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
     return { pos: new THREE.Vector3(0, CONFIG.knife.eyeHeight, 0), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
   }
 
@@ -1208,6 +1210,15 @@ export class Range3DView {
     const from = { pos: this.camera.position.clone(), look: (this.look || to.look).clone() };
     const M = R().move, time = Math.max(M.min, from.pos.distanceTo(to.pos) / M.speed);
     this.walk = { from, to, t0: performance.now() / 1000, back: true, time };
+  }
+
+  // Shooting on the move: stand at x m across, yd downrange of the line
+  // (bob: head height m). null = back on the line.
+  setStep(x, yd, bob = 0) {
+    const s = this.step;
+    if (x == null ? !s : s && s.x === x && s.yd === yd && s.bob === bob) return;
+    this.step = x == null ? null : { x, yd, bob };
+    if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
   }
 
   // Lean out left (-1) or right (1) of cover, or stand upright (0). Shots

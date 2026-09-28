@@ -530,6 +530,7 @@ function frame(now) {
   if (active().wantsReset) { active().wantsReset = false; range.reset(); }
   // A stage with shooting positions: run to the next one.
   if (active().wantsMove != null) { views3d[range.layout]?.moveTo?.(active().wantsMove); active().wantsMove = null; }
+  walkOn(now);
   // Between classifier strings only the steel is reset (paper is scored at the end).
   if (active().wantsSteelReset) { active().wantsSteelReset = false; views3d[range.layout]?.steel?.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the
@@ -835,6 +836,29 @@ window.addEventListener('keydown', e => {
     map[k]();
   }
 });
+
+// Shooting on the move (course.advance { from: [x m, yd], to, speed m/s }):
+// the view stands at `from` until the beep, then walks to `to` while you
+// shoot, with footsteps; after the run it stays where the walk got to.
+let walkU = 0, lastStride = 0;
+function walkOn(now) {
+  const A = course().advance, v = range.view3d;
+  if (!v?.setStep) return;
+  if (!A) return v.setStep(null);
+  const R = active(), W = CONFIG.range3d.advance;
+  const dist = Math.hypot(A.to[0] - A.from[0], (A.to[1] - A.from[1]) * 0.9144);
+  if (R.state === 'Running') {
+    const t = (now - R.runStart) / 1000, u = Math.min(1, (t * A.speed) / dist);
+    if (u < 1 && walkU < 1) {
+      const n = Math.floor(t / W.stride);
+      if (n > lastStride) { lastStride = n; footstep(W.step); }
+    }
+    walkU = u;
+  } else if (R.state !== 'Done') { walkU = 0; lastStride = 0; }
+  const moving = R.state === 'Running' && walkU < 1;
+  const bob = moving ? W.bob * Math.abs(Math.sin(((now - R.runStart) / 1000 / W.stride) * Math.PI)) - W.bob : 0;
+  v.setStep(A.from[0] + (A.to[0] - A.from[0]) * walkU, A.from[1] + (A.to[1] - A.from[1]) * walkU, bob);
+}
 
 // 3D range: lean out left or right of cover (press the same side again to stand upright).
 function lean(side) {

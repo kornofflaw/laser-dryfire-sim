@@ -584,6 +584,10 @@ export const CONFIG = {
     // Lean (Q / E): lean out left or right of a wall edge, m sideways, head
     // dropped `drop` m and tilted `roll` rad, taking `time` s.
     lean: { m: 0.4, drop: 0.06, roll: 0.1, time: 0.3 },
+    // Shooting on the move (drills with advance: { from, to, speed }): the
+    // view walks from -> to ([x m, yd downrange of the line]) at speed m/s
+    // after the beep; a footstep every `stride` s, head bobbing `bob` m.
+    advance: { stride: 0.55, bob: 0.012, step: 0.35 },
     // Walk the targets (I, after a run): the camera takes `time` s to walk up
     // to each paper, framing `frame` x the target's height, standing `raise`
     // x that frame higher (so the target sits below the label at the top).
