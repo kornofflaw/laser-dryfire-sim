@@ -745,7 +745,8 @@ export const CONFIG = {
       distantShots: [3, 14], // seconds between distant shots at the range
       // ...a `chance` of each being a whole string: shots rounds, split s
       // apart, with a moveChance of a move / reload pause (move s).
-      strings: { chance: 0.45, shots: [6, 16], split: [0.18, 0.34], move: [0.9, 2.0], moveChance: 0.15 },
+      // steelChance: a shot rings steel on their bay, dist m away.
+      strings: { chance: 0.45, shots: [6, 16], split: [0.18, 0.34], move: [0.9, 2.0], moveChance: 0.15, steelChance: 0.3, steelDist: [110, 220] },
     },
     // Gunshots (suspects firing): a crack, a low thump and a deep falling boom,
     // compressed for punch. Saturation adds harmonics so tablet and laptop

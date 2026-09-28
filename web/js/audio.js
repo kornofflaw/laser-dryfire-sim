@@ -558,6 +558,8 @@ export function setAmbience(kind) {
     const later = (s, fn) => { amb.timer = setTimeout(() => { if (amb?.kind === 'range') fn(); }, s * 1000); };
     const string = n => {
       distantShot(out);
+      // (their steel rings back, late and faint, from off to one side)
+      if (Math.random() < S.steelChance && mix.amb > 0) steelPing(null, { dist: rnd(S.steelDist), pan: Math.random() < 0.5 ? -1 : 1 });
       if (n <= 1) return next();
       later(Math.random() < S.moveChance ? rnd(S.move) : rnd(S.split), () => string(n - 1));
     };
