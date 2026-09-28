@@ -360,6 +360,27 @@ const STAGES = [
         { type: 'paper', x: 1.2, yd: 12, pop: { by: 'S1' } },
       ],
     } },
+  { name: 'Three Positions', category: 'Stages', parTime: 16.0, maxShots: 24,
+    desc: 'Start left at low ready: two paper and a mini popper. Run to the middle: two paper and a popper - the popper pops up a target you\'ll see from the right. Run right: two paper and a plate. 2 per paper, all steel down.',
+    stage: {
+      start: 'standing at position 1, gun held at low ready',
+      positions: [{ x: -3, yd: 0 }, { x: 0, yd: 3 }, { x: 3, yd: 1 }],
+      items: [
+        { type: 'paper', x: -4.4, yd: 7 },
+        { type: 'paper', x: -2.2, yd: 8 },
+        { type: 'mini', x: -3.3, yd: 11 },
+        { type: 'paper', x: -0.9, yd: 10, pos: 1 },
+        { type: 'paper', x: 0.9, yd: 10, pos: 1 },
+        { type: 'popper', x: 0, yd: 14, pos: 1 },
+        { type: 'paper', x: 2.4, yd: 8, pos: 2 },
+        { type: 'paper', x: 4.4, yd: 8, pos: 2, pop: { by: 'S2' } },
+        { type: 'plate', x: 3.4, yd: 12, pos: 2 },
+      ],
+      props: [
+        { type: 'wall', x: -1.4, yd: 4.5, w: 1.22, h: 2.2 },
+        { type: 'wall', x: 1.8, yd: 5, w: 1.22, h: 2.2 },
+      ],
+    } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
     stage: { items: [

@@ -763,3 +763,6 @@ he reports a problem.
   briefing; Swing and Drop starts in surrender, Two Positions at low ready,
   Virginia Count: Three at Ten with the gun on the table
   (CONFIG.builder.starts).
+- New stage "Three Positions": start left at low ready, run to the middle
+  (its popper pops up a target on the right array), then run right; walls
+  between the arrays. 6 paper, 3 steel.
