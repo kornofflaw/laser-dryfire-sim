@@ -429,6 +429,21 @@ const STAGES = [
         { type: 'popper', x: 3, yd: 13, pos: 1 },
       ],
     } },
+  { name: 'Retreat', category: 'Stages', parTime: 10.0, maxShots: 16,
+    desc: 'Start close: two paper 3 yards away. Then back away 5 yards (slowly - shots count on the way) and engage two more paper behind a no-shoot pair, then the plate from where you stop. 2 per paper, the plate down.',
+    stage: {
+      start: 'standing at position 1, wrists above your shoulders (surrender)',
+      positions: [{ x: 0, yd: 5 }, { x: 0, yd: 0, onMove: true }],
+      items: [
+        { type: 'paper', x: -1.6, yd: 8 },
+        { type: 'paper', x: 1.6, yd: 8 },
+        { type: 'paper', x: -0.9, yd: 12, pos: 1 },
+        { type: 'noshoot', x: -0.5, yd: 11.8, dy: -0.25 },
+        { type: 'noshoot', x: 0.5, yd: 11.8, dy: -0.25 },
+        { type: 'paper', x: 0.9, yd: 12, pos: 1 },
+        { type: 'plate', x: 0, yd: 15, pos: 1 },
+      ],
+    } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
     stage: {
