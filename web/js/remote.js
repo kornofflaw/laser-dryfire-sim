@@ -64,6 +64,7 @@ export const SETUP_CONTROLS = [
   { id: 'opt-time', kind: 'select', label: 'Time of day' },
   { id: 'opt-weather', kind: 'select', label: 'Weather' },
   { id: 'opt-wind', kind: 'select', label: 'Wind' },
+  { id: 'opt-bay', kind: 'select', label: '3-target spacing' },
   { id: 'cars3d', kind: 'range', label: 'Parked cars', out: 'cars3d-val' },
   { id: 'opt-night', kind: 'check', label: 'Night' },
   { id: 'opt-rain', kind: 'check', label: 'Rain' },

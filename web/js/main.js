@@ -48,6 +48,7 @@ const settings = Object.assign({
   lotRain: false,     // parking lot in the rain (wet asphalt, rain, rain sound)
   rangeTime: 'day',   // 3D range time of day: day / morning / evening / night
   rangeWind: 'breezy', // 3D range wind: calm / breezy / windy
+  bayGap: CONFIG.range3d.bayGap, // 3D range: metres between the 3 bay targets
   rangeWeather: 'dry', // 3D range weather: dry / rain
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
@@ -72,6 +73,7 @@ CONFIG.post.quality = settings.quality; // 3D graphics (read by post3d.js)
 CONFIG.timer.commands.on = settings.roCommands;
 CONFIG.timer.splitGoal = settings.splitGoal;
 CONFIG.timer.drawGoal = settings.drawGoal;
+CONFIG.range3d.bayGap = settings.bayGap;
 CONFIG.range3d.paste.on = settings.paste;
 Object.assign(CONFIG.points, CONFIG.powerFactor[settings.powerFactor] || CONFIG.powerFactor.minor);
 const persist = () => save(CONFIG.storage.settings, settings);
@@ -1135,6 +1137,13 @@ $('#opt-weather').onchange = e => {
   persist();
   views3d['range3d-single']?.setWeather(settings.rangeWeather);
 };
+$('#opt-bay').onchange = e => {
+  if (active().busy) { refreshSetup(); return toast('Finish or cancel the run first (Esc).'); }
+  settings.bayGap = CONFIG.range3d.bayGap = Number(e.target.value);
+  persist();
+  const v = views3d['range3d-bay'];
+  if (v?.ready && range.layout === 'range3d-bay') v.setLayout('range3d-bay', true); // rebuild with the new spacing
+};
 $('#opt-wind').onchange = e => {
   settings.rangeWind = e.target.value;
   persist();
@@ -1169,6 +1178,7 @@ function refreshSetup() {
   $('#opt-rain').checked = settings.lotRain;
   $('#opt-time').value = settings.rangeTime;
   $('#opt-wind').value = settings.rangeWind;
+  $('#opt-bay').value = String(settings.bayGap);
   $('#opt-weather').value = settings.rangeWeather;
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
