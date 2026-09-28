@@ -817,3 +817,5 @@ he reports a problem.
 - 2026-09-28: Swinging no-shoot: new stage "Swinging No-Shoot" (the popper releases a no-shoot from behind a wall; it swings across the middle target). Stage builder row "No-shoot: swinger".
 - 2026-09-28: New match "Field Match: 5 Stages": Walk and Shoot, Low Port, Swinging No-Shoot, Barricade, Hard Cover in a row with match results.
 - 2026-09-28: Stage builder: swingers (paper or no-shoot) can be held left or right until released, and a "Wall (4 x 8 ft)" row that hides a held swinger; copies of stock stages keep 8 ft walls and left-held swingers.
+- 2026-09-28: Stages with positions: a shooting box of 2x4 boards on the ground at each position (CONFIG.range3d.props.box).
+- 2026-09-28: Deploy note: push main before the branch - Vercel skipped production builds when the same commit had already been built from the branch.

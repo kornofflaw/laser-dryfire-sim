@@ -605,6 +605,9 @@ export const CONFIG = {
       // Port walls (stage builder): w x h m with a port pw x ph m centred
       // y m up - 'high' for standing, 'low' for kneeling.
       ports: { w: 2.44, h: 2.2, high: { y: 1.5, w: 0.6, h: 0.45 }, low: { y: 0.95, w: 0.6, h: 0.42 } },
+      // Shooting box at each stage position: a square `size` m of 2x4
+      // boards (board: width, height m) laid on the ground.
+      box: { size: 1.2, board: [0.089, 0.038] },
       // Barricade (VTAC style): a 4 x 7 ft panel with a port per stance.
       barricade: { w: 1.22, h: 2.13, ports: [{ y: 1.55, w: 0.3, h: 0.36 }, { y: 1.0, w: 0.3, h: 0.36 }, { y: 0.36, w: 0.34, h: 0.26 }] },
     },
