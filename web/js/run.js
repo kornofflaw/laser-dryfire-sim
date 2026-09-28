@@ -97,6 +97,24 @@ export class DrillRunner extends Runner {
 
   stopCalls() { this.calls = []; }
 
+  // This session's runs of each course (in memory): for the line under the
+  // shot timer's review - how many, best and average (time for a drill,
+  // hit factor for a stage), and how many passed.
+  remember(r) {
+    const all = (DrillRunner.history ??= {});
+    (all[r.course] ??= []).push({ complete: r.complete, time: r.time, hf: r.hitFactor, passed: r.passed });
+  }
+
+  sessionLine() {
+    const runs = (DrillRunner.history?.[this.course.name] || []).filter(r => r.complete);
+    if (runs.length < 2) return '';
+    const stage = this.course.type === 'stage';
+    const vals = runs.map(r => (stage ? r.hf : r.time));
+    const best = stage ? Math.max(...vals) : Math.min(...vals), avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const passed = runs.filter(r => r.passed).length;
+    return `<span class="muted small">This session: ${runs.length} runs · ${stage ? 'HF' : ''} best ${f2(best)} · avg ${f2(avg)}${runs.some(r => r.passed != null) ? ` · passed ${passed}/${runs.length}` : ''}</span>\n`;
+  }
+
   // Speak the RO's calls that are due (before the beep and after the run).
   speakCalls(nowMs) {
     if (this.state === State.Running) return;
@@ -225,6 +243,7 @@ export class DrillRunner extends Runner {
     };
     this.state = State.Done;
     if (timed) this.closingCalls();
+    this.remember(this.result);
     this.emit();
   }
 
@@ -262,6 +281,7 @@ export class DrillRunner extends Runner {
           (s.length ? `<table class="shots"><tr><th>#</th><th>time</th><th>split</th><th>hit</th></tr>${rows}</table>` +
             (from ? `<span class="muted small">(first ${from} not shown)</span>\n` : '') : '') +
           (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
+          this.sessionLine() +
           `<span class="muted small">[Space] run again</span>`;
       }
     }

@@ -634,3 +634,7 @@ he reports a problem.
   alpha.", "Alpha, charlie.", "Alpha, mike.", "No-shoot, clean.") - a stage
   target from its score-sheet row, a drill target from its holes. Walking
   up cuts the closing commands short. Off with Setup -> RO commands.
+- Shot timer after a run: "This session: 4 runs · best 1.62 · avg 1.80 ·
+  passed 3/4" for the drill you're repeating (a stage shows its best and
+  average hit factor). In memory for this visit; the full history stays in
+  the run log / CSV.

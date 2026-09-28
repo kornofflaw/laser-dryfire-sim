@@ -150,6 +150,7 @@ export class StageRunner extends DrillRunner {
     };
     this.state = State.Done;
     this.closingCalls();
+    this.remember(this.result);
     this.emit();
   }
 
