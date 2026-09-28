@@ -220,6 +220,23 @@ const STAGES = [
       ],
       props: [{ type: 'clamshell', x: 0, yd: 8.6, by: 'S1' }],
     } },
+  { name: 'Swing and Drop', category: 'Stages', parTime: 12.0, maxShots: 22,
+    desc: 'A classifier-style stage. Left: a paper beside a no-shoot, then two plates. The popper releases the swinger from behind the right wall AND drops the clamshell in front of the middle paper. 2 per paper, all steel down.',
+    stage: {
+      items: [
+        { type: 'paper', x: -3.0, yd: 7 },
+        { type: 'noshoot', x: -2.65, yd: 6.8, dy: -0.2 },
+        { type: 'plate', x: -2.75, yd: 10 },
+        { type: 'plate', x: -2.2, yd: 10, h: 1.2 },
+        { type: 'popper', x: -1.1, yd: 12 },
+        { type: 'paper', x: 0.6, yd: 9 },
+        { type: 'paper', x: 2.2, yd: 10, swing: { by: 'S3' } },
+      ],
+      props: [
+        { type: 'clamshell', x: 0.6, yd: 8.6, by: 'S3' },
+        { type: 'wall', x: 3.55, yd: 9.3, w: 1.22, h: 2.44 },
+      ],
+    } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
     stage: { items: [

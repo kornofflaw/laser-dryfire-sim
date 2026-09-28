@@ -626,3 +626,7 @@ he reports a problem.
   back and doesn't count, as on a real tree. New drill field clearSteel
   (ends when the steel is cleared, not at a hit count).
   CONFIG.range3d.steel.tree; Setup distance slider covers it.
+- New classifier-style stage "Swing and Drop": a paper half behind a
+  no-shoot, two plates, and a popper that both releases a swinger from
+  behind a wall and drops a clamshell off the middle paper (one activator
+  can drive several activated targets).
