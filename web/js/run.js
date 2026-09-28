@@ -112,7 +112,9 @@ export class DrillRunner extends Runner {
     // Personal best (kept in this browser by main.js: DrillRunner.bests,
     // DrillRunner.saveBests): the best hit factor on a stage, the best time on
     // a timed drill or Steel Challenge (complete runs that didn't fail).
+    // (DrillRunner.guest: a squad-mate is shooting - not this browser's PB, nor its session line)
     const B = DrillRunner.bests;
+    if (DrillRunner.guest) { all[r.course].pop(); return; }
     if (!B || !r.complete || r.passed === false && this.course.type !== 'strings') return;
     const byHF = this.byHitFactor, v = byHF ? r.hitFactor : r.time;
     if (!(v > 0)) return;

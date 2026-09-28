@@ -565,6 +565,8 @@ function frame(now) {
   // A stage with shooting positions: run to the next one.
   if (active().wantsMove != null) { views3d[range.layout]?.moveTo?.(active().wantsMove); active().wantsMove = null; }
   walkOn(now);
+  // A squad match: only the first shooter (this browser's owner) sets personal bests.
+  DrillRunner.guest = !!(match && match.shooters.length > 1 && match.j > 0);
   // Between classifier strings only the steel is reset (paper is scored at the end).
   if (active().wantsSteelReset) { active().wantsSteelReset = false; views3d[range.layout]?.steel?.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the
