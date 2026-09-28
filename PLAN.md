@@ -686,3 +686,9 @@ he reports a problem.
   the bay (pools of light, long shadows forward), the berm fades into the
   dark. The light is only made the first time night is picked (a one-off
   shader rebuild then); day is unchanged. CONFIG.range3d.times.night.
+- Stages with shooting positions (movement, as in USPSA): stage.positions
+  lists where you shoot from, items say which position (pos). When the
+  array at your position is done the view runs to the next one (at 3.5
+  m/s, the timer running; no shots count on the way), and the next run
+  starts back at the first. The stage panel shows "Position 2 of 2". New
+  stage "Two Positions" (CONFIG.range3d.move).

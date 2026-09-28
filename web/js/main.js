@@ -438,6 +438,8 @@ function frame(now) {
   active().update(now);
   // Between Steel Challenge strings the RO resets the steel.
   if (active().wantsReset) { active().wantsReset = false; range.reset(); }
+  // A stage with shooting positions: run to the next one.
+  if (active().wantsMove != null) { views3d[range.layout]?.moveTo?.(active().wantsMove); active().wantsMove = null; }
   // Between classifier strings only the steel is reset (paper is scored at the end).
   if (active().wantsSteelReset) { active().wantsSteelReset = false; views3d[range.layout]?.steel?.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the

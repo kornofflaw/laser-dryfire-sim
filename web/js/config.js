@@ -539,6 +539,9 @@ export const CONFIG = {
     // Activators (a popper for a swinger or turner) release it by a cable as
     // they fall: this many seconds after the hit.
     activateDelay: 0.3,
+    // Stages with shooting positions: you run between them at `speed` m/s
+    // (at least `min` s).
+    move: { speed: 3.5, min: 0.8 },
     // Walk the targets (I, after a run): the camera takes `time` s to walk up
     // to each paper, framing `frame` x the target's height, standing `raise`
     // x that frame higher (so the target sits below the label at the top).

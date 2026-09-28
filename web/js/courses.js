@@ -124,6 +124,9 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// positions: [{ x, yd, look?: { x, yd } }, ...] (in stage): where you shoot
+// from (x m, yd forward); items with pos: k are shot from position k (default
+// 0). Once that array is done the view runs to the next position.
 // strings: [{ name, say? }, ...] (in stage, course type 'classifier'): the
 // stage is shot once per string, steel reset between them, paper scored at
 // the end.
@@ -312,6 +315,20 @@ const STAGES = [
         { type: 'paper', x: 1.6, yd: 7 },
         { type: 'popper', x: 3.0, yd: 10 },
       ],
+    } },
+  { name: 'Two Positions', category: 'Stages', parTime: 10.0, maxShots: 16,
+    desc: 'Start on the left: two paper and a plate. When they\'re done you run to the right (the view moves; no shots on the way) past the wall to two more paper and a popper. 2 per paper, all steel down.',
+    stage: {
+      positions: [{ x: -2.5, yd: 0 }, { x: 2.5, yd: 2 }],
+      items: [
+        { type: 'paper', x: -4.0, yd: 8 },
+        { type: 'paper', x: -1.6, yd: 8 },
+        { type: 'plate', x: -2.8, yd: 12 },
+        { type: 'paper', x: 1.4, yd: 9, pos: 1 },
+        { type: 'paper', x: 3.8, yd: 9, pos: 1 },
+        { type: 'popper', x: 2.6, yd: 13, pos: 1 },
+      ],
+      props: [{ type: 'wall', x: 0, yd: 5, w: 1.22, h: 2.2 }],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

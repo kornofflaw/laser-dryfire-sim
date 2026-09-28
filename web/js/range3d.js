@@ -436,6 +436,7 @@ export class Range3DView {
     this.clamshells = [];
     this.steel = null;
     this.walk = this.inspecting = null;
+    this.station = 0;
     this.layoutGroup = new THREE.Group();
     this.scene.add(this.layoutGroup);
     const kind = this.kind;
@@ -978,6 +979,7 @@ export class Range3DView {
 
   // Clear holes, strike marks and stand the steel back up (a new run).
   resetTargets() {
+    if (this.station) this.moveTo(0, true); // back to the start position
     this.cards.forEach(c => this.resetCard(c));
     this.swingers?.forEach(s => { s.t0 = null; });
     this.turners?.forEach(s => { s.t0 = null; });
@@ -1010,8 +1012,26 @@ export class Range3DView {
   }
 
   // The shooter's view from the firing line.
+  // (a stage with shooting positions: from the one you're at)
   homeView() {
+    const P = this.kind === 'stage' && this.builtStage?.positions?.[this.station || 0];
+    if (P) {
+      const lx = P.look?.x ?? P.x, lyd = P.look?.yd ?? (P.yd || 0) + this.lookYards;
+      return { pos: new THREE.Vector3(P.x || 0, CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, R().aimY.stage, -lyd * YARD) };
+    }
     return { pos: new THREE.Vector3(0, CONFIG.knife.eyeHeight, 0), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
+  }
+
+  // Stage with shooting positions: move to position k (running there takes
+  // distance / move.speed s; no shots count on the way), or jump (instant).
+  moveTo(k, instant = false) {
+    this.station = k;
+    this.inspecting = null;
+    const to = this.homeView();
+    if (instant) { this.walk = null; this.homeCamera(); return; }
+    const from = { pos: this.camera.position.clone(), look: (this.look || to.look).clone() };
+    const M = R().move, time = Math.max(M.min, from.pos.distanceTo(to.pos) / M.speed);
+    this.walk = { from, to, t0: performance.now() / 1000, back: true, time };
   }
 
   homeCamera() {
@@ -1073,7 +1093,7 @@ export class Range3DView {
 
   // Move the camera along the walk (render()).
   updateWalk(now) {
-    const w = this.walk, u = smooth((now - w.t0) / R().inspect.time);
+    const w = this.walk, u = smooth((now - w.t0) / (w.time ?? R().inspect.time));
     this.camera.position.lerpVectors(w.from.pos, w.to.pos, u);
     this.look = new THREE.Vector3().lerpVectors(w.from.look, w.to.look, u);
     this.camera.lookAt(this.look);

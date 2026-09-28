@@ -43,6 +43,8 @@ export class StageRunner extends DrillRunner {
     this.papers = items.filter(i => i.type === 'paper').map(i => i.id);
     this.steel = items.filter(i => i.steel).map(i => i.id);
     this.vanish = items.filter(i => i.turn || i.run || i.bob).map(i => ({ id: i.id, by: (i.turn || i.run || i.bob).by, window: showWindow(i) }));
+    this.items = items;
+    this.positions = this.course.stage.positions || null;
   }
 
   // A disappearing paper: was it activated, and has it turned away (ms)?
@@ -54,6 +56,7 @@ export class StageRunner extends DrillRunner {
     this.paperHits = {};        // id -> [{ zone, points }, ...]
     this.down = new Set();      // steel ids down
     this.downAt = {};           // steel id -> when it went down (ms)
+    this.station = 0;           // shooting position (stages with positions)
     this.nsHits = 0;
   }
 
@@ -78,11 +81,18 @@ export class StageRunner extends DrillRunner {
     if (score.zone === 'NS') this.nsHits++;
     else if (score.zone === 'Steel' && id) { this.down.add(id); this.downAt[id] ??= score.t; }
     else if (isHit(score.zone) && this.papers.includes(id)) (this.paperHits[id] ??= []).push({ zone: score.zone, points: score.points });
+    // Array done at this position: run to the next one (the view moves).
+    if (this.positions && this.station < this.positions.length - 1 && this.arrayDone(this.station)) this.wantsMove = ++this.station;
     if (this.engaged) this.finish(true);
     else if (this.course.maxShots && this.shots >= this.course.maxShots) this.finish(false);
   }
 
   get perPaper() { return this.course.stage.perPaper ?? CONFIG.stage.perPaper; }
+  // Every paper and steel shot from position k (item pos, default 0) engaged?
+  arrayDone(k) {
+    return this.items.filter(i => (i.pos ?? 0) === k && i.type !== 'noshoot').every(i =>
+      i.steel ? this.down.has(i.id) : (this.paperHits[i.id]?.length || 0) >= this.perPaper);
+  }
   get engaged() {
     const now = performance.now();
     return this.steel.every(id => this.down.has(id)) &&
@@ -184,7 +194,7 @@ export class StageRunner extends DrillRunner {
       .filter(Boolean).join(' + ');
     if (this.busy) {
       const paperDone = this.papers.filter(id => (this.paperHits[id]?.length || 0) >= this.perPaper).length;
-      return head + `<span class="go">${d.name}</span>\n` +
+      return head + `<span class="go">${d.name}</span>\n` + (this.positions ? `Position ${this.station + 1} of ${this.positions.length}\n` : '') +
         (this.papers.length ? `Paper done: ${paperDone} / ${this.papers.length}\n` : '') +
         (this.steel.length ? `Steel down: ${this.down.size} / ${this.steel.length}\n` : '') +
         `Rounds: ${this.shots}${this.virginia ? ` / ${this.roundCount}` : ''}` + (this.nsHits ? `   <span class="bad">No-shoots: ${this.nsHits}</span>` : '');
