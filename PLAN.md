@@ -662,3 +662,7 @@ he reports a problem.
   against a goal time. The shot timer lists the strings. New course type
   'strings' (stage.js StringsRunner, CONFIG.steelChallenge); plates can
   have their size (in: inches) and stop: true in any stage.
+- Rectangular steel (rect: [18, 24] inches, as in Steel Challenge) and two
+  more Steel Challenge style courses: "Wide Open" (five big rectangles
+  spread wide, 7-20 yd) and "Near and Far" (close 12" plates, 10" plates at
+  25 yd, rectangle stop plate).

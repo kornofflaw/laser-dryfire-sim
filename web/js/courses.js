@@ -124,8 +124,9 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
-// Steel plates may set in (diameter in inches, default 8); stop: true makes
-// one the stop plate (Steel Challenge style courses, type 'strings').
+// Steel plates may set in (diameter in inches, default 8) or rect: [w, h]
+// inches; stop: true makes one the stop plate (Steel Challenge style
+// courses, type 'strings').
 // bob: { by: 'S1', times? } makes a paper a bobber: sunk behind low cover
 // until that steel falls, then it rises and sinks `times` times.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
@@ -261,6 +262,28 @@ const STAGES = [
         { type: 'plate', x: 1.2, yd: 15, in: 12, h: 1.3 },
         { type: 'plate', x: 3.0, yd: 10, in: 10, h: 1.3 },
         { type: 'plate', x: 0, yd: 12, in: 12, h: 1.3, stop: true },
+      ],
+    } },
+  { name: 'Steel Challenge style: Wide Open', category: 'Steel Challenge', type: 'strings', parTime: 16.0,
+    desc: 'Five big rectangles (18 x 24 in) spread wide from 7 to 20 yards, stop plate in the middle. Big swings between plates: drive the gun and stop it. Five strings, slowest thrown out.',
+    stage: {
+      items: [
+        { type: 'plate', x: -4.4, yd: 7, rect: [18, 24], h: 1.0 },
+        { type: 'plate', x: -2.2, yd: 14, rect: [18, 24], h: 1.0 },
+        { type: 'plate', x: 2.2, yd: 14, rect: [18, 24], h: 1.0 },
+        { type: 'plate', x: 4.4, yd: 7, rect: [18, 24], h: 1.0 },
+        { type: 'plate', x: 0, yd: 20, rect: [18, 24], h: 1.0, stop: true },
+      ],
+    } },
+  { name: 'Steel Challenge style: Near and Far', category: 'Steel Challenge', type: 'strings', parTime: 18.0,
+    desc: 'Two close 12 in plates, two small 10 in plates at 25 yards, and a rectangle stop plate. Fast on the close ones, slow down for the far ones. Five strings, slowest thrown out.',
+    stage: {
+      items: [
+        { type: 'plate', x: -1.6, yd: 7, in: 12, h: 1.3 },
+        { type: 'plate', x: 1.6, yd: 7, in: 12, h: 1.3 },
+        { type: 'plate', x: -1.8, yd: 25, in: 10, h: 1.3 },
+        { type: 'plate', x: 1.8, yd: 25, in: 10, h: 1.3 },
+        { type: 'plate', x: 0, yd: 15, rect: [18, 24], h: 1.0, stop: true },
       ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,

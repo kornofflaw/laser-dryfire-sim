@@ -305,10 +305,12 @@ function addPopper(set, mats, x, z, height) {
 }
 
 // A single 8" plate on a paddle hinged to the top of a post (a "plate stand").
-// A round plate on a post; opts.in: its diameter in inches (default 8);
+// A round plate on a post; opts.in: its diameter in inches (default 8), or
+// opts.rect: [w, h] inches for a rectangular plate (Steel Challenge 18 x 24);
 // opts.stop: it's the stop plate (Steel Challenge), marked by a red pole.
 function addPlateStand(set, mats, x, z, height, opts = {}) {
   const P = S().plateStand, r = opts.in ? (opts.in * 0.0254) / 2 : S().rack.plateRadius;
+  const rect = opts.rect && opts.rect.map(v => v * 0.0254);
   if (opts.stop) {
     const pole = box(0.045, P.stopPole, 0.045, stopPoleMaterial());
     pole.position.set(x + P.stopPoleX, P.stopPole / 2, z - 0.04);
@@ -326,12 +328,13 @@ function addPlateStand(set, mats, x, z, height, opts = {}) {
   const paddle = box(0.035, P.paddle, 0.012, mats.frame);
   paddle.position.set(0, P.paddle / 2, -0.012);
   paddle.userData.surface = 'steel-frame';
-  const disc = plateDisc(r, mats.paint);
-  disc.position.y = P.paddle;
-  pivot.add(paddle, disc);
+  const plate = rect ? box(rect[0], rect[1], THICK, mats.paint) : plateDisc(r, mats.paint);
+  const half = rect ? rect[1] / 2 : r;
+  plate.position.y = P.paddle + (rect ? half - 0.03 : 0);
+  pivot.add(paddle, plate);
   set.group.add(pivot);
   set.solids.push(paddle);
-  set.addItem(pivot, disc, THICK / 2, P.paddle + r, S().rack.kick, P.fallTo, 2 * r);
+  set.addItem(pivot, plate, THICK / 2, P.paddle + 2 * half, S().rack.kick, P.fallTo, rect ? (rect[0] + rect[1]) / 2 : 2 * r);
 }
 
 let stopPoleMat = null;
