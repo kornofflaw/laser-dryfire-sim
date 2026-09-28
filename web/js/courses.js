@@ -68,6 +68,8 @@ const DRILLS = [
     perTargetMin: 2, order: 'ltr', minAHits: 6, desc: 'Two A-zone hits on each target, left to right. Under 2.5 s; the best do it in under 2.' },
   { name: 'Called Targets', category: 'Transitions', layout: 'bay', requiredShots: 8, parTime: 7.0, called: { rounds: 2, calls: 4 },
     desc: 'At the beep the RO calls a target - One, Two or Three (left to right). Put 2 on it, then listen for the next call. 4 calls. Every pair has to be on the called target.' },
+  { name: 'Called Targets: Head or Body', category: 'Transitions', layout: 'bay', requiredShots: 10, parTime: 10.0, called: { rounds: 2, calls: 5, head: 0.4 },
+    desc: 'Like Called Targets, but some calls add "head!" ("Two, head!") - then both rounds go in that target\'s head box. 5 calls.' },
   { name: 'El Presidente (dry)', reloadAfter: 6, turnStart: true, category: 'Transitions', layout: 'bay', requiredShots: 12, parTime: 10.0,
     perTargetMin: 4, desc: 'Start facing uprange, hands above your shoulders: at the beep turn (the view swings round), draw, 2 on each target, reload, 2 on each again. Timer runs through the turn and the reload.' },
 

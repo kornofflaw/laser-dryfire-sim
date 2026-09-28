@@ -63,7 +63,9 @@ export class DrillRunner extends Runner {
     this.shotTargets = [];   // which target each shot hit (null = a miss)
     this.slots = [];         // bay slot of each hit, in order
     this.shotSlots = [];     // bay slot of every shot (null = a miss)
+    this.shotHead = [];      // ...and whether it was a head hit
     this.callSeq = [];       // called drills: the target numbers called (0-based slots)
+    this.callHead = [];      // ...and whether each call was for the head
     this.early = 0;
     this.backs = 0;          // dueling tree: hits that swung a paddle back
     this.points = 0;
@@ -167,12 +169,15 @@ export class DrillRunner extends Runner {
 
   // Called drills (course.called { rounds, calls }): the RO calls a target
   // number (1-3, left to right); `rounds` on it, then the next call.
+  // (called.head: the chance a call is for the head - "Two, head!")
   callNext(atMs) {
-    const n = this.callSeq.length, prev = this.callSeq[n - 1];
+    const n = this.callSeq.length, prev = this.callSeq[n - 1], C = this.course.called;
     let k;
     do k = Math.floor(Math.random() * 3); while (k === prev);
     this.callSeq.push(k);
-    (this.calls ??= []).push({ at: atMs, text: CONFIG.timer.called.words[k] });
+    const head = Math.random() < (C.head || 0);
+    (this.callHead ??= [])[n] = head;
+    (this.calls ??= []).push({ at: atMs, text: CONFIG.timer.called.words[k] + (head ? ', head!' : '') });
   }
 
   elapsed(nowMs) { return (nowMs - this.runStart) / 1000; }
@@ -192,6 +197,7 @@ export class DrillRunner extends Runner {
     this.counts[score.zone] = (this.counts[score.zone] || 0) + 1;
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
     this.shotSlots.push(isHit(score.zone) ? score.slot ?? null : null);
+    this.shotHead = [...(this.shotHead || []), score.zone === 'Head'];
     if (score.back) this.backs++;
 
     const d = this.course;
@@ -239,7 +245,7 @@ export class DrillRunner extends Runner {
       if (spread > d.evenSplits) out.push(`splits uneven: ${f2(Math.min(...splits))}–${f2(Math.max(...splits))} s (spread ${f2(spread)} > ${f2(d.evenSplits)})`);
     }
     if (d.called) {
-      const r = d.called.rounds, wrong = this.callSeq.map((k, i) => (this.shotSlots.slice(i * r, i * r + r).every(s => s === k) ? null : `call ${i + 1} (target ${k + 1})`)).filter(Boolean);
+      const r = d.called.rounds, wrong = this.callSeq.map((k, i) => (this.shotSlots.slice(i * r, i * r + r).every((s, j) => s === k && (!this.callHead[i] || this.shotHead[i * r + j])) ? null : `call ${i + 1} (target ${k + 1}${this.callHead[i] ? ', head' : ''})`)).filter(Boolean);
       if (wrong.length) out.push(`wrong target or a miss: ${wrong.join(', ')}`);
     }
     if (d.order === 'ltr' && this.slots.some((s, i) => i > 0 && s < this.slots[i - 1])) {
