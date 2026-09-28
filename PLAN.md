@@ -854,3 +854,4 @@ he reports a problem.
 - 2026-09-28: 3D drills with a standard distance use it whatever the Setup distance says: Bill Drill, FAST, Mozambique and Blake at 7 yd, 5x5 at 5 yd, El Presidente at 10 yd (shown in the drill panel: "par 10.0s · 10 yd"). Course field yd.
 - 2026-09-28: Setup -> 3D range distance: on a drill with a standard distance the slider shows it ("7 yd (this drill's standard distance)") and is locked.
 - 2026-09-28: New Fundamentals drills: Draw to First Shot (one A from the holster at 7 yd, par 1.5), Strong Hand Only and Weak Hand Only (4 rounds at 5 yd, 3+ A).
+- 2026-09-28: Stage briefing shows the benchmark hit factor before you shoot ("Par 8.0s · Benchmark HF 10.20").
