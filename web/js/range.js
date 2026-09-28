@@ -31,6 +31,7 @@ export const LAYOUTS = {
   'range3d-popup': '3D range: pop-ups',
   'range3d-star': '3D range: Texas Star',
   'range3d-plates': '3D range: plate rack',
+  'range3d-dots': '3D range: Dot Torture sheet',
   'range3d-tree': '3D range: dueling tree',
   'range3d-poppers': '3D range: poppers',
   'range3d-movers': '3D range: movers',
@@ -45,9 +46,10 @@ export const RANGE3D_KIND = {
   'range3d-movers': 'movers',
   'range3d-grid': 'grid',
   'range3d-tree': 'tree',
+  'range3d-dots': 'dots',
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
-export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', grid: 'range3d-grid', scene: 'scene3d' };
+export const TO_3D = { dots: 'range3d-dots', single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', grid: 'range3d-grid', scene: 'scene3d' };
 // Layouts drawn by a 3D view (the 2D canvas only overlays them).
 export const is3DLayout = l => l === 'lot3d' || l === 'office3d' || l === 'scene3d' || l.startsWith('range3d');
 // Layouts only used by specific courses.
@@ -57,7 +59,7 @@ const PATTERNS = ['PingPong', 'Crossing', 'SineWave'];
 
 // Dot Torture sheet: dot centres as fractions of the paper (x across, y down).
 // Letter-size sheet with 10 numbered dots.
-const DOT_POSITIONS = {
+export const DOT_POSITIONS = {
   1: [0.3, 0.09], 2: [0.72, 0.09],
   3: [0.3, 0.25], 4: [0.72, 0.25],
   5: [0.51, 0.41],
@@ -65,7 +67,7 @@ const DOT_POSITIONS = {
   8: [0.51, 0.73],
   9: [0.3, 0.88], 10: [0.72, 0.88],
 };
-const PAPER = { heightFrac: 0.66, aspect: 8.5 / 11, cy: 0.45 };
+export const PAPER = { heightFrac: 0.66, aspect: 8.5 / 11, cy: 0.45 };
 
 let nextId = 1;
 

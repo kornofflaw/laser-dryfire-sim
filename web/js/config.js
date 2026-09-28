@@ -460,9 +460,9 @@ export const CONFIG = {
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the
     // slider's limits, and the height (m) the fixed camera looks at.
-    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8, grid: 5, tree: 10 },
-    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25], grid: [3, 20], tree: [5, 25] },
-    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3, grid: 1.25, tree: 1.2 },
+    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8, grid: 5, tree: 10, dots: 3 },
+    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25], grid: [3, 20], tree: [5, 25], dots: [2, 10] },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3, grid: 1.25, tree: 1.2, dots: 1.42 },
     // Flip grid in 3D: plate size (m, square) and the frame's centre height;
     // columns, rows, spin and faces come from CONFIG.flip and the FlipBoard.
     flipGrid: { plate: 0.25, centerY: 1.25 },
@@ -521,6 +521,9 @@ export const CONFIG = {
       sky: ['#5c636c', '#7a8189', '#a2a8ae'], // overcast backdrop, top to horizon (not at night)
       drops: 3500, area: [30, 36, 12], speed: 9, length: 0.4, wind: 0.6, opacity: 0.28, color: '#b8c2cc',
     },
+    // Dot Torture sheet (3D): texture detail, and how far above the target's
+    // centre it's stapled (m).
+    dotSheet: { pxPerCm: 24, lift: 0.03 },
     // Wind (Setup -> 3D range): grass sway and paper flutter multipliers.
     winds: { calm: { grass: 0.3, flutter: 0.3 }, breezy: { grass: 1, flutter: 1 }, windy: { grass: 2.6, flutter: 4 } },
     weeds: { back: 900, side: 520, floor: 160, height: [0.2, 0.6], wind: 1 }, // dry grass tufts

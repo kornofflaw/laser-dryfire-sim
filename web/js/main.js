@@ -475,6 +475,7 @@ function frame(now) {
   if (rain !== lastRain) { lastRain = rain; setRain(rain); }
   if (v3) v3.autoReset = range.autoResetStar; // free practice: steel stands back up
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
+  v3?.setHighlightDot?.(range.highlightDot); // Dot Torture: the dot to shoot
   if (v3?.ready) v3.render(now);
   range.draw(g, now / 1000, settings.showZones);
   active().drawOverlay?.(g, W, H, now);
@@ -1056,7 +1057,7 @@ function refreshSetup() {
     dist.min = lo; dist.max = hi;
     dist.value = yards3d(kind);
     $('#dist3d-val').textContent = `${yards3d(kind)} yd`;
-    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers', grid: 'flip grid', tree: 'dueling tree' }[kind];
+    $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers', grid: 'flip grid', tree: 'dueling tree', dots: 'Dot Torture sheet' }[kind];
   }
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
   $('#opt-real3d').disabled = !TO_3D[c.layout];

@@ -710,3 +710,8 @@ he reports a problem.
   soft shadows, grey haze closing in, darker wet gravel, falling rain and
   the recorded rain sound. The rain streaks moved into a small shared
   module (rain3d.js) used by the parking lot too. CONFIG.range3d.rain.
+- Dot Torture on the 3D range (when the 3D range is on): the dot sheet
+  stapled over the A zone of a USPSA target at 3 yards (Setup distance
+  2-10 yd), holes drawn on the sheet, the dot to shoot ringed in blue,
+  hits off the sheet are misses; I walks up to check the holes. Same
+  runner and scoring as before. CONFIG.range3d.dotSheet.

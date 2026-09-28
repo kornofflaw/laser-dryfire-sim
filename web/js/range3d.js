@@ -33,7 +33,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
 import { rainStreaks, moveRain } from './rain3d.js';
-import { RANGE3D_KIND } from './range.js';
+import { RANGE3D_KIND, DOT_POSITIONS, PAPER } from './range.js';
 import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D, DuelingTree } from './steel3d.js';
 import { stageTargets } from './courses.js';
 
@@ -486,6 +486,7 @@ export class Range3DView {
     this.steel = null;
     this.walk = this.inspecting = null;
     this.station = 0;
+    this.sheet = null;
     this.layoutGroup = new THREE.Group();
     this.scene.add(this.layoutGroup);
     const kind = this.kind;
@@ -498,6 +499,8 @@ export class Range3DView {
       this.buildMovers();
     } else if (kind === 'stage') {
       if (stage) this.buildStage(stage);
+    } else if (kind === 'dots') {
+      this.buildDots();
     } else {
       const S = kind === 'star' ? new Star3D(this.star, this.steelMats)
         : kind === 'grid' ? new FlipGrid3D(this.flip, this.steelMats)
@@ -921,6 +924,69 @@ export class Range3DView {
     return this.plywood;
   }
 
+  // Dot Torture: the letter-size dot sheet stapled over the A zone of a
+  // USPSA target (its backer: hits off the sheet are misses). Holes and the
+  // ring round the dot to shoot are drawn on the sheet's own canvas.
+  buildDots() {
+    const t = this.makeTarget(0, 0);
+    t.card.meta.kind = 'backer';
+    this.targets.push(t);
+    const D = R().dotSheet, H = 0.2794, W = H * PAPER.aspect;
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * 100 * D.pxPerCm);
+    c.height = Math.round(H * 100 * D.pxPerCm);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    sheet.position.copy(t.card.face.position);
+    sheet.position.y += D.lift;
+    sheet.position.z += 0.003;
+    sheet.castShadow = sheet.receiveShadow = true;
+    sheet.userData.surface = 'dotsheet';
+    t.card.pivot.add(sheet);
+    this.addSolids([sheet]);
+    this.sheet = { mesh: sheet, canvas: c, tex, holes: [], highlight: null, card: t.card };
+    this.drawSheet();
+  }
+
+  drawSheet() {
+    const S = this.sheet, c = S.canvas, g = c.getContext('2d'), w = c.width, h = c.height;
+    g.fillStyle = '#f4f3ee';
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = '#555';
+    g.font = `600 ${Math.round(h * 0.022)}px Arial, sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    g.fillText('DOT TORTURE', w / 2, h * 0.978);
+    const r = CONFIG.dots.radiusFrac * h;
+    for (const [num, [fx, fy]] of Object.entries(DOT_POSITIONS)) {
+      const x = fx * w, y = fy * h;
+      if (S.highlight === Number(num)) {
+        g.beginPath(); g.arc(x, y, r * 1.35, 0, Math.PI * 2);
+        g.strokeStyle = 'rgba(58,176,255,0.95)'; g.lineWidth = Math.max(2, r * 0.12); g.stroke();
+      }
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = '#151515'; g.fill();
+      g.fillStyle = '#222';
+      g.font = `700 ${Math.round(r * 0.6)}px Arial, sans-serif`;
+      g.textBaseline = 'middle';
+      g.fillText(num, x - r * 1.7, y);
+    }
+    // Holes: torn paper-coloured edge (shows on the black dots), dark centre.
+    const hr = R().holeRadiusCm * R().dotSheet.pxPerCm;
+    for (const o of S.holes) {
+      g.beginPath(); g.arc(o.x, o.y, hr * 1.6, 0, Math.PI * 2); g.fillStyle = 'rgba(205,196,176,0.9)'; g.fill();
+      g.beginPath(); g.arc(o.x, o.y, hr, 0, Math.PI * 2); g.fillStyle = '#0c0b0a'; g.fill();
+    }
+    S.tex.needsUpdate = true;
+  }
+
+  setHighlightDot(num) {
+    if (!this.sheet || this.sheet.highlight === (num ?? null)) return;
+    this.sheet.highlight = num ?? null;
+    this.drawSheet();
+  }
+
   // Stage props (courses.js): a plywood 'wall' (optionally with a shooting
   // 'port' cut in it) on 2x4 legs, or a 55-gallon 'barrel'. They stop rounds.
   addProp(pr) {
@@ -1029,6 +1095,7 @@ export class Range3DView {
   // Clear holes, strike marks and stand the steel back up (a new run).
   resetTargets() {
     if (this.station) this.moveTo(0, true); // back to the start position
+    if (this.sheet) { this.sheet.holes = []; this.drawSheet(); }
     this.cards.forEach(c => this.resetCard(c));
     this.swingers?.forEach(s => { s.t0 = null; });
     this.turners?.forEach(s => { s.t0 = null; });
@@ -1223,6 +1290,13 @@ export class Range3DView {
     const U = Ucfg();
     for (const h of hits) {
       const o = h.object;
+      if (o.userData.surface === 'dotsheet') {
+        // Dot Torture: which dot (a hole touching the edge counts), from where on the sheet.
+        const fx = h.uv.x, fy = 1 - h.uv.y, reach = CONFIG.dots.radiusFrac + R().holeRadiusCm / 27.94;
+        const hit = Object.entries(DOT_POSITIONS).find(([, [dx, dy]]) => Math.hypot((fx - dx) * PAPER.aspect, fy - dy) <= reach);
+        const base = { point: h.point, dir, sheetUv: { fx, fy } };
+        return hit ? { zone: 'Dot', points: CONFIG.points.Dot, targetId: `dot-${hit[0]}`, kind: 'dot', dot: Number(hit[0]), ...base } : { ...miss, ...base };
+      }
       if (o.userData.surface === 'target') {
         const card = o.userData.card;
         const cm = { x: (h.uv.x - 0.5) * U.width, y: (h.uv.y - 0.5) * U.height };
@@ -1231,6 +1305,7 @@ export class Range3DView {
         // A turner nearly edge-on: the round slips past the cardboard's edge.
         if (card.yaw && Math.abs(o.getWorldDirection(new THREE.Vector3()).dot(dir)) < R().turner.edge) continue;
         // Hard cover stops the round: it can't score (a hole in the paint, a miss).
+        if (card.meta.kind === 'backer') return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm }; // off the dot sheet
         if (inHardCover(card.meta.hard, cm)) return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm, hardCover: true };
         const base = { zone, points: CONFIG.points[zone], local: cm, point: h.point, dir, card, uv: h.uv };
         if (card.meta.kind === 'popup') {
@@ -1294,6 +1369,13 @@ export class Range3DView {
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
       this.fx.push(dustPuff(this.scene, score.point, score.dir.clone().negate(), '#b9b9b4', 0.5));
+      return;
+    }
+    if (score.sheetUv && this.sheet) {
+      const S = this.sheet;
+      S.holes.push({ x: score.sheetUv.fx * S.canvas.width, y: score.sheetUv.fy * S.canvas.height });
+      this.drawSheet();
+      rock(S.card, now, 0, -R().jolt.push);
       return;
     }
     if (score.card) {
