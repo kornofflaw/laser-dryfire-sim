@@ -854,6 +854,8 @@ function walkOn(now) {
   v.setStance(late ? S.stance : C.stance, late);
   // Drills that start facing uprange (El Presidente): turned away until the beep.
   v.setFacing(!!C.turnStart && R0.state === 'Delay');
+  // Shooting boxes where a drill moves you from / to.
+  v.setBoxes?.(C.moveAfter ? [[0, 0], C.moveAfter.to] : A ? [A.from, A.to] : null);
   // moveAfter { shots, to: [x m, yd] }: after that many shots you run to a
   // second box and finish from there (no shots count on the way).
   const M = C.moveAfter;

@@ -1009,15 +1009,33 @@ export class Range3DView {
     }
     for (const pr of def.props || []) this.addProp(pr);
     // Shooting boxes: a square of 2x4 boards on the ground at each position.
+    for (const P of def.positions || []) this.addBox(this.layoutGroup, P.x || 0, P.yd || 0);
+  }
+
+  // A shooting box (a square of 2x4 boards) at x m, yd downrange of the line.
+  addBox(parent, x0, yd) {
     const B = R().props.box;
-    for (const P of def.positions || []) {
-      for (const [x, z, w, d] of [[0, -B.size / 2, B.size, B.board[0]], [0, B.size / 2, B.size, B.board[0]], [-B.size / 2, 0, B.board[0], B.size], [B.size / 2, 0, B.board[0], B.size]]) {
-        const board = new THREE.Mesh(new THREE.BoxGeometry(w, B.board[1], d), this.mats.wood);
-        board.position.set((P.x || 0) + x, B.board[1] / 2, -(P.yd || 0) * YARD + z);
-        board.castShadow = board.receiveShadow = true;
-        this.layoutGroup.add(board);
-      }
+    for (const [x, z, w, d] of [[0, -B.size / 2, B.size, B.board[0]], [0, B.size / 2, B.size, B.board[0]], [-B.size / 2, 0, B.board[0], B.size], [B.size / 2, 0, B.board[0], B.size]]) {
+      const board = new THREE.Mesh(new THREE.BoxGeometry(w, B.board[1], d), this.mats.wood);
+      board.position.set(x0 + x, B.board[1] / 2, -yd * YARD + z);
+      board.castShadow = board.receiveShadow = true;
+      parent.add(board);
     }
+  }
+
+  // Drills that move you (Box to Box, Walk Up...): boxes at [[x, yd], ...]
+  // (null = none). Kept until the list changes.
+  setBoxes(list) {
+    const key = list ? JSON.stringify(list) : '';
+    if (key === this.boxesKey && (list ? this.boxes?.parent : !this.boxes)) return; // (rebuilt when the layout was)
+    this.boxes?.removeFromParent();
+    this.boxes = null;
+    this.boxesKey = key;
+    if (!list || !this.layoutGroup) return;
+    this.boxes = new THREE.Group();
+    for (const [x, yd] of list) this.addBox(this.boxes, x, yd);
+    this.layoutGroup.add(this.boxes);
+    this.shadowAt = 0;
   }
 
   // Plywood (walls, clamshells): the photo-like canvas, tiled per 4 x 8 ft sheet.
