@@ -12,13 +12,19 @@ const TYPES = {
   paper: 'Paper (USPSA)', pop: 'Paper: pop-up', turn: 'Paper: drop turner', swing: 'Paper: swinger',
   bob: 'Paper: bobber', run: 'Paper: mover (runs to x...)',
   noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
-  plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', porthigh: 'Wall with a port', portlow: 'Wall with a low port (kneel)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
+  plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', porthigh: 'Wall with a port', portlow: 'Wall with a low port (kneel)', barricade: 'Barricade (3 ports: stand / kneel / prone)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
   position: 'You run to here (next position)',
   walkto: 'You walk to here, shooting on the way',
 };
 const STEEL = ['popper', 'mini', 'plate'];
+const STANCES = ['kneel', 'prone']; // a position row's stance ('' = standing)
 const MOVES = ['position', 'walkto']; // rows that are places you shoot from, not targets
-const PROPS = ['wall', 'barrel', 'clamshell', 'porthigh', 'portlow'];
+const PROPS = ['wall', 'barrel', 'clamshell', 'porthigh', 'portlow', 'barricade'];
+// A barricade row: a narrow tall panel with a port for each stance.
+const barricade = r => {
+  const B = CONFIG.range3d.props.barricade;
+  return { type: 'wall', x: r.x, yd: r.yd, w: B.w, h: B.h, ports: B.ports.map(p => ({ ...p })) };
+};
 // A port wall row as a stage prop (8 x 7 ft plywood with the port cut in it).
 const portWall = (r, side) => {
   const W = CONFIG.range3d.props.ports, p = W[side];
@@ -39,11 +45,12 @@ export function stageCourse(s) {
   const positions = [{ x: 0, yd: 0 }], items = [], props = [];
   for (const r of s.rows) {
     const pos = positions.length - 1;
-    const kneel = r.kneel ? { kneel: true } : {};
-    if (MOVES.includes(r.type) && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd, ...kneel }; // before any target: where you start
-    else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd, ...kneel });
+    const stance = STANCES.includes(r.stance) ? { stance: r.stance } : {};
+    if (MOVES.includes(r.type) && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd, ...stance }; // before any target: where you start
+    else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd, ...stance });
     else if (r.type === 'walkto') positions.push({ x: r.x, yd: r.yd, onMove: true });
     else if (r.type === 'porthigh' || r.type === 'portlow') props.push(portWall(r, r.type === 'portlow' ? 'low' : 'high'));
+    else if (r.type === 'barricade') props.push(barricade(r));
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
     else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)) });
   }
@@ -70,13 +77,13 @@ export function stageRows(course) {
   const st = course.stage, rows = [];
   for (const p of st.props || []) {
     if (!PROPS.includes(p.type)) continue;
-    const type = p.type === 'wall' && p.port ? (p.port.y < 1.2 ? 'portlow' : 'porthigh') : p.type;
+    const type = p.type === 'wall' && p.ports ? 'barricade' : p.type === 'wall' && p.port ? (p.port.y < 1.2 ? 'portlow' : 'porthigh') : p.type;
     rows.push({ type, x: p.x, yd: p.yd, ...(p.by ? { by: p.by } : {}) });
   }
   const n = st.positions?.length || 1;
   for (let k = 0; k < n; k++) {
     const P = st.positions?.[k];
-    if (k || (P && (P.x || P.yd || P.kneel))) rows.push({ type: k && P.onMove ? 'walkto' : 'position', x: P.x || 0, yd: P.yd || 0, ...(P.kneel ? { kneel: true } : {}) });
+    if (k || (P && (P.x || P.yd || P.stance))) rows.push({ type: k && P.onMove ? 'walkto' : 'position', x: P.x || 0, yd: P.yd || 0, ...(P.stance ? { stance: P.stance } : {}) });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
       const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
       const hard = it.hard?.side ? { hard: it.hard.side } : {};
@@ -107,7 +114,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${r.type === 'position' ? `<select data-k="kneel"><option value="">standing</option><option value="1"${r.kneel ? ' selected' : ''}>kneeling</option></select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -126,6 +133,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       if (!MOVES.includes(r.type) && !PROPS.includes(r.type)) target = true;
       if (MOVES.includes(r.type)) { pos++; g.fillStyle = r.type === 'walkto' ? '#1565c0' : '#2e7d32'; g.fillRect(x - 8, y - 8, 16, 12); g.fillStyle = '#fff'; g.fillText(pos, x, y + 2); continue; }
       if (r.type === 'wall') { g.fillStyle = '#8d6e3f'; g.fillRect(x - 12, y - 2, 24, 4); continue; }
+      if (r.type === 'barricade') { g.fillStyle = '#8d6e3f'; g.fillRect(x - 12, y - 3, 24, 6); g.fillStyle = '#333'; g.fillText('barricade', x, y - 6); continue; }
       if (r.type === 'porthigh' || r.type === 'portlow') { // a wider wall with the port gap
         g.fillStyle = '#8d6e3f'; g.fillRect(x - 24, y - 2, 18, 4); g.fillRect(x + 6, y - 2, 18, 4);
         g.fillStyle = '#333'; g.fillText(r.type === 'portlow' ? 'low port' : 'port', x, y - 6); continue;
@@ -152,7 +160,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
     const r = rows[Number(tr.dataset.i)];
-    r[k] = k === 'kneel' ? !!e.target.value : k === 'type' || k === 'by' || k === 'hard' ? e.target.value : Number(e.target.value);
+    r[k] = k === 'type' || k === 'by' || k === 'hard' || k === 'stance' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();
   };
@@ -166,7 +174,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}),
       ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}),
       ...(PAPER.includes(r.type) && B.hardCover[r.hard] ? { hard: r.hard } : {}),
-      ...(r.type === 'position' && r.kneel ? { kneel: true } : {}) }));
+      ...(r.type === 'position' && STANCES.includes(r.stance) ? { stance: r.stance } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
@@ -210,7 +218,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
 // Stage codes: 'DFS1.' + base64url(JSON). Checked on the way back in.
 const CODE = 'DFS1.';
 export function encodeStage(s) {
-  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.kneel ? 1 : '']) });
+  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.stance || '']) });
   return CODE + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function decodeStage(code) {
@@ -219,9 +227,9 @@ export function decodeStage(code) {
     if (!code.startsWith(CODE)) return null;
     const b64 = code.slice(CODE.length).replace(/-/g, '+').replace(/_/g, '/');
     const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
-    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, kneel]) => ({
+    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, stance]) => ({
       type, x: Number(x) || 0, yd: Number(yd) || 0, ...(by ? { by: String(by) } : {}), ...(to !== '' && to != null ? { to: Number(to) } : {}),
-      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(kneel ? { kneel: true } : {}),
+      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(STANCES.includes(stance) ? { stance } : {}),
     }));
     if (!rows.length) return null;
     return { name: String(o.n || 'Shared stage').slice(0, 40), par: Number(o.p) || CONFIG.builder.par, start: o.s ? String(o.s).slice(0, 120) : '', rows };

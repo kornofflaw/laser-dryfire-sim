@@ -605,9 +605,12 @@ export const CONFIG = {
       // Port walls (stage builder): w x h m with a port pw x ph m centred
       // y m up - 'high' for standing, 'low' for kneeling.
       ports: { w: 2.44, h: 2.2, high: { y: 1.5, w: 0.6, h: 0.45 }, low: { y: 0.95, w: 0.6, h: 0.42 } },
+      // Barricade (VTAC style): a 4 x 7 ft panel with a port per stance.
+      barricade: { w: 1.22, h: 2.13, ports: [{ y: 1.55, w: 0.3, h: 0.36 }, { y: 1.0, w: 0.3, h: 0.36 }, { y: 0.36, w: 0.34, h: 0.26 }] },
     },
-    kneelEye: 1.05,         // eye height (m) at a stage position with kneel: true
-    kneelLookY: 0.8,        // ...and the height it looks at downrange (low ports sit low)
+    // Stage positions with a stance (kneel / prone): eye height m and the
+    // height it looks at downrange (low ports sit low).
+    stances: { kneel: { eye: 1.05, lookY: 0.8 }, prone: { eye: 0.35, lookY: 0.4 } },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render

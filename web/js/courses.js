@@ -140,7 +140,9 @@ const FLIP = [
 // positions: [{ x, yd, look?: { x, yd } }, ...] (in stage): where you shoot
 // from (x m, yd forward); items with pos: k are shot from position k (default
 // 0). Once that array is done the view runs to the next position
-// (onMove: true - it walks there slowly and shots count on the way).
+// (onMove: true - it walks there slowly and shots count on the way;
+// stance: 'kneel' / 'prone' - eyes lower, CONFIG.range3d.stances).
+// A wall may have one port or several (ports: [...], a barricade).
 // strings: [{ name, say? }, ...] (in stage, course type 'classifier'): the
 // stage is shot once per string, steel reset between them, paper scored at
 // the end.
@@ -366,7 +368,7 @@ const STAGES = [
     desc: 'Start standing on the left: two paper. Then move right and kneel behind the wall: two paper and a plate, seen only through a low port. Rounds into the wall are misses. 2 per paper, the plate down.',
     stage: {
       start: 'standing at position 1, hands relaxed at your sides',
-      positions: [{ x: -2.5, yd: 0 }, { x: 1.5, yd: 1, kneel: true }],
+      positions: [{ x: -2.5, yd: 0 }, { x: 1.5, yd: 1, stance: 'kneel' }],
       items: [
         { type: 'paper', x: -4.0, yd: 7 },
         { type: 'paper', x: -1.9, yd: 8 },
@@ -375,6 +377,18 @@ const STAGES = [
         { type: 'plate', x: 1.6, yd: 12, pos: 1 },
       ],
       props: [{ type: 'wall', x: 1.5, yd: 2.5, w: 2.44, h: 2.2, port: { x: 0, y: 0.95, w: 0.6, h: 0.42 } }],
+    } },
+  { name: 'Barricade', category: 'Stages', parTime: 14.0, maxShots: 12,
+    desc: 'A VTAC-style barricade 1.5 yd in front of you with three small ports. Standing: 2 on the left target through the top port. Kneel: 2 on the middle target through the middle port. Prone: 2 on the low right target through the bottom port. Rounds into the barricade are misses.',
+    stage: {
+      start: 'standing behind the barricade, hands relaxed at your sides',
+      positions: [{ x: 0, yd: 0 }, { x: 0, yd: 0, stance: 'kneel' }, { x: 0, yd: 0, stance: 'prone' }],
+      items: [
+        { type: 'paper', x: -0.55, yd: 10 },
+        { type: 'paper', x: 0.1, yd: 10, pos: 1 },
+        { type: 'paper', x: 0.6, yd: 10, pos: 2, dy: -0.45 },
+      ],
+      props: [{ type: 'wall', x: 0, yd: 1.5, w: 1.22, h: 2.13, ports: [{ y: 1.55, w: 0.3, h: 0.36 }, { y: 1.0, w: 0.3, h: 0.36 }, { y: 0.36, w: 0.34, h: 0.26 }] }],
     } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',

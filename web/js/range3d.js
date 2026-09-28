@@ -1073,8 +1073,8 @@ export class Range3DView {
       const w = pr.w ?? P.wall.w, h = pr.h ?? P.wall.h, lift = P.wall.lift;
       const shape = new THREE.Shape();
       shape.moveTo(-w / 2, 0); shape.lineTo(w / 2, 0); shape.lineTo(w / 2, h); shape.lineTo(-w / 2, h); shape.closePath();
-      if (pr.port) {
-        const [px, py, pw, ph] = [pr.port.x ?? 0, pr.port.y - lift, pr.port.w, pr.port.h];
+      for (const port of pr.ports || (pr.port ? [pr.port] : [])) { // (a barricade has several)
+        const [px, py, pw, ph] = [port.x ?? 0, port.y - lift, port.w, port.h];
         const hole = new THREE.Path();
         hole.moveTo(px - pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py - ph / 2); hole.lineTo(px + pw / 2, py + ph / 2); hole.lineTo(px - pw / 2, py + ph / 2); hole.closePath();
         shape.holes.push(hole);
@@ -1193,7 +1193,8 @@ export class Range3DView {
     const P = this.kind === 'stage' && this.builtStage?.positions?.[this.station || 0];
     if (P) {
       const lx = P.look?.x ?? P.x, lyd = P.look?.yd ?? (P.yd || 0) + this.lookYards;
-      return { pos: new THREE.Vector3(P.x || 0, P.kneel ? R().kneelEye : CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, P.kneel ? R().kneelLookY : R().aimY.stage, -lyd * YARD) };
+      const S = R().stances[P.stance]; // kneeling / prone
+      return { pos: new THREE.Vector3(P.x || 0, S ? S.eye : CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, S ? S.lookY : R().aimY.stage, -lyd * YARD) };
     }
     const s = this.step; // shooting on the move: where the walk has got to
     if (s) return { pos: new THREE.Vector3(s.x, CONFIG.knife.eyeHeight + s.bob, -s.yd * YARD), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
