@@ -1319,8 +1319,10 @@ function refreshSetup() {
     const [lo, hi] = CONFIG.range3d.yardsRange[kind];
     const dist = $('#dist3d');
     dist.min = lo; dist.max = hi;
-    dist.value = yards3d(kind);
-    $('#dist3d-val').textContent = `${yards3d(kind)} yd`;
+    const fixed = course().yd; // a drill with a standard distance
+    dist.value = fixed ?? yards3d(kind);
+    dist.disabled = fixed != null;
+    $('#dist3d-val').textContent = fixed != null ? `${fixed} yd (this drill's standard distance)` : `${yards3d(kind)} yd`;
     $('#dist3d-kind').textContent = { paper: 'paper targets', popup: 'pop-ups', star: 'Texas Star', plates: 'plate rack', poppers: 'poppers', movers: 'movers', grid: 'flip grid', tree: 'dueling tree', dots: 'Dot Torture sheet' }[kind];
   }
   // Only courses with both a 2D and a 3D version can switch (free practice uses L).
