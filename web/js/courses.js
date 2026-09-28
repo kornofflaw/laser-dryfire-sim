@@ -221,6 +221,18 @@ const STAGES = [
       ],
       props: [{ type: 'wall', x: 2.65, yd: 8.2, w: 1.22, h: 2.44 }],
     } },
+  { name: 'Swinging No-Shoot', category: 'Stages', parTime: 10.0, maxShots: 14,
+    desc: 'The popper releases a no-shoot from behind the wall: it swings back and forth across the middle target. Take the middle one before you hit the popper, or time your shots between swings. 2 per paper.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.8, yd: 7 },
+        { type: 'paper', x: 0.3, yd: 9 },
+        { type: 'noshoot', x: 0.3, yd: 8.6, swing: { by: 'S1', rest: -1.0 } },
+        { type: 'popper', x: 1.9, yd: 12 },
+        { type: 'paper', x: 2.9, yd: 7 },
+      ],
+      props: [{ type: 'wall', x: -1.2, yd: 8.2, w: 1.22, h: 2.44 }],
+    } },
   { name: 'Drop Turner', category: 'Stages', parTime: 8.0, maxShots: 12,
     desc: 'Two paper, then the popper: it turns the middle target to face you for one second. Catch it with two before it turns away. Misses on it aren\'t penalised once it has turned.',
     stage: {

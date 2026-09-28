@@ -11,7 +11,7 @@ import { load, save } from './storage.js';
 const TYPES = {
   paper: 'Paper (USPSA)', pop: 'Paper: pop-up', turn: 'Paper: drop turner', swing: 'Paper: swinger',
   bob: 'Paper: bobber', run: 'Paper: mover (runs to x...)',
-  noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
+  noshoot: 'No-shoot', nsswing: 'No-shoot: swinger', popper: 'Popper', mini: 'Mini popper',
   plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', porthigh: 'Wall with a port', portlow: 'Wall with a low port (kneel)', barricade: 'Barricade (3 ports: stand / kneel / prone)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
   position: 'You run to here (next position)',
   walkto: 'You walk to here, shooting on the way',
@@ -30,7 +30,7 @@ const portWall = (r, side) => {
   const W = CONFIG.range3d.props.ports, p = W[side];
   return { type: 'wall', x: r.x, yd: r.yd, w: W.w, h: W.h, port: { x: 0, y: p.y, w: p.w, h: p.h } };
 };
-const ACTIVATED = ['pop', 'turn', 'swing', 'bob', 'run', 'clamshell']; // released by a steel (row.by); a mover runs to row.to
+const ACTIVATED = ['pop', 'turn', 'swing', 'bob', 'run', 'clamshell', 'nsswing']; // released by a steel (row.by); a mover runs to row.to
 const PAPER = ['paper', 'pop', 'turn', 'swing', 'bob', 'run']; // may carry hard cover (row.hard: a side of CONFIG.builder.hardCover)
 // A 'position' row: you run there ('walkto': you walk there, shooting on the way); the targets listed after it are shot
 // from there (the first position is the start, x 0 at the firing line).
@@ -52,6 +52,7 @@ export function stageCourse(s) {
     else if (r.type === 'porthigh' || r.type === 'portlow') props.push(portWall(r, r.type === 'portlow' ? 'low' : 'high'));
     else if (r.type === 'barricade') props.push(barricade(r));
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
+    else if (r.type === 'nsswing') items.push({ type: 'noshoot', swing: { by: r.by }, x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...height(r) });
     else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)), ...height(r) });
   }
   const act = items.filter(i => i.pop || i.turn || i.swing || i.bob || i.run).length;
@@ -97,9 +98,9 @@ export function stageRows(course) {
     const P = st.positions?.[k];
     if (k || (P && (P.x || P.yd || P.stance))) rows.push({ type: k && P.onMove ? 'walkto' : 'position', x: P.x || 0, yd: P.yd || 0, ...(P.stance ? { stance: P.stance } : {}) });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
-      const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
+      const act = it.type === 'noshoot' ? (it.swing ? 'nsswing' : null) : ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
       const hard = { ...(it.hard?.side ? { hard: it.hard.side } : {}), ...heightOf(it.dy) };
-      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard });
+      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act === 'nsswing' ? 'swing' : act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard });
     }
   }
   return { name: `${course.name} (my copy)`, par: course.parTime, rows, start: st.start };
@@ -153,7 +154,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       if (r.type === 'barrel') { g.fillStyle = '#24569e'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); continue; }
       if (r.type === 'clamshell') { g.strokeStyle = '#6d4c2f'; g.setLineDash([3, 2]); g.strokeRect(x - 8, y - 2, 16, 4); g.setLineDash([]); continue; }
       if (STEEL.includes(r.type)) { g.fillStyle = '#f2f2ee'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.fillStyle = '#333'; g.fillText(ids[steelN++], x, y - 8); continue; }
-      g.fillStyle = r.type === 'noshoot' ? '#f4f4f0' : ACTIVATED.includes(r.type) ? '#d19a4a' : '#c49a64';
+      g.fillStyle = r.type === 'noshoot' || r.type === 'nsswing' ? '#f4f4f0' : ACTIVATED.includes(r.type) ? '#d19a4a' : '#c49a64';
       g.fillRect(x - 6, y - 3, 12, 6);
       if (PAPER.includes(r.type) && B.hardCover[r.hard]) { // hard cover: the painted edge, black
         g.fillStyle = '#161616';
@@ -188,7 +189,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       ...(PAPER.includes(r.type) && B.hardCover[r.hard] ? { hard: r.hard } : {}),
       ...(r.type === 'position' && STANCES.includes(r.stance) ? { stance: r.stance } : {}),
       ...((PAPER.includes(r.type) || r.type === 'noshoot') && Object.hasOwn(B.heights, r.h || '') ? { h: r.h } : {}) }));
-    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
+    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'nsswing' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);
