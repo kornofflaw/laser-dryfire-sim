@@ -792,6 +792,8 @@ export const CONFIG = {
     // Plate sizes a plate row can have (default 8 in round): in = diameter,
     // rect = [w, h] inches.
     plateSizes: { 6: { in: 6, label: '6 in' }, 10: { in: 10, label: '10 in' }, 12: { in: 12, label: '12 in' }, rect: { rect: [18, 24], label: '18 x 24 in' } },
+    // Plate heights (post height to the plate centre, m; default 0.95).
+    plateHeights: { low: { h: 0.6, label: 'low post' }, chest: { h: 1.3, label: 'chest high' }, high: { h: 1.6, label: 'high post' } },
     dupStep: 1.2,           // a duplicated row is placed this many m to the right
     tallWall: 2.44,         // height (m) of the builder's 4 x 8 ft wall
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
