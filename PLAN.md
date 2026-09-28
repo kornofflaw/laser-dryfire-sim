@@ -650,3 +650,7 @@ he reports a problem.
   wall until its popper falls; then it rises for about a second, sinks,
   and comes up again, three times, and stays down. Scored like the turner
   and mover. New stage "Bobber" (CONFIG.range3d.bobber; courses.js bob: { by }).
+- Falling steel (poppers and plates hitting their stops, the star's plates
+  landing, pop-ups going down) now clunks with real recordings (Kenney
+  heavy metal impacts, CC0) instead of a generated click; the generated one
+  stays as the fallback. CONFIG.sound.samples.steelFall.

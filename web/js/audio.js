@@ -230,6 +230,8 @@ export function penaltyBuzz() {
 export function clack() {
   if (forwarded('clack', arguments)) return;
   if (!ctx) return;
+  // A recorded heavy metal clunk (Kenney, CC0); generated if it didn't load.
+  if (useRec('steel') && playSample('steel_fall', CONFIG.sound.samples.steelFall)) return;
   const n = Math.floor(ctx.sampleRate * 0.06);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -710,7 +712,7 @@ function decode(bytes) {
 // recording). Loaded after the first tap; until a set has
 // loaded (or if it fails), playSample returns false and the generated sound
 // is used instead.
-const SAMPLE_SETS = { range: 1, shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4, voice_f_death: 1 };
+const SAMPLE_SETS = { range: 1, steel_fall: 5, shot_near: 4, shot_far: 3, steel: 5, step_concrete: 5, glass: 3, ricochet: 2, voice_charge: 2, voice_pain: 4, voice_death: 1, voice_f_pain: 4, voice_f_death: 1 };
 const samples = {};
 let samplesLoading = false;
 function loadSamples() {

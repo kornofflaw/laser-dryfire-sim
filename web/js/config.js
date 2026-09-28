@@ -633,6 +633,7 @@ export const CONFIG = {
     samples: {
       enabled: true,
       steel: 0.55,        // real metal clank at the moment of a steel hit (the ring is generated)
+      steelFall: 0.7,     // heavy metal clunk as falling steel hits its stop or the ground
       step: 1.3,          // concrete footsteps (knife attacker)
       glass: 0.9,         // glass impact under the generated shatter
       outdoorTail: 0.5,   // real pistol report + echo under your shot outdoors
