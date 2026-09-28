@@ -52,7 +52,7 @@ export function stageCourse(s) {
     else if (r.type === 'porthigh' || r.type === 'portlow') props.push(portWall(r, r.type === 'portlow' ? 'low' : 'high'));
     else if (r.type === 'barricade') props.push(barricade(r));
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
-    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)) });
+    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)), ...height(r) });
   }
   const act = items.filter(i => i.pop || i.turn || i.swing || i.bob || i.run).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
@@ -68,6 +68,18 @@ export function stageCourse(s) {
 const hardCover = r => {
   const cm = PAPER.includes(r.type) && CONFIG.builder.hardCover[r.hard]?.cm;
   return cm ? { hard: { side: r.hard, cm } } : {};
+};
+
+// A paper / no-shoot row's height: { dy } or nothing (normal).
+const height = r => {
+  const h = (PAPER.includes(r.type) || r.type === 'noshoot') && Object.hasOwn(CONFIG.builder.heights, r.h || '') && CONFIG.builder.heights[r.h];
+  return h ? { dy: h.dy } : {};
+};
+// ...and back: the nearest height choice for a stock item's dy.
+const heightOf = dy => {
+  if (!dy) return {};
+  const [k] = Object.entries(CONFIG.builder.heights).sort((a, b) => Math.abs(a[1].dy - dy) - Math.abs(b[1].dy - dy))[0];
+  return Math.abs(CONFIG.builder.heights[k].dy - dy) < 0.2 ? { h: k } : {};
 };
 
 // A stock stage as builder rows (to copy it into My Stages): the targets
@@ -86,7 +98,7 @@ export function stageRows(course) {
     if (k || (P && (P.x || P.yd || P.stance))) rows.push({ type: k && P.onMove ? 'walkto' : 'position', x: P.x || 0, yd: P.yd || 0, ...(P.stance ? { stance: P.stance } : {}) });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
       const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
-      const hard = it.hard?.side ? { hard: it.hard.side } : {};
+      const hard = { ...(it.hard?.side ? { hard: it.hard.side } : {}), ...heightOf(it.dy) };
       rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard });
     }
   }
@@ -114,7 +126,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -160,7 +172,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
     const r = rows[Number(tr.dataset.i)];
-    r[k] = k === 'type' || k === 'by' || k === 'hard' || k === 'stance' ? e.target.value : Number(e.target.value);
+    r[k] = k === 'type' || k === 'by' || k === 'hard' || k === 'stance' || k === 'h' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();
   };
@@ -174,7 +186,8 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}),
       ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}),
       ...(PAPER.includes(r.type) && B.hardCover[r.hard] ? { hard: r.hard } : {}),
-      ...(r.type === 'position' && STANCES.includes(r.stance) ? { stance: r.stance } : {}) }));
+      ...(r.type === 'position' && STANCES.includes(r.stance) ? { stance: r.stance } : {}),
+      ...((PAPER.includes(r.type) || r.type === 'noshoot') && Object.hasOwn(B.heights, r.h || '') ? { h: r.h } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
@@ -218,7 +231,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
 // Stage codes: 'DFS1.' + base64url(JSON). Checked on the way back in.
 const CODE = 'DFS1.';
 export function encodeStage(s) {
-  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.stance || '']) });
+  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.stance || '', r.h || '']) });
   return CODE + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function decodeStage(code) {
@@ -227,9 +240,9 @@ export function decodeStage(code) {
     if (!code.startsWith(CODE)) return null;
     const b64 = code.slice(CODE.length).replace(/-/g, '+').replace(/_/g, '/');
     const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
-    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, stance]) => ({
+    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, stance, h]) => ({
       type, x: Number(x) || 0, yd: Number(yd) || 0, ...(by ? { by: String(by) } : {}), ...(to !== '' && to != null ? { to: Number(to) } : {}),
-      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(STANCES.includes(stance) ? { stance } : {}),
+      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(STANCES.includes(stance) ? { stance } : {}), ...(Object.hasOwn(CONFIG.builder.heights, h || '') ? { h } : {}),
     }));
     if (!rows.length) return null;
     return { name: String(o.n || 'Shared stage').slice(0, 40), par: Number(o.p) || CONFIG.builder.par, start: o.s ? String(o.s).slice(0, 120) : '', rows };

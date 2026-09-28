@@ -770,6 +770,9 @@ export const CONFIG = {
       'standing in the box, loaded gun on the table, hands at your sides',
       'seated on the chair, hands flat on your thighs',
     ],
+    // Heights a paper / no-shoot row can stand at: m up (+) or down (-)
+    // from the normal stand height.
+    heights: { low: { dy: -0.45, label: 'low' }, high: { dy: 0.3, label: 'high' } },
     // Hard cover a paper row can carry: black paint cm in from that edge of
     // the target (shots there don't score; USPSA hard cover).
     hardCover: {
