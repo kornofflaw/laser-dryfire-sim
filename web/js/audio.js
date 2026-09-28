@@ -551,14 +551,17 @@ export function setAmbience(kind) {
   }
   amb = { kind, gain: out, nodes, timer: null, stale: false };
   if (kind === 'range') {
-    // A shot from another bay now and then: muffled by distance.
-    const next = () => {
-      amb.timer = setTimeout(() => {
-        if (amb?.kind !== 'range') return;
-        distantShot(out);
-        next();
-      }, (A.distantShots[0] + Math.random() * (A.distantShots[1] - A.distantShots[0])) * 1000);
+    // Other bays now and then, muffled by distance: a single shot (someone
+    // zeroing or practising) or a whole string - a shooter running a stage:
+    // quick splits, a pause to move or reload now and then.
+    const S = A.strings, rnd = ([a, b]) => a + Math.random() * (b - a);
+    const later = (s, fn) => { amb.timer = setTimeout(() => { if (amb?.kind === 'range') fn(); }, s * 1000); };
+    const string = n => {
+      distantShot(out);
+      if (n <= 1) return next();
+      later(Math.random() < S.moveChance ? rnd(S.move) : rnd(S.split), () => string(n - 1));
     };
+    const next = () => later(rnd(A.distantShots), () => (Math.random() < S.chance ? string(Math.round(rnd(S.shots))) : (distantShot(out), next())));
     next();
   }
 }
