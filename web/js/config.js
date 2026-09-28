@@ -728,6 +728,7 @@ export const CONFIG = {
     calibration: 'ldfs.calibration.v1',
     log: 'ldfs.log.v1',
     stages: 'ldfs.stages.v1', // your own stages (builder.js)
+    bests: 'ldfs.bests.v1',   // personal best per course (hit factor or time)
   },
 
   // ---- Stage builder (builder.js) ------------------------------------------------

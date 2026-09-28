@@ -259,6 +259,10 @@ function reviewZero(r) {
 
 let repeatAt = null; // repeat mode: when the next run starts (performance.now ms)
 
+// Personal bests per course (run.js DrillRunner.remember), kept in this browser.
+DrillRunner.bests = load(CONFIG.storage.bests, {}) || {};
+DrillRunner.saveBests = b => save(CONFIG.storage.bests, b);
+
 // ---- Match (course type 'match'): its stages one after another -------------------
 // Picking a match loads its first stage; after each stage's run the next one
 // loads by itself (once you're back from walking the targets / the review);
@@ -309,6 +313,7 @@ $('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
   log.add(result, lastInput);
   const inMatch = matchStageDone(result);
+  if (result.newBest) setTimeout(() => toast(`New personal best on ${result.course}!`), 400);
   const [zero, label] = reviewZero(active());
   review.finishRun(result, zero, label);
   const walk = isRange3D(range.layout) && views3d[range.layout]?.inspectable?.().length;

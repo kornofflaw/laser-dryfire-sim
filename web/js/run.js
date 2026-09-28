@@ -104,16 +104,33 @@ export class DrillRunner extends Runner {
   remember(r) {
     const all = (DrillRunner.history ??= {});
     (all[r.course] ??= []).push({ complete: r.complete, time: r.time, hf: r.hitFactor, passed: r.passed });
+    // Personal best (kept in this browser by main.js: DrillRunner.bests,
+    // DrillRunner.saveBests): the best hit factor on a stage, the best time on
+    // a timed drill or Steel Challenge (complete runs that didn't fail).
+    const B = DrillRunner.bests;
+    if (!B || !r.complete || r.passed === false && this.course.type !== 'strings') return;
+    const byHF = this.byHitFactor, v = byHF ? r.hitFactor : r.time;
+    if (!(v > 0)) return;
+    const old = B[r.course];
+    if (old == null || (byHF ? v > old : v < old)) {
+      r.newBest = old != null; // (the first run just sets it)
+      B[r.course] = v;
+      DrillRunner.saveBests?.(B);
+    }
   }
+
+  get byHitFactor() { return this.course.type === 'stage' || this.course.type === 'classifier'; }
 
   sessionLine() {
     const runs = (DrillRunner.history?.[this.course.name] || []).filter(r => r.complete);
-    if (runs.length < 2) return '';
-    const stage = this.course.type === 'stage' || this.course.type === 'classifier'; // judged by hit factor
+    const pb = DrillRunner.bests?.[this.course.name];
+    const pbLine = pb != null ? `<span class="muted small">Personal best: ${this.byHitFactor ? 'HF ' : ''}${f2(pb)}${this.byHitFactor ? '' : ' s'}${this.result?.newBest ? ' <span class="go">NEW!</span>' : ''}</span>\n` : '';
+    if (runs.length < 2) return pbLine;
+    const stage = this.byHitFactor;
     const vals = runs.map(r => (stage ? r.hf : r.time));
     const best = stage ? Math.max(...vals) : Math.min(...vals), avg = vals.reduce((a, b) => a + b, 0) / vals.length;
     const passed = runs.filter(r => r.passed).length;
-    return `<span class="muted small">This session: ${runs.length} runs · ${stage ? 'HF' : ''} best ${f2(best)} · avg ${f2(avg)}${runs.some(r => r.passed != null) ? ` · passed ${passed}/${runs.length}` : ''}</span>\n`;
+    return pbLine + `<span class="muted small">This session: ${runs.length} runs · ${stage ? 'HF' : ''} best ${f2(best)} · avg ${f2(avg)}${runs.some(r => r.passed != null) ? ` · passed ${passed}/${runs.length}` : ''}</span>\n`;
   }
 
   // Speak the RO's calls that are due (before the beep and after the run).
