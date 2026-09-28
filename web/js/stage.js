@@ -183,6 +183,7 @@ export class StageRunner extends DrillRunner {
       early: this.early,
       notes: problems.join('; '),
       ...(this.positions ? { stations: [...this.stationTimes, time] } : {}),
+      ...(this.benchmark() ? { benchmark: this.benchmark() } : {}),
       ...this.extraResult(),
     };
     this.state = State.Done;
@@ -214,12 +215,34 @@ export class StageRunner extends DrillRunner {
         `A ${r.counts.A}  C ${r.counts.C}  D ${r.counts.D}  M ${r.counts.Miss}  NS ${r.counts.NS}`,
         `Points <b>${r.points}</b> <span class="muted small">${CONFIG.points.C === CONFIG.powerFactor.major.C ? 'major' : 'minor'}</span> · time <b>${f2(r.time)}</b> · hit factor <b>${f2(r.hitFactor)}</b>`,
         r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>'];
+      if (r.benchmark) lines.push(`<span class="small">Benchmark HF ${f2(r.benchmark)} (an estimated top-shooter run) · you <b>${Math.round((100 * r.hitFactor) / r.benchmark)}%</b></span>`);
       // Stages with positions: when each array was done, and the time spent at / getting to each.
       if (r.stations?.length > 1) lines.push(`<span class="small">Positions: ${r.stations.map((t, i) => `${i + 1} ${f2(t)}s (+${f2(t - (r.stations[i - 1] || 0))})`).join(' · ')}</span>`);
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;
     }
     return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n` + this.briefing() + '\n' + footer;
+  }
+
+  // Benchmark hit factor (CONFIG.stage.benchmark): a clean top-shooter run
+  // estimated from the layout. Plain Comstock stages only (not strings,
+  // classifiers, Virginia Count or stages with disappearing targets).
+  benchmark() {
+    if (this.course.type !== 'stage' || this.virginia || this.vanish.length) return 0;
+    const B = CONFIG.stage.benchmark, P = CONFIG.points, S = CONFIG.range3d.stances;
+    let t = B.draw, pts = 0;
+    for (const it of this.items) {
+      if (it.type === 'noshoot') continue;
+      t += (it.steel ? B.steel : B.paper) + it.yd * B.perYd;
+      if (it.steel) pts += P.Steel;
+      else { t += (this.perPaper - 1) * B.split; pts += this.perPaper * P.A; }
+    }
+    (this.positions || []).forEach((p, k, all) => {
+      if (!k) return;
+      const q = all[k - 1], d = Math.hypot((p.x || 0) - (q.x || 0), ((p.yd || 0) - (q.yd || 0)) * 0.9144);
+      t += Math.max(p.onMove ? 0 : d / B.runSpeed, p.stance !== q.stance ? Math.max(S[p.stance]?.time || 0, S[q.stance]?.time || 0) : 0);
+    });
+    return pts / t;
   }
 
   // The written stage briefing, as posted at a match: round count, scoring,

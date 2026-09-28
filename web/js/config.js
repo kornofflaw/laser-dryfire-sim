@@ -56,7 +56,14 @@ export const CONFIG = {
   // Virginia Count stages (stage.scoring 'virginia'): exactly the round count
   // (hits per paper + one per steel); each extra shot is a procedural.
   // `start`: the start position in the stage briefing unless a stage has its own.
-  stage: { perPaper: 2, missPenalty: -10, procedural: -10, start: 'standing in the box, hands relaxed at your sides' },
+  stage: { perPaper: 2, missPenalty: -10, procedural: -10, start: 'standing in the box, hands relaxed at your sides',
+    // Benchmark hit factor: an estimated clean run by a top shooter, worked
+    // out from the layout (all A, steel down): draw s, then per target a
+    // transition (paper / steel) plus perYd s per yard of distance, `split`
+    // s for each further shot on a paper, and the moves between positions
+    // at runSpeed m/s. A rough yardstick, not an official classifier HHF.
+    benchmark: { draw: 1.0, paper: 0.3, steel: 0.3, perYd: 0.012, split: 0.2, runSpeed: 4.0 },
+  },
 
   // ---- Targets -------------------------------------------------------------
   targets: {
