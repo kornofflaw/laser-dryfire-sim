@@ -240,6 +240,7 @@ const STAGES = [
   { name: 'Swing and Drop', category: 'Stages', parTime: 12.0, maxShots: 22,
     desc: 'A classifier-style stage. Left: a paper beside a no-shoot, then two plates. The popper releases the swinger from behind the right wall AND drops the clamshell in front of the middle paper. 2 per paper, all steel down.',
     stage: {
+      start: 'wrists above your shoulders (surrender)',
       items: [
         { type: 'paper', x: -3.0, yd: 7 },
         { type: 'noshoot', x: -2.65, yd: 6.8, dy: -0.2 },
@@ -301,6 +302,7 @@ const STAGES = [
   { name: 'Virginia Count: Three at Ten', category: 'Stages', parTime: 5.0, maxShots: 12,
     desc: 'Three paper at 10 yards and a popper, Virginia Count: exactly 7 rounds. Every extra shot is a procedural (-10), so make-up shots cost you.',
     stage: {
+      start: 'standing in the box, loaded gun on the table, hands at your sides',
       scoring: 'virginia',
       items: [
         { type: 'paper', x: -1.8, yd: 10 },
@@ -323,6 +325,7 @@ const STAGES = [
   { name: 'Two Positions', category: 'Stages', parTime: 10.0, maxShots: 16,
     desc: 'Start on the left: two paper and a plate. When they\'re done you run to the right (the view moves; no shots on the way) past the wall to two more paper and a popper. 2 per paper, all steel down.',
     stage: {
+      start: 'standing at position 1, gun held at low ready',
       positions: [{ x: -2.5, yd: 0 }, { x: 2.5, yd: 2 }],
       items: [
         { type: 'paper', x: -4.0, yd: 8 },

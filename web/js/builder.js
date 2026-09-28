@@ -40,7 +40,7 @@ export function stageCourse(s) {
     name: s.name, category: 'My Stages', type: 'stage', layout: 'range3d-stage', parTime: s.par, custom: true,
     maxShots: paper * 2 + steel + CONFIG.builder.spareRounds,
     desc: `Your stage: ${paper} paper${act ? ` (${act} activated)` : ''}, ${steel} steel${props.length ? `, ${props.length} prop${props.length > 1 ? 's' : ''}` : ''}. Edit it with B.`,
-    stage: { items, props, ...(positions.length > 1 ? { positions } : {}) },
+    stage: { items, props, ...(positions.length > 1 ? { positions } : {}), ...(s.start ? { start: s.start } : {}) },
   };
 }
 
@@ -53,6 +53,8 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
   const $ = s => el.querySelector(s);
   $('#b-name').value = current?.name || '';
   $('#b-par').value = current?.par ?? B.par;
+  $('#b-start').innerHTML = B.starts.map(s => `<option>${s}</option>`).join('');
+  $('#b-start').value = current?.start || B.starts[0];
   $('#b-delete').hidden = !current;
   const render = () => {
     const ids = steelIds(rows);
@@ -107,7 +109,7 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'position')) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger or clamshell needs a steel target to release it.');
-    const stage = { name, par, rows };
+    const stage = { name, par, rows, start: $('#b-start').value };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);
     all.push(stage);
     save(CONFIG.storage.stages, all);

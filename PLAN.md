@@ -260,7 +260,7 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
-2. A shooter-view "ready" start option (gun low ready vs holster) shown in the stage briefing and the RO commands.
+2. More stock stages using the builder features (a table start, three positions, activators behind walls).
 3. Shooting from the second position: optional "lean" views around a wall edge (left / right port) in the builder.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
@@ -758,3 +758,8 @@ he reports a problem.
   steelRoughness / puddles).
 - Rain: a round into the ground throws mud and a splash of water droplets
   with a thin mist instead of a dust puff (CONFIG.range3d.rain.splash).
+- Start positions: the stage builder has a Start choice (hands at sides,
+  surrender, low ready, gun on the table, seated) shown in the stage
+  briefing; Swing and Drop starts in surrender, Two Positions at low ready,
+  Virginia Count: Three at Ten with the gun on the table
+  (CONFIG.builder.starts).

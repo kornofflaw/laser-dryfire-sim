@@ -735,6 +735,14 @@ export const CONFIG = {
   // distance within `yards`; maxShots = 2 per paper + steel + spareRounds.
   builder: {
     par: 10, maxX: 5, yards: [3, 30], spareRounds: 8, maxRun: 10, // a position row: up to maxRun yd forward
+    // Start positions offered (the stage briefing's "Start" line).
+    starts: [
+      'standing in the box, hands relaxed at your sides',
+      'standing in the box, wrists above your shoulders (surrender)',
+      'standing in the box, gun held at low ready, finger off the trigger',
+      'standing in the box, loaded gun on the table, hands at your sides',
+      'seated on the chair, hands flat on your thighs',
+    ],
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
   },
 };
