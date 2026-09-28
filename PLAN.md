@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Rain on the steel: water sheeting and duller paint; puddles on the bay floor.
-3. A top-down map of a stage in the builder (see where targets, walls and positions are before saving).
+3. Shooting from the second position: optional "lean" views around a wall edge (left / right port) in the builder.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -749,3 +749,7 @@ he reports a problem.
   steel) and "You run to here" rows (a new shooting position: the targets
   listed after it are shot from there, the view runs over). Your stages
   now show on the Controller's course list (My Stages) too.
+- Stage builder: a top-down map under the list (you at the bottom,
+  downrange up, yard lines) that redraws as you edit: paper, no-shoots,
+  steel with its S number, activated paper labelled, walls, barrels,
+  clamshells and the shooting positions.

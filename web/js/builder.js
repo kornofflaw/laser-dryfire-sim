@@ -63,16 +63,42 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
       <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
-  render();
+  // Top-down map (you at the bottom, downrange up): x across, yards up.
+  const drawMap = () => {
+    const c = $('#b-map'), g = c.getContext('2d'), W = c.width, H = c.height, maxYd = B.yards[1];
+    const px = x => W / 2 + (x / (B.maxX + 1)) * (W / 2 - 10), py = yd => H - 16 - (yd / maxYd) * (H - 30);
+    g.fillStyle = '#b8ab92'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(0,0,0,0.12)'; g.fillStyle = 'rgba(0,0,0,0.45)'; g.font = '10px system-ui, sans-serif'; g.textAlign = 'left';
+    for (let yd = 5; yd <= maxYd; yd += 5) { g.beginPath(); g.moveTo(0, py(yd)); g.lineTo(W, py(yd)); g.stroke(); g.fillText(`${yd} yd`, 4, py(yd) - 2); }
+    const ids = steelIds(rows);
+    let pos = 1, steelN = 0;
+    g.fillStyle = '#2e7d32'; g.fillRect(px(0) - 8, py(0) - 8, 16, 12); // start position
+    g.textAlign = 'center';
+    for (const r of rows) {
+      const x = px(r.x), y = py(r.yd);
+      if (r.type === 'position') { pos++; g.fillStyle = '#2e7d32'; g.fillRect(x - 8, y - 8, 16, 12); g.fillStyle = '#fff'; g.fillText(pos, x, y + 2); continue; }
+      if (r.type === 'wall') { g.fillStyle = '#8d6e3f'; g.fillRect(x - 12, y - 2, 24, 4); continue; }
+      if (r.type === 'barrel') { g.fillStyle = '#24569e'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); continue; }
+      if (r.type === 'clamshell') { g.strokeStyle = '#6d4c2f'; g.setLineDash([3, 2]); g.strokeRect(x - 8, y - 2, 16, 4); g.setLineDash([]); continue; }
+      if (STEEL.includes(r.type)) { g.fillStyle = '#f2f2ee'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.fillStyle = '#333'; g.fillText(ids[steelN++], x, y - 8); continue; }
+      g.fillStyle = r.type === 'noshoot' ? '#f4f4f0' : ACTIVATED.includes(r.type) ? '#d19a4a' : '#c49a64';
+      g.fillRect(x - 6, y - 3, 12, 6);
+      if (ACTIVATED.includes(r.type)) { g.fillStyle = '#333'; g.fillText(r.type, x, y - 6); }
+    }
+  };
+  const render0 = render;
+  const rerender = () => { render0(); drawMap(); };
+  rerender();
   $('#b-rows').onchange = e => {
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
     const r = rows[Number(tr.dataset.i)];
     r[k] = k === 'type' || k === 'by' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
+    drawMap();
   };
-  $('#b-rows').onclick = e => { const i = e.target.dataset.del; if (i != null) { rows.splice(Number(i), 1); render(); } };
-  $('#b-add').onclick = () => { const last = rows[rows.length - 1]; rows.push({ type: 'paper', x: last ? Math.min(B.maxX, last.x + 1.5) : 0, yd: last?.yd ?? 7 }); render(); };
+  $('#b-rows').onclick = e => { const i = e.target.dataset.del; if (i != null) { rows.splice(Number(i), 1); rerender(); } };
+  $('#b-add').onclick = () => { const last = rows[rows.length - 1]; rows.push({ type: 'paper', x: last ? Math.min(B.maxX, last.x + 1.5) : 0, yd: last?.yd ?? 7 }); rerender(); };
   $('#b-save').onclick = () => {
     const name = $('#b-name').value.trim() || `My stage ${loadStages().length + 1}`;
     const par = Math.max(1, Number($('#b-par').value) || B.par);
