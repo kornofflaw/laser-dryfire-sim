@@ -483,6 +483,7 @@ export const CONFIG = {
     stageLookYards: 10,     // stages: items have their own distances; the camera looks this far out
     targetCenterY: 1.35,    // metres: height of the target's centre on its stand
     bayGap: 1.5,            // metres between targets in the 3-target bay
+    bayStagger: [0, 0, 0],  // Setup: extra yards back for each bay target (staggered: [0, 5, 10])
     holeRadiusCm: 0.45,     // 9 mm bullet hole
     // Between runs the holes are pasted over (Setup): pasters sizeCm square
     // in these tans; a fresh target once `limit` pasters are on it.

@@ -527,7 +527,9 @@ export class Range3DView {
     const kind = this.kind;
     if (kind === 'paper') {
       const xs = layout === 'range3d-bay' ? [-R().bayGap, 0, R().bayGap] : [0];
-      xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot)));
+      // (staggered: each target further back than the last, CONFIG.range3d.bayStagger yd)
+      const back = layout === 'range3d-bay' ? R().bayStagger : [0];
+      xs.forEach((x, slot) => this.targets.push(this.makeTarget(x, slot, { z: -(back[slot] || 0) * YARD, pxPerCm: back[slot] > 5 ? R().farPxPerCm : undefined })));
     } else if (kind === 'popup') {
       this.buildPopups();
     } else if (kind === 'movers') {

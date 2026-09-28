@@ -261,9 +261,9 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Mixed-distance bay: the 3 bay targets at different distances (5 / 10 / 15 yd) as an option for transition drills.
+3. Hard cover on stage paper: black-painted part of a target (shots through it don't score), as in USPSA stages, plus a builder option.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -804,3 +804,4 @@ he reports a problem.
 - Setup -> 3D range -> 3-target spacing: Close (0.9 m) / Normal (1.5 m) /
   Wide (3 m) for the bay drills (Blake, transitions, El Presidente...), so
   transitions can be short or big swings. Saved; also on the Controller.
+- 2026-09-28: 3D range: Setup -> 3D range -> 3-target distances: staggered puts the bay's 2nd and 3rd targets 5 and 10 yd further back (smaller, finer-printed cards), for transition drills with distance changes.
