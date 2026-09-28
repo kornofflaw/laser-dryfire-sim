@@ -30,6 +30,7 @@
     <nav id="toolbar" aria-label="Controls">
       <button data-act="startStop" id="start-btn" title="Start a timed run (Space); during a run, stop it">Start <kbd>Space</kbd></button>
       <button data-act="courses" title="Choose a drill, Dot Torture or a scenario (D)">Courses <kbd>D</kbd></button>
+      <button data-act="builder" title="Build your own stage, or change the one you're on (B)">Build <kbd>B</kbd></button>
       <button data-act="layout" title="Change target layout (L)">Targets <kbd>L</kbd></button>
       <button data-act="review" title="Review where each shot landed and when (V)">Review <kbd>V</kbd></button>
       <button data-act="setup" title="Camera, calibration and settings (S)">Setup <kbd>S</kbd></button>
@@ -265,17 +266,37 @@
 
   <div id="builder" hidden role="dialog" aria-modal="true" aria-labelledby="builder-title">
     <div class="card">
-      <h2 id="builder-title">Build a stage</h2>
-      <p class="note">x = metres across (left is negative, 0 is straight ahead); distance in yards. Steel is numbered S1, S2... in list order; a pop-up, drop turner, swinger or clamshell is released when its steel falls (put a swinger's rest position behind a wall, about 1.3 m to its right; a clamshell just in front of a target). A "You run to here" row starts a new shooting position: the targets after it are shot from there (as the first row, before any target, it's where you start). "You walk to here, shooting on the way" is the same but slow, and shots count while you walk. Paper can carry hard cover: black paint, and hits through it don't score.</p>
-      <label>Name <input id="b-name" type="text" maxlength="40" placeholder="My stage"></label>
-      <label>Par (s) <input id="b-par" type="number" min="1" max="60" step="0.5"></label>
-      <label>Start <select id="b-start"></select></label>
-      <table><thead><tr><th>What</th><th>x (m)</th><th>yd</th><th>released by / cover</th><th></th></tr></thead><tbody id="b-rows"></tbody></table>
-      <p><button id="b-add">+ Add</button></p>
-      <canvas id="b-map" width="560" height="300" aria-label="Top-down map of the stage"></canvas>
+      <header class="b-head">
+        <h2 id="builder-title">Build a stage</h2>
+        <button id="b-new" title="Start a new, empty stage (this one stays as it was saved)">New stage</button>
+      </header>
+      <ol class="b-how">
+        <li>Pick what to add, then <b>click the map where it goes</b>. You stand at the bottom (green box 1); the targets are up the bay.</li>
+        <li><b>Drag</b> anything to move it. <b>Click</b> it to select it: its row in the list turns yellow - change its details there. <kbd>Delete</kbd> removes it, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</li>
+        <li><b>Save and see it in 3D.</b> To change it later, pick it (Courses -> My Stages) and press <b>Build</b> or <kbd>B</kbd>.</li>
+      </ol>
+      <div class="b-fields">
+        <label>Name <input id="b-name" type="text" maxlength="40" placeholder="My stage"></label>
+        <label>Par (s) <input id="b-par" type="number" min="1" max="60" step="0.5"></label>
+        <label>Start <select id="b-start"></select></label>
+      </div>
+      <div id="b-tools" role="toolbar" aria-label="What to add">
+        <button data-tool="" title="Click to select, drag to move (Esc)">Select / move</button>
+        <span id="b-tool-btns"></span>
+        <select id="b-more" aria-label="More things to add"></select>
+        <button id="b-undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+      </div>
+      <canvas id="b-map" aria-label="Map of the stage: you at the bottom, downrange up"></canvas>
+      <p id="b-sel" class="note" aria-live="polite"></p>
+      <details class="b-help">
+        <summary>How shooting positions, activated targets and steel numbers work</summary>
+        <p class="note">x = metres across (left is negative, 0 is straight ahead); distance in yards from the firing line. Steel is numbered S1, S2... in list order; a pop-up, drop turner, swinger, bobber, mover or clamshell is released when its steel falls (the "released by" choice in its row). Put a swinger's rest position behind a wall, about 1.3 m to its right; a clamshell just in front of a target. A shooting position (green box) starts a new array: the targets after it in the list are shot from there (the first one, before any target, is where you start). "You walk to here, shooting on the way" is the same but slow, and shots count while you walk. The light wedge on the map is what you can see from the position you're working on (the view doesn't turn): targets outside it are outlined in red. Paper can carry hard cover: black paint, hits through it don't score.</p>
+      </details>
+      <div id="b-list"><table><thead><tr><th>#</th><th>What</th><th>x (m)</th><th>yd</th><th>Details</th><th></th></tr></thead><tbody id="b-rows"></tbody></table></div>
+      <p><button id="b-add">+ Add a row</button></p>
       <p><label>Share code <input id="b-code" type="text" placeholder="paste a stage code here" style="width: 18em"></label>
         <button id="b-export">Make code</button> <button id="b-import">Load code</button></p>
-      <p><button id="b-save">Save and pick it</button> <button id="b-delete">Delete</button> <button id="b-close">Close</button></p>
+      <p class="b-foot"><button id="b-save" class="primary">Save and see it in 3D</button> <button id="b-delete">Delete this stage</button> <button id="b-close">Close <kbd>Esc</kbd></button></p>
     </div>
   </div>
   <div id="match" hidden role="dialog" aria-modal="true" aria-labelledby="match-title">
@@ -298,7 +319,7 @@
         <tr><td><kbd>Z</kbd></td><td>Show or hide zone labels</td></tr>
         <tr><td><kbd>R</kbd></td><td>Reset session stats and clear holes</td></tr>
         <tr><td><kbd>V</kbd></td><td>Review the last run: where each shot landed and when</td></tr>
-        <tr><td><kbd>B</kbd></td><td>Build your own stage (on a stage: starts from a copy of it; on one of yours: edit it)</td></tr>
+        <tr><td><kbd>B</kbd></td><td>Build your own stage (or the Build button): pick what to add, click the map where it goes, drag to move. On a stage it starts from a copy of it; on one of yours it edits it</td></tr>
         <tr><td><kbd>I</kbd></td><td>3D range: walk up to each paper target to see your holes (again for the next, <kbd>Esc</kbd> to go back)</td></tr>
         <tr><td><kbd>Q</kbd> / <kbd>E</kbd></td><td>3D range: lean out left / right of a wall or barricade (press again to stand upright)</td></tr>
         <tr><td><kbd>U</kbd></td><td>Match: reshoot - throw out the last run and shoot that stage again (as when the RO orders a reshoot)</td></tr>

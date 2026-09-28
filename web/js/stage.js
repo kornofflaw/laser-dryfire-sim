@@ -44,7 +44,7 @@ export class StageRunner extends DrillRunner {
     this.steel = items.filter(i => i.steel).map(i => i.id);
     this.vanish = items.filter(i => i.turn || i.run || i.bob).map(i => ({ id: i.id, by: (i.turn || i.run || i.bob).by, window: showWindow(i) }));
     this.items = items;
-    this.positions = this.course.stage.positions || null;
+    this.positions = this.course.stage.positions?.length > 1 ? this.course.stage.positions : null; // (just a start box: nothing to move between)
   }
 
   // A disappearing paper: was it activated, and has it turned away (ms)?
