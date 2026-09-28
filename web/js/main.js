@@ -605,7 +605,9 @@ function frame(now) {
 
   setHUD('stats', statsHTML(now));
   setHUD('timer', active().timerHTML(now));
-  setHUD('drill', active().panelHTML(now));
+  // A squad match: whose turn it is (also reaches the Controller with the panel).
+  const up = match?.shooters.length > 1 ? `<span class="small">Shooter <b>${match.shooters[match.j]}</b>${match.shooters[match.j + 1] ? ` · on deck ${match.shooters[match.j + 1]}` : ''}</span>\n` : '';
+  setHUD('drill', up + active().panelHTML(now));
   setHUD('start', active().busy ? 'Stop <kbd>Esc</kbd>' : 'Start <kbd>Space</kbd>');
 
   if (!$('#setup').hidden || remote?.connected) { updateCameraStatus(); updateQualityStatus(); }
