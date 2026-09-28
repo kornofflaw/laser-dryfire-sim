@@ -1204,6 +1204,7 @@ export class Range3DView {
   // Stage with shooting positions: move to position k (running there takes
   // distance / move.speed s; no shots count on the way), or jump (instant).
   moveTo(k, instant = false) {
+    const prev = this.station || 0;
     this.station = k;
     this.lean = this.leanNow = 0;
     this.inspecting = null;
@@ -1211,9 +1212,13 @@ export class Range3DView {
     if (instant) { this.walk = null; this.homeCamera(); return; }
     const from = { pos: this.camera.position.clone(), look: (this.look || to.look).clone() };
     // (a position with onMove: you walk there shooting; shots count on the way)
-    const M = R().move, onMove = !!this.builtStage?.positions?.[k]?.onMove;
-    const time = Math.max(M.min, from.pos.distanceTo(to.pos) / (onMove ? M.shootSpeed : M.speed));
-    this.walk = { from, to, t0: performance.now() / 1000, back: true, time, shootable: onMove, stride: onMove ? M.shootStride : M.stride, steps: 0 };
+    const M = R().move, Ps = this.builtStage?.positions || [], onMove = !!Ps[k]?.onMove;
+    // Getting down to (or up from) kneeling / prone takes its own time.
+    const S = R().stances, was = Ps[prev]?.stance, now = Ps[k]?.stance;
+    const settle = was === now ? 0 : Math.max(S[was]?.time || 0, S[now]?.time || 0);
+    const dist = Math.hypot(to.pos.x - from.pos.x, to.pos.z - from.pos.z), time = Math.max(M.min, settle, dist / (onMove ? M.shootSpeed : M.speed));
+    const stride = dist < 0.3 ? 0 : onMove ? M.shootStride : M.stride; // (no footsteps just getting down)
+    this.walk = { from, to, t0: performance.now() / 1000, back: true, time, shootable: onMove, stride, steps: 0 };
   }
 
   // Shooting on the move: stand at x m across, yd downrange of the line

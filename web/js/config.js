@@ -610,7 +610,8 @@ export const CONFIG = {
     },
     // Stage positions with a stance (kneel / prone): eye height m and the
     // height it looks at downrange (low ports sit low).
-    stances: { kneel: { eye: 1.05, lookY: 0.8 }, prone: { eye: 0.35, lookY: 0.4 } },
+    // `time`: seconds at least to get into (or up from) that stance.
+    stances: { kneel: { eye: 1.05, lookY: 0.8, time: 0.9 }, prone: { eye: 0.35, lookY: 0.4, time: 1.6 } },
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render
