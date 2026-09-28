@@ -958,6 +958,7 @@ export class Range3DView {
       const t = this.makeTarget(it.x, slot++, {
         z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, bob: it.bob, pop: it.pop, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       });
+      if (it.face && !it.turn) t.card.yaw = THREE.MathUtils.degToRad(it.face); // turned to face across the bay
       if (R().paste.on) this.earlierShooters(t.card);
       this.targets.push(t);
     }

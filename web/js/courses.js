@@ -151,6 +151,7 @@ const FLIP = [
 // (onMove: true - it walks there slowly and shots count on the way;
 // stance: 'kneel' / 'prone' - eyes lower, CONFIG.range3d.stances).
 // A wall may have one port or several (ports: [...], a barricade).
+// Paper / no-shoot face: degrees turned (+ = its front turned to your right).
 // strings: [{ name, say? }, ...] (in stage, course type 'classifier'): the
 // stage is shot once per string, steel reset between them, paper scored at
 // the end.
