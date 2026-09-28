@@ -581,6 +581,9 @@ export const CONFIG = {
     // Stages with shooting positions: you run between them at `speed` m/s
     // (at least `min` s).
     move: { speed: 3.5, min: 0.8 },
+    // Lean (Q / E): lean out left or right of a wall edge, m sideways, head
+    // dropped `drop` m and tilted `roll` rad, taking `time` s.
+    lean: { m: 0.4, drop: 0.06, roll: 0.1, time: 0.3 },
     // Walk the targets (I, after a run): the camera takes `time` s to walk up
     // to each paper, framing `frame` x the target's height, standing `raise`
     // x that frame higher (so the target sits below the label at the top).

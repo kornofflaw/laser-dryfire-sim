@@ -822,6 +822,8 @@ window.addEventListener('keydown', e => {
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
     x: () => active().setCover?.(true), // hold: take cover (office)
+    q: () => lean(-1), // 3D range: lean out left / right (again: upright)
+    e: () => lean(1),
     Escape: () => {
       if (!$('#setup').hidden) closeSetup();
       else if (range.view3d?.inspecting) range.view3d.inspect(null);
@@ -833,6 +835,13 @@ window.addEventListener('keydown', e => {
     map[k]();
   }
 });
+
+// 3D range: lean out left or right of cover (press the same side again to stand upright).
+function lean(side) {
+  const v = range.view3d;
+  if (!v?.setLean || v.walking || v.inspecting) return;
+  v.setLean(v.lean === side ? 0 : side);
+}
 
 // ---- Setup drawer --------------------------------------------------------------------------
 function toggleSetup() { $('#setup').hidden ? openSetup() : closeSetup(); }

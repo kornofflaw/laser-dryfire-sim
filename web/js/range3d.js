@@ -1151,6 +1151,7 @@ export class Range3DView {
 
   // Clear holes, strike marks and stand the steel back up (a new run).
   resetTargets() {
+    this.lean = this.leanNow = 0;
     if (this.station) this.moveTo(0, true); // back to the start position
     if (this.sheet) { this.sheet.holes = []; this.drawSheet(); }
     this.cards.forEach(c => this.resetCard(c));
@@ -1200,12 +1201,31 @@ export class Range3DView {
   // distance / move.speed s; no shots count on the way), or jump (instant).
   moveTo(k, instant = false) {
     this.station = k;
+    this.lean = this.leanNow = 0;
     this.inspecting = null;
     const to = this.homeView();
     if (instant) { this.walk = null; this.homeCamera(); return; }
     const from = { pos: this.camera.position.clone(), look: (this.look || to.look).clone() };
     const M = R().move, time = Math.max(M.min, from.pos.distanceTo(to.pos) / M.speed);
     this.walk = { from, to, t0: performance.now() / 1000, back: true, time };
+  }
+
+  // Lean out left (-1) or right (1) of cover, or stand upright (0). Shots
+  // still count while leaning (the view you shoot from is the one you see).
+  setLean(side) { this.lean = side; }
+
+  // Ease the lean toward its target and place the camera (render()).
+  updateLean(dt) {
+    const L = R().lean, to = this.lean || 0, step = dt / L.time;
+    this.leanNow ||= 0;
+    this.leanNow = Math.abs(to - this.leanNow) <= step ? to : this.leanNow + Math.sign(to - this.leanNow) * step;
+    const h = this.homeView(), u = smooth((Math.abs(this.leanNow))) * Math.sign(this.leanNow);
+    const fwd = h.look.clone().sub(h.pos).setY(0).normalize(), right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+    this.camera.position.copy(h.pos).addScaledVector(right, u * L.m);
+    this.camera.position.y -= Math.abs(u) * L.drop;
+    this.camera.lookAt(h.look);
+    this.camera.rotateZ(-u * L.roll);
+    this.look = h.look;
   }
 
   homeCamera() {
@@ -1304,6 +1324,7 @@ export class Range3DView {
     if (this.poppers?.length) this.updatePopUps(now);
     if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
+    else if (!this.inspecting && (this.lean || this.leanNow)) this.updateLean(dt);
     if (this.raining && this.rain) moveRain(this.rain, R().rain, dt, this.camera.position.x, this.camera.position.z);
     if (this.flashAt != null && this.time !== 'night') this.flashAt = null;
     if (this.flashAt != null) {
