@@ -260,10 +260,10 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
-2. Barricade in the Controller/Help: a note on the stance flow; and a 'Kneeling' / 'Prone' drill pair on the plain bay (Setup-free practice of shooting low).
+2. Wind drift on steel at distance? (no - pistol). Instead: target stand variety - some USPSA stages hang paper on 1x2 sticks at different heights (dy) incl. very low targets; builder height choice (low / normal / high).
 3. Partial no-shoot overlap in the builder: a no-shoot hung in front of a paper target, covering part of it (dx / dy offsets).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: kneeling / prone drills, VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -812,3 +812,4 @@ he reports a problem.
 - 2026-09-28: Kneeling and low ports: a stage position can be kneeling (eyes at 1.05 m; the view drops as you get there). New stage "Low Port" (kneel behind an 8 ft wall, targets seen only through a low port). Stage builder: "Wall with a port" / "Wall with a low port (kneel)" rows (can stand 1 yd out) and a standing / kneeling choice on each "You run to here" row; kept in stage codes and copies. CONFIG.range3d.props.ports, kneelEye.
 - 2026-09-28: Barricade: new stage "Barricade" (VTAC-style panel 1.5 yd out with three small ports: standing, kneeling, prone). Positions now take a stance (standing / kneeling / prone, CONFIG.range3d.stances) - the builder's "You run to here" rows have the same choice, and a "Barricade (3 ports)" row. Walls may carry several ports.
 - 2026-09-28: Getting down to kneeling (0.9 s) or prone (1.6 s), or back up, now takes that long (CONFIG.range3d.stances time); no footsteps when you only change stance.
+- 2026-09-28: New Positions category: Kneeling 2-2-2 and Prone 2-2-2 on the 3D bay, shot from kneeling (1.05 m) or prone (0.35 m) eye height. Course field stance.

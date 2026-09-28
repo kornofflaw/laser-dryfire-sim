@@ -1197,8 +1197,9 @@ export class Range3DView {
       return { pos: new THREE.Vector3(P.x || 0, S ? S.eye : CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, S ? S.lookY : R().aimY.stage, -lyd * YARD) };
     }
     const s = this.step; // shooting on the move: where the walk has got to
-    if (s) return { pos: new THREE.Vector3(s.x, CONFIG.knife.eyeHeight + s.bob, -s.yd * YARD), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
-    return { pos: new THREE.Vector3(0, CONFIG.knife.eyeHeight, 0), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
+    const eye = R().stances[this.stance]?.eye ?? CONFIG.knife.eyeHeight; // a drill shot kneeling / prone
+    if (s) return { pos: new THREE.Vector3(s.x, eye + s.bob, -s.yd * YARD), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
+    return { pos: new THREE.Vector3(0, eye, 0), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };
   }
 
   // Stage with shooting positions: move to position k (running there takes
@@ -1227,6 +1228,14 @@ export class Range3DView {
     const s = this.step;
     if (x == null ? !s : s && s.x === x && s.yd === yd && s.bob === bob) return;
     this.step = x == null ? null : { x, yd, bob };
+    if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
+  }
+
+  // A drill's stance ('kneel' / 'prone' / null = standing): the eyes drop.
+  setStance(s) {
+    s ||= null;
+    if (this.stance === s) return;
+    this.stance = s;
     if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
   }
 

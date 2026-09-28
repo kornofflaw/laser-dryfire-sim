@@ -32,7 +32,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'My Stages', 'Match', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Positions', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'My Stages', 'Match', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -70,6 +70,11 @@ const DRILLS = [
     perTargetMin: 4, desc: '2 on each target, reload, 2 on each again. Timer runs through the reload.' },
 
   // Movement
+  // Kneeling / prone (3D): the view is at that eye height.
+  { name: 'Kneeling 2-2-2', category: 'Positions', layout: 'range3d-bay', requiredShots: 6, parTime: 4.0, perTargetMin: 2, stance: 'kneel',
+    desc: 'From kneeling (the view is at kneeling eye height): two on each target, left to right.' },
+  { name: 'Prone 2-2-2', category: 'Positions', layout: 'range3d-bay', requiredShots: 6, parTime: 5.0, perTargetMin: 2, stance: 'prone', minAHits: 4,
+    desc: 'Prone (eyes 35 cm off the ground): two on each target, at least 4 A. A steady position - make the hits count.' },
   // Shooting on the move (3D): the view walks after the beep; shots count on the way.
   { name: 'Walk Up', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 6.0, perTargetMin: 2,
     advance: { from: [0, -6], to: [0, -1], speed: 0.9 }, minBodyHits: 6,

@@ -844,6 +844,7 @@ let walkU = 0, lastStride = 0;
 function walkOn(now) {
   const A = course().advance, v = range.view3d;
   if (!v?.setStep) return;
+  v.setStance(course().stance); // drills shot kneeling / prone
   if (!A) return v.setStep(null);
   const R = active(), W = CONFIG.range3d.advance;
   const dist = Math.hypot(A.to[0] - A.from[0], (A.to[1] - A.from[1]) * 0.9144);
