@@ -1042,7 +1042,10 @@ export class Range3DView {
     this.tags = {};
     if (L.on) for (const it of stageTargets(def)) {
       if (it.type === 'noshoot' || it.swing || it.turn || it.run || it.bob || it.pop) continue;
-      this.tags[it.id] = this.addTag(it.id, it.x + (it.steel ? L.steelDx : L.paperDx), it.yd);
+      let tx = it.x + (it.steel ? L.steelDx : L.paperDx);
+      // (a stacked pair: the second tag goes on the other side of the stand)
+      if (Object.values(this.tags).some(t => Math.abs(t.position.x - tx) < 0.2 && Math.abs(t.position.z - (-it.yd * YARD + L.dz)) < 0.3)) tx = it.x - (it.steel ? L.steelDx : L.paperDx);
+      this.tags[it.id] = this.addTag(it.id, tx, it.yd);
     }
   }
 

@@ -473,6 +473,17 @@ const STAGES = [
         { type: 'popper', x: 0.9, yd: 14 },
       ],
     } },
+  { name: 'High and Low', category: 'Stages', parTime: 9.0, maxShots: 14,
+    desc: 'Two stacked pairs - a low paper and a high one on the same tall stand - and a plate between them. 2 per paper; the high ones are shot above eye level.',
+    stage: {
+      items: [
+        { type: 'paper', x: -1.8, yd: 9, dy: -0.45 },
+        { type: 'paper', x: -1.8, yd: 9, dy: 0.45, shared: true },
+        { type: 'plate', x: 0, yd: 12 },
+        { type: 'paper', x: 1.8, yd: 9, dy: -0.45 },
+        { type: 'paper', x: 1.8, yd: 9, dy: 0.45, shared: true },
+      ],
+    } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
     stage: {
