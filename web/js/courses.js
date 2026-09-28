@@ -460,6 +460,19 @@ const STAGES = [
         { type: 'plate', x: 0, yd: 15, pos: 1 },
       ],
     } },
+  { name: 'Side by Side', category: 'Stages', parTime: 9.0, maxShots: 16,
+    desc: 'Pairs of paper stapled side by side on one stand, as on a lot of stages: a pair on the left, a paper beside a no-shoot in the middle, a pair on the right, and a popper. 2 per paper.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.75, yd: 8 },
+        { type: 'paper', x: -2.25, yd: 8, shared: true },
+        { type: 'paper', x: -0.25, yd: 10 },
+        { type: 'noshoot', x: 0.25, yd: 10, shared: true },
+        { type: 'paper', x: 2.25, yd: 8 },
+        { type: 'paper', x: 2.75, yd: 8, shared: true },
+        { type: 'popper', x: 0.9, yd: 14 },
+      ],
+    } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
     stage: {

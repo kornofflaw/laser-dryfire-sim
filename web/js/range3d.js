@@ -765,6 +765,29 @@ export class Range3DView {
     return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
+  // Two paper targets side by side on one stand: both lose their own 2x4
+  // base, and one long base (feet at the ends) and a 1x2 crossbar behind
+  // both faces join them.
+  shareStand(a, b) {
+    for (const t of [a, b]) t.group.children.filter(o => o !== t.pivot).forEach(o => o.removeFromParent());
+    this.solids = this.solids.filter(o => o.parent);
+    this.layoutSolids = this.layoutSolids.filter(o => o.parent);
+    const x0 = Math.min(a.group.position.x, b.group.position.x), x1 = Math.max(a.group.position.x, b.group.position.x);
+    const g = new THREE.Group(), w = x1 - x0 + 0.6, z = a.group.position.z;
+    g.position.set((x0 + x1) / 2, 0, z);
+    const part = (geo, x, y, zz) => { const m = new THREE.Mesh(geo, this.mats.wood); m.position.set(x, y, zz); m.castShadow = m.receiveShadow = true; m.userData.surface = 'wood'; g.add(m); return m; };
+    const parts = [part(new THREE.BoxGeometry(w, 0.09, 0.14), 0, 0.045, -0.024)];
+    for (const s of [-1, 1]) parts.push(part(new THREE.BoxGeometry(0.09, 0.04, 0.55), s * (w / 2 - 0.08), 0.02, -0.024));
+    parts.push(part(new THREE.BoxGeometry(x1 - x0 + 0.3, 0.038, 0.019), 0, R().targetCenterY - Ucfg().height / 200 + 0.05, -0.03)); // crossbar
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(w + 0.35, 0.8), contactShadowMaterial());
+    blob.rotation.x = -Math.PI / 2;
+    blob.position.set(0, 0.002, -0.024);
+    blob.renderOrder = 1;
+    g.add(blob);
+    this.layoutGroup.add(g);
+    this.addSolids(parts);
+  }
+
   // A swinger (USPSA activated target): the paper hangs on a steel arm from
   // an overhead beam, held to one side (behind cover) until its activator
   // steel (swing.by, a stage steel id) is hit; then it swings back and forth
@@ -1000,6 +1023,9 @@ export class Range3DView {
       });
       if (it.face && !it.turn) t.card.yaw = THREE.MathUtils.degToRad(it.face); // turned to face across the bay
       if (R().paste.on) this.earlierShooters(t.card);
+      // shared: stapled beside the paper before it, on one wide stand.
+      const prev = this.targets[this.targets.length - 1];
+      if (it.shared && prev && Math.abs(prev.group.position.z - t.group.position.z) < 0.05) this.shareStand(prev, t);
       this.targets.push(t);
     }
     if (steel.length) {

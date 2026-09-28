@@ -827,6 +827,7 @@ export const CONFIG = {
     plateHeights: { low: { h: 0.6, label: 'low post' }, chest: { h: 1.3, label: 'chest high' }, high: { h: 1.6, label: 'high post' } },
     // Angles a paper / no-shoot row can be turned (degrees, + = front to your right).
     facings: { l45: { deg: -45, label: 'turned left 45°' }, l25: { deg: -25, label: 'turned left 25°' }, r25: { deg: 25, label: 'turned right 25°' }, r45: { deg: 45, label: 'turned right 45°' } },
+    shareGap: 0.5,          // a row on the stand of the row above sits this many m to its right
     dupStep: 1.2,           // a duplicated row is placed this many m to the right
     tallWall: 2.44,         // height (m) of the builder's 4 x 8 ft wall
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
