@@ -885,6 +885,10 @@ let walkU = 0, lastStride = 0;
 function walkOn(now) {
   const A = course().advance, v = range.view3d;
   if (!v?.setStep) return;
+  // A drill with a standard distance (course.yd, e.g. El Presidente at 10 yd)
+  // puts its targets there; others use the Setup distance.
+  const kind = RANGE3D_KIND[range.layout], wantYd = course().yd ?? yards3d(kind);
+  if (kind && kind !== 'stage' && CONFIG.range3d.yardsRange[kind] && v.yards?.[kind] !== wantYd) v.setDistance(kind, wantYd);
   // Drills shot kneeling / prone; stanceAfter { shots, stance }: after that
   // many shots you get down (the view drops) and finish from there.
   const C = course(), S = C.stanceAfter, R0 = active();

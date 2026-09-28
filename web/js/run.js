@@ -401,6 +401,6 @@ export class DrillRunner extends Runner {
       return head + lines.join('\n') + '\n' + footer;
     }
 
-    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${goal}  ·  par ${d.parTime.toFixed(1)}s\n` + footer;
+    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${goal}  ·  par ${d.parTime.toFixed(1)}s${d.yd ? `  ·  ${d.yd} yd` : ''}\n` + footer;
   }
 }
