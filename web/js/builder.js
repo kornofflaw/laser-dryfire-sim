@@ -9,23 +9,30 @@ import { CONFIG } from './config.js';
 import { load, save } from './storage.js';
 
 const TYPES = {
-  paper: 'Paper (USPSA)', noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
+  paper: 'Paper (USPSA)', pop: 'Paper: pop-up', turn: 'Paper: drop turner', swing: 'Paper: swinger',
+  noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
   plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', barrel: 'Barrel',
 };
 const STEEL = ['popper', 'mini', 'plate'];
 const PROPS = ['wall', 'barrel'];
+const ACTIVATED = ['pop', 'turn', 'swing']; // paper released by a steel (row.by)
+
+// Stage ids of the steel rows, in order (as courses.js stageTargets gives them).
+const steelIds = rows => rows.filter(r => STEEL.includes(r.type)).map((_, i) => `S${i + 1}`);
 
 export const loadStages = () => { const s = load(CONFIG.storage.stages, []); return Array.isArray(s) ? s : []; };
 
 // A saved stage as a course (courses.js stage format).
 export function stageCourse(s) {
-  const items = s.rows.filter(r => !PROPS.includes(r.type)).map(r => ({ type: r.type, x: r.x, yd: r.yd }));
+  const items = s.rows.filter(r => !PROPS.includes(r.type)).map(r =>
+    ACTIVATED.includes(r.type) ? { type: 'paper', x: r.x, yd: r.yd, [r.type]: { by: r.by } } : { type: r.type, x: r.x, yd: r.yd });
   const props = s.rows.filter(r => PROPS.includes(r.type)).map(r => ({ type: r.type, x: r.x, yd: r.yd }));
+  const act = items.filter(i => i.pop || i.turn || i.swing).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
   return {
     name: s.name, category: 'My Stages', type: 'stage', layout: 'range3d-stage', parTime: s.par, custom: true,
     maxShots: paper * 2 + steel + CONFIG.builder.spareRounds,
-    desc: `Your stage: ${paper} paper, ${steel} steel${props.length ? `, ${props.length} prop${props.length > 1 ? 's' : ''}` : ''}. Edit it with B.`,
+    desc: `Your stage: ${paper} paper${act ? ` (${act} activated)` : ''}, ${steel} steel${props.length ? `, ${props.length} prop${props.length > 1 ? 's' : ''}` : ''}. Edit it with B.`,
     stage: { items, props },
   };
 }
@@ -41,10 +48,12 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
   $('#b-par').value = current?.par ?? B.par;
   $('#b-delete').hidden = !current;
   const render = () => {
+    const ids = steelIds(rows);
     $('#b-rows').innerHTML = rows.map((r, i) => `<tr data-i="${i}">
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   render();
@@ -52,15 +61,19 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
     const r = rows[Number(tr.dataset.i)];
-    r[k] = k === 'type' ? e.target.value : Number(e.target.value);
+    r[k] = k === 'type' || k === 'by' ? e.target.value : Number(e.target.value);
+    if (k === 'type') render(); // (activated paper gets its "released by" choice)
   };
   $('#b-rows').onclick = e => { const i = e.target.dataset.del; if (i != null) { rows.splice(Number(i), 1); render(); } };
   $('#b-add').onclick = () => { const last = rows[rows.length - 1]; rows.push({ type: 'paper', x: last ? Math.min(B.maxX, last.x + 1.5) : 0, yd: last?.yd ?? 7 }); render(); };
   $('#b-save').onclick = () => {
     const name = $('#b-name').value.trim() || `My stage ${loadStages().length + 1}`;
     const par = Math.max(1, Number($('#b-par').value) || B.par);
-    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: clamp(r.yd, B.yards[0], B.yards[1]) }));
+    const ids = steelIds(rows);
+    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: clamp(r.yd, B.yards[0], B.yards[1]),
+      ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot')) return toast('Add at least one target to shoot.');
+    if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner or swinger needs a steel target to release it.');
     const stage = { name, par, rows };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);
     all.push(stage);
