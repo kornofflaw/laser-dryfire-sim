@@ -10,13 +10,14 @@ import { load, save } from './storage.js';
 
 const TYPES = {
   paper: 'Paper (USPSA)', pop: 'Paper: pop-up', turn: 'Paper: drop turner', swing: 'Paper: swinger',
+  bob: 'Paper: bobber', run: 'Paper: mover (runs to x...)',
   noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
   plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
   position: 'You run to here (next position)',
 };
 const STEEL = ['popper', 'mini', 'plate'];
 const PROPS = ['wall', 'barrel', 'clamshell'];
-const ACTIVATED = ['pop', 'turn', 'swing', 'clamshell']; // released by a steel (row.by)
+const ACTIVATED = ['pop', 'turn', 'swing', 'bob', 'run', 'clamshell']; // released by a steel (row.by); a mover runs to row.to
 // A 'position' row: you run there; the targets listed after it are shot
 // from there (the first position is the start, x 0 at the firing line).
 
@@ -33,9 +34,9 @@ export function stageCourse(s) {
     if (r.type === 'position' && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd }; // before any target: where you start
     else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
-    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}) });
+    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}) });
   }
-  const act = items.filter(i => i.pop || i.turn || i.swing).length;
+  const act = items.filter(i => i.pop || i.turn || i.swing || i.bob || i.run).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
   return {
     name: s.name, category: 'My Stages', type: 'stage', layout: 'range3d-stage', parTime: s.par, custom: true,
@@ -56,8 +57,8 @@ export function stageRows(course) {
     const P = st.positions?.[k];
     if (k || (P && (P.x || P.yd))) rows.push({ type: 'position', x: P.x || 0, yd: P.yd || 0 });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
-      const act = ['pop', 'turn', 'swing'].find(a => it[a]);
-      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd });
+      const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
+      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by, ...(act === 'run' ? { to: it.run.to } : {}) } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd });
     }
   }
   return { name: `${course.name} (my copy)`, par: course.parTime, rows, start: st.start };
@@ -84,7 +85,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}</td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -132,9 +133,10 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const par = Math.max(1, Number($('#b-par').value) || B.par);
     const ids = steelIds(rows);
     rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: r.type === 'position' ? clamp(r.yd, 0, B.maxRun) : clamp(r.yd, B.yards[0], B.yards[1]),
-      ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}) }));
+      ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}),
+      ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'position')) return toast('Add at least one target to shoot.');
-    if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger or clamshell needs a steel target to release it.');
+    if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);
     all.push(stage);
