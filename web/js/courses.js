@@ -118,6 +118,8 @@ const FLIP = [
 // (its activator); it waits held to one side, behind cover.
 // turn: { by: 'S1', show? } makes a paper a drop turner: edge-on until that
 // steel falls, then it faces you for `show` s and turns away (disappearing).
+// run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
+// falls it runs across to x = to (m) at speed m/s, usually wall to wall.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
 // (port = an opening to shoot through, y = its centre height, m) and
 // { type: 'barrel', x, yd }. They stop rounds.
@@ -185,6 +187,20 @@ const STAGES = [
         { type: 'paper', x: 0.3, yd: 8, turn: { by: 'S1' } },
         { type: 'paper', x: 2.4, yd: 7 },
         { type: 'popper', x: -0.9, yd: 11 },
+      ],
+    } },
+  { name: 'Activated Mover', category: 'Stages', parTime: 9.0, maxShots: 14,
+    desc: 'A paper each side, then the popper: it sends a target running across from behind the left wall to behind the right one. Lead it and get two hits. Misses on the mover aren\'t penalised once it has run.',
+    stage: {
+      items: [
+        { type: 'paper', x: -4.0, yd: 7 },
+        { type: 'popper', x: 0, yd: 12 },
+        { type: 'paper', x: -2.6, yd: 9, run: { by: 'S1', to: 2.6 } },
+        { type: 'paper', x: 4.0, yd: 7 },
+      ],
+      props: [
+        { type: 'wall', x: -2.6, yd: 8.3, w: 1.22, h: 1.83 },
+        { type: 'wall', x: 2.6, yd: 8.3, w: 1.22, h: 1.83 },
       ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,

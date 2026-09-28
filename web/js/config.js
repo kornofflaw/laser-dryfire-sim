@@ -508,6 +508,9 @@ export const CONFIG = {
     // activated). box = the turner's steel housing, w x h x d m. Turned more
     // than ~75 degrees from you (face . line of fire < edge) it can't be hit.
     turner: { time: 0.3, show: 1.0, box: [0.26, 0.22, 0.26], edge: 0.26 },
+    // Activated mover (stage paper with run: { by, to }): its stand rides a
+    // trolley on a timber rail (h x d m), up to `speed` m/s after `accel` s.
+    trolley: { speed: 1.8, accel: 0.4, rail: [0.06, 0.1] },
     // Activators (a popper for a swinger or turner) release it by a cable as
     // they fall: this many seconds after the hit.
     activateDelay: 0.3,

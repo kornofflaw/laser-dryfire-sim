@@ -592,3 +592,8 @@ he reports a problem.
   like real cardboard - you judge hits by the sights and walking the
   targets). Also on the Controller. The RO commands label now mentions the
   closing commands.
+- Activated mover: a paper whose stand rides a trolley on a timber rail,
+  parked behind a wall until its popper falls; then it runs across (1.8
+  m/s, speeding up over 0.4 s) and stops behind the other wall. Scored as a
+  disappearing target, like the drop turner. New stage "Activated Mover"
+  (CONFIG.range3d.trolley; courses.js run: { by, to }).

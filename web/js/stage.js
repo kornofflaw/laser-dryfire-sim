@@ -14,15 +14,22 @@
 // Target ids come from stageTargets() (courses.js): P1.. paper, NS1..
 // no-shoots, S1.. steel; range3d.js gives each hit the same id.
 //
-// Disappearing targets (a drop turner: paper with turn: { by }): once its
-// activator steel is down it shows for a moment and turns away. Its missing
+// Disappearing targets (a drop turner: paper with turn: { by }, or an
+// activated mover: run: { by, to }): once its activator steel is down it
+// shows for a moment and turns away (or runs behind cover). Its missing
 // hits aren't penalised if it was activated (USPSA); if its activator was
 // never hit, they're misses as usual. The run counts it as engaged once it
 // has turned away.
 
 import { CONFIG } from './config.js';
 
-const T = () => CONFIG.range3d.turner;
+const R = () => CONFIG.range3d;
+// How long a disappearing target can be seen once released (s).
+function showWindow(it) {
+  if (it.turn) return 2 * R().turner.time + (it.turn.show ?? R().turner.show);
+  const speed = it.run.speed ?? R().trolley.speed;
+  return Math.abs(it.run.to - it.x) / speed + R().trolley.accel / 2;
+}
 import { DrillRunner, State, isHit, f2 } from './run.js';
 import { stageTargets } from './courses.js';
 import { startBeep, parBeep } from './audio.js';
@@ -33,12 +40,12 @@ export class StageRunner extends DrillRunner {
     const items = stageTargets(this.course.stage);
     this.papers = items.filter(i => i.type === 'paper').map(i => i.id);
     this.steel = items.filter(i => i.steel).map(i => i.id);
-    this.vanish = items.filter(i => i.turn).map(i => ({ id: i.id, by: i.turn.by, show: i.turn.show ?? T().show }));
+    this.vanish = items.filter(i => i.turn || i.run).map(i => ({ id: i.id, by: (i.turn || i.run).by, window: showWindow(i) }));
   }
 
   // A disappearing paper: was it activated, and has it turned away (ms)?
   activated(v) { return this.downAt[v.by] != null; }
-  gone(v, nowMs) { return this.activated(v) && nowMs - this.downAt[v.by] >= (CONFIG.range3d.activateDelay + 2 * T().time + v.show) * 1000; }
+  gone(v, nowMs) { return this.activated(v) && nowMs - this.downAt[v.by] >= (R().activateDelay + v.window) * 1000; }
 
   clearRun() {
     super.clearRun();
