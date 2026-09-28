@@ -58,6 +58,12 @@ const DRILLS = [
     evenSplits: 0.08, desc: '6 body hits at an even pace: every split within 0.08 s of the others. Shoot to a rhythm, not a rush.' },
   { name: '1-Reload-1', reloadAfter: 1, category: 'Fundamentals', layout: 'single', requiredShots: 2, parTime: 3.0, minAHits: 2,
     desc: 'One A-zone hit, a slide-lock reload, another A-zone hit.' },
+  { name: 'Draw to First Shot', yd: 7, category: 'Fundamentals', layout: 'single', requiredShots: 1, parTime: 1.5, minAHits: 1,
+    desc: 'From the holster, hands relaxed at your sides: one A-zone hit. 1.5 s is a good goal; the best draw in under 1.0.' },
+  { name: 'Strong Hand Only', yd: 5, category: 'Fundamentals', layout: 'single', requiredShots: 4, parTime: 4.0, minAHits: 3,
+    desc: 'Start with the gun in your strong hand at low ready. 4 rounds strong hand only, at least 3 in the A zone.' },
+  { name: 'Weak Hand Only', yd: 5, category: 'Fundamentals', layout: 'single', requiredShots: 4, parTime: 5.0, minAHits: 3,
+    desc: 'Start with the gun on the table (or in your weak hand at low ready). 4 rounds weak hand only, at least 3 in the A zone.' },
 
   // Transitions
   { name: 'Transitions 1-1-1', category: 'Transitions', layout: 'bay', requiredShots: 3, parTime: 2.0,
