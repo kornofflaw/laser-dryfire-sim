@@ -59,6 +59,7 @@ const settings = Object.assign({
   volAmb: 1,          // background sound volume (Setup slider)
   roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
   paperDing: true,    // a ding on paper hits (real cardboard is silent)
+  autoRepeat: 0,      // shot timer REP mode: next drill / stage run starts this many s after the last (0 = off)
   earPro: 'none',     // hearing protection you hear through: none | electronic | passive
   paste: true,        // 3D range: paste holes between runs
   powerFactor: 'minor', // USPSA scoring of C and D hits (CONFIG.powerFactor)
@@ -253,11 +254,18 @@ function reviewZero(r) {
   }
 }
 
+let repeatAt = null; // repeat mode: when the next run starts (performance.now ms)
 function runDone(result) {
   log.add(result, lastInput);
   const [zero, label] = reviewZero(active());
   review.finishRun(result, zero, label);
   const walk = isRange3D(range.layout) && views3d[range.layout]?.inspectable?.().length;
+  // Repeat mode: the next run starts by itself (any key stops it).
+  if (settings.autoRepeat > 0 && ['drill', 'stage', 'strings', 'classifier'].includes(course().type)) {
+    repeatAt = performance.now() + settings.autoRepeat * 1000;
+    setTimeout(() => { if (repeatAt) toast(`Next run in ${settings.autoRepeat} s - any key stops repeat`); }, 1600);
+    return;
+  }
   setTimeout(() => { if (!review.isOpen) toast(walk ? 'Press V to review your shots, I to walk up to the targets' : 'Press V to review your shots'); }, 900);
 }
 
@@ -440,6 +448,10 @@ function frame(now) {
   lastFrame = now;
 
   active().update(now);
+  if (repeatAt && now >= repeatAt) {
+    repeatAt = null;
+    if (!active().busy && !review.isOpen && !range.view3d?.walking) actions.start();
+  }
   // Between Steel Challenge strings the RO resets the steel.
   if (active().wantsReset) { active().wantsReset = false; range.reset(); }
   // A stage with shooting positions: run to the next one.
@@ -554,6 +566,7 @@ const rangeTime = () => course().time || settings.rangeTime;
 // Pick a course: set its runner and put up its targets.
 function selectCourse(i, announce = true) {
   if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  repeatAt = null;
   courseIndex = (i + COURSES.length) % COURSES.length;
   const c = course();
   active().setCourse(withUpTime(c));
@@ -661,6 +674,7 @@ function closeHelp() {
 
 window.addEventListener('keydown', e => {
   unlockAudio();
+  if (repeatAt && e.key !== ' ') { repeatAt = null; toast('Repeat stopped.'); }
   if (calibration.active) {
     if (calibration.handleKey(e)) e.preventDefault();
     return;
@@ -984,6 +998,7 @@ $('#test-glass').onclick = () => glassBreak();
 $('#test-distant').onclick = () => distantShot();
 $('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = e.target.checked; persist(); };
 $('#opt-ding').onchange = e => { settings.paperDing = e.target.checked; persist(); };
+$('#opt-repeat').onchange = e => { settings.autoRepeat = Number(e.target.value); repeatAt = null; persist(); };
 $('#opt-earpro').onchange = e => {
   settings.earPro = e.target.value;
   persist();
@@ -993,6 +1008,7 @@ $('#opt-paste').onchange = e => { settings.paste = CONFIG.range3d.paste.on = e.t
 function refreshSound() {
   $('#opt-ro').checked = settings.roCommands;
   $('#opt-ding').checked = settings.paperDing;
+  $('#opt-repeat').value = String(settings.autoRepeat);
   $('#opt-earpro').value = settings.earPro;
   $('#opt-paste').checked = settings.paste;
   const c = soundChoices();

@@ -259,11 +259,11 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-1. Virginia Count stages: exact round count, each extra shot a procedural penalty (-10).
-2. Classifier-style multi-string stages (e.g. freestyle, strong hand only, weak hand only strings), one hit factor over all strings.
-3. Low-light range: dusk / night on the 3D range with floodlights on the targets.
+1. Shot timer repetitive mode: the next run starts by itself a set time after the last (reps without touching anything).
+2. Wet cardboard in the rain (darker, rain spots), and a recorded outdoor wind for Windy.
+3. More stages combining positions, activators and Virginia Count (a small "match" of 3-4 stages with a total).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: dueling tree, bobber, Steel Challenge style courses, recorded falling-steel clunks, and everything listed in the changelog below.)
+(Done: Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -715,3 +715,7 @@ he reports a problem.
   2-10 yd), holes drawn on the sheet, the dot to shoot ringed in blue,
   hits off the sheet are misses; I walks up to check the holes. Same
   runner and scoring as before. CONFIG.range3d.dotSheet.
+- Shot timer repeat mode (Setup -> Sound -> Repeat, like a timer's REP
+  mode): after a drill or stage the next run starts by itself 5, 8 or 12 s
+  later (RO commands, random delay, beep) for reps without touching
+  anything; any key stops it. Also on the Controller.

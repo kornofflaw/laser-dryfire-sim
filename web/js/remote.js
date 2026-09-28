@@ -36,6 +36,7 @@ export const SETUP_CONTROLS = [
   { id: 'vol-amb', kind: 'range', label: 'Background volume', out: 'vol-amb-val' },
   { id: 'opt-ro', kind: 'check', label: 'Range officer commands' },
   { id: 'opt-ding', kind: 'check', label: 'Ding on paper hits' },
+  { id: 'opt-repeat', kind: 'select', label: 'Repeat' },
   { id: 'opt-earpro', kind: 'select', label: 'Hearing protection' },
   { section: 'Sound choices (compare)' },
   { id: 'snd-gun', kind: 'select', label: 'Gunshot' },
