@@ -500,7 +500,9 @@ export const CONFIG = {
       // floodlight (candela, from pos aimed at aim, cone angle rad, soft
       // edge penumbra) behind and above you lights the bay.
       night: { hdr: null, sunDir: [-0.85, 0.75, 0.35], sun: 0, sunColor: '#9fb3d6', env: 0.035, bg: 0.012, exposure: 1.0, haze: '#07090d',
-        flood: { intensity: 260, color: '#fff2dc', pos: [1.5, 7, 3], aim: [0, 0.8, -12], angle: 0.5, penumbra: 0.6 } },
+        flood: { intensity: 260, color: '#fff2dc', pos: [1.5, 7, 3], aim: [0, 0.8, -12], angle: 0.5, penumbra: 0.6 },
+        // Your muzzle flash: the sky light jumps by `flash` and dies away (flashTime s).
+        flash: 0.4, flashTime: 0.03 },
     },
     cardboardRelief: 0.25,  // strength of the corrugation / fibre normal map
     hazeColor: '#c9d3dc',

@@ -1126,6 +1126,13 @@ export class Range3DView {
     if (this.bobbers?.length) this.updateBobbers(now);
     if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
+    if (this.flashAt != null && this.time !== 'night') this.flashAt = null;
+    if (this.flashAt != null) {
+      // Night: the muzzle flash lights everything for a moment.
+      const F = R().times.night, k = Math.exp(-(now - this.flashAt) / F.flashTime);
+      this.scene.environmentIntensity = F.env + F.flash * k;
+      if (k < 0.01) { this.flashAt = null; this.scene.environmentIntensity = F.env; }
+    }
     if (this.kind === 'popup' && this.bank) {
       // Follow the PopupBank: a = 0 folded down, 1 upright.
       for (const c of this.popups || []) {
@@ -1214,7 +1221,9 @@ export class Range3DView {
   }
 
   onShot(score) {
-    if (!this.ready || !score.point) return;
+    if (!this.ready) return;
+    if (this.time === 'night') this.flashAt = performance.now() / 1000; // your muzzle flash lights the bay
+    if (!score.point) return;
     const now = performance.now() / 1000;
     if (score.tile != null) {
       // Flip-grid plate: the board draws the lead splash; a spray of lead.

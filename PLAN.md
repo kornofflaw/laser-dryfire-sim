@@ -692,3 +692,6 @@ he reports a problem.
   m/s, the timer running; no shots count on the way), and the next run
   starts back at the first. The stage panel shows "Position 2 of 2". New
   stage "Two Positions" (CONFIG.range3d.move).
+- Night range: each shot's muzzle flash lights the bay for a moment (the
+  sky light jumps and dies away in ~0.1 s). CONFIG.range3d.times.night
+  flash / flashTime.
