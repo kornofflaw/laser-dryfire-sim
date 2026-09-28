@@ -17,7 +17,7 @@ import { ScenarioRunner } from './scenario.js';
 import { PopupRunner } from './popdrill.js';
 import { KnifeRunner } from './knife.js';
 import { FlipRunner } from './flipdrill.js';
-import { StageRunner, StringsRunner } from './stage.js';
+import { StageRunner, StringsRunner, ClassifierRunner } from './stage.js';
 import { COURSES, CATEGORIES } from './courses.js';
 import { ShotReview } from './review.js';
 import { RunLog } from './log.js';
@@ -92,6 +92,7 @@ const runners = {
   flip: new FlipRunner(range),
   stage: new StageRunner(),
   strings: new StringsRunner(),
+  classifier: new ClassifierRunner(),
 };
 // 3D courses load three.js and their assets on demand. Each 3D layout has
 // its own view (canvas + scene); range.view3d is the one for the current layout.
@@ -238,7 +239,7 @@ const review = new ShotReview({ canvases: () => [views3d[range.layout]?.canvas, 
 // What shot times count from, per course type.
 function reviewZero(r) {
   switch (course().type) {
-    case 'drill': case 'stage': case 'strings': return [r.runStart || null, 'beep'];
+    case 'drill': case 'stage': case 'strings': case 'classifier': return [r.runStart || null, 'beep'];
     case 'dots': return [r.startT, 'start'];
     case 'scenario': return [r.sceneStart, 'scene appearing'];
     case 'popup': return [r.startT, 'start'];
@@ -437,6 +438,8 @@ function frame(now) {
   active().update(now);
   // Between Steel Challenge strings the RO resets the steel.
   if (active().wantsReset) { active().wantsReset = false; range.reset(); }
+  // Between classifier strings only the steel is reset (paper is scored at the end).
+  if (active().wantsSteelReset) { active().wantsSteelReset = false; views3d[range.layout]?.steel?.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the
   // targets stay as shot (holes, steel down) until the next one, to be
   // looked at or walked up to.
@@ -558,7 +561,7 @@ const actions = {
     unlockAudio();
     const r = active();
     if (r.busy) return;
-    if (['drill', 'stage', 'strings'].includes(course().type)) showCourseLayout(course());
+    if (['drill', 'stage', 'strings', 'classifier'].includes(course().type)) showCourseLayout(course());
     // Not while a 3D range/scene is still loading: its targets or people
     // wouldn't be there yet (every shot a miss, or a scenario played unseen).
     // The knife and office scenarios have their own loading runner.

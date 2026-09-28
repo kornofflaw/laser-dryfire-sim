@@ -124,6 +124,9 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// strings: [{ name, say? }, ...] (in stage, course type 'classifier'): the
+// stage is shot once per string, steel reset between them, paper scored at
+// the end.
 // scoring: 'virginia' (in stage) = Virginia Count: exactly the round count,
 // each extra shot a procedural (CONFIG.stage.procedural).
 // Steel plates may set in (diameter in inches, default 8) or rect: [w, h]
@@ -297,6 +300,17 @@ const STAGES = [
         { type: 'paper', x: 0, yd: 10 },
         { type: 'paper', x: 1.8, yd: 10 },
         { type: 'popper', x: 3.4, yd: 12 },
+      ],
+    } },
+  { name: 'Classifier style: Three Strings', category: 'Stages', type: 'classifier', parTime: 6.0, maxShots: 40,
+    desc: 'Three paper at 7 yards and a popper, shot three times: freestyle, strong hand only, weak hand only (the RO calls each string). 2 per paper and the popper each string; the paper is scored at the end (best 6 per paper), one hit factor over the three times added up.',
+    stage: {
+      strings: [{ name: 'Freestyle' }, { name: 'Strong hand only' }, { name: 'Weak hand only' }],
+      items: [
+        { type: 'paper', x: -1.6, yd: 7 },
+        { type: 'paper', x: 0, yd: 7 },
+        { type: 'paper', x: 1.6, yd: 7 },
+        { type: 'popper', x: 3.0, yd: 10 },
       ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,

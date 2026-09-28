@@ -674,3 +674,10 @@ he reports a problem.
   on the score sheet. The stage panel shows "Virginia Count: exactly N
   rounds" and "Rounds: n / N" during the run. New stage "Virginia Count:
   Three at Ten" (CONFIG.stage.procedural).
+- Classifier-style stages with several strings (course type 'classifier',
+  stage.strings): the RO names each string ("String 2: Strong hand only.
+  Are you ready? Standby."), the steel is reset between strings, the paper
+  is scored once at the end (best 2 x strings hits per paper), steel once
+  per string; stage time = the strings added up, one hit factor. The shot
+  timer lists each string's time. New stage "Classifier style: Three
+  Strings" (freestyle / strong hand only / weak hand only).

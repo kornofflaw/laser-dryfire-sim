@@ -108,17 +108,29 @@ export class StageRunner extends DrillRunner {
       points += pts;
       if (!free) mikes += miss;
     }
-    for (const id of this.steel) {
-      const down = this.down.has(id);
-      sheet.push({ id, marks: [down ? 'down' : 'M'], points: down ? P.Steel : S.missPenalty });
-    }
-    points += this.down.size * P.Steel;
-    mikes += this.steel.length - this.down.size;
+    const st = this.steelScore();
+    sheet.push(...st.sheet);
+    points += st.points;
+    mikes += st.mikes;
     // Virginia Count: exactly the round count; every extra shot is a procedural.
     const procedurals = this.virginia ? Math.max(0, this.shots - this.roundCount) : 0;
     points += mikes * S.missPenalty + this.nsHits * P.NS + procedurals * S.procedural;
     return { points: Math.max(0, points), mikes, sheet, counted, procedurals };
   }
+
+  // The steel's rows on the score sheet, its points and misses.
+  steelScore() {
+    const S = CONFIG.stage, P = CONFIG.points, sheet = [];
+    for (const id of this.steel) {
+      const down = this.down.has(id);
+      sheet.push({ id, marks: [down ? 'down' : 'M'], points: down ? P.Steel : S.missPenalty });
+    }
+    return { sheet, points: this.down.size * P.Steel, mikes: this.steel.length - this.down.size };
+  }
+  // Stage time (beep to last shot) and whether it made par.
+  stageTime() { const s = this.shotTimes; return s.length ? s[s.length - 1] : 0; }
+  withinPar(time) { return time <= this.course.parTime; }
+  extraResult() { return {}; }
 
   get virginia() { return this.course.stage.scoring === 'virginia'; }
   // Rounds the stage needs: the hits per paper plus one per steel.
@@ -127,9 +139,9 @@ export class StageRunner extends DrillRunner {
   finish(complete) {
     const d = this.course;
     const s = this.shotTimes;
-    const time = s.length ? s[s.length - 1] : 0;
+    const time = this.stageTime();
     const { points, mikes, sheet, counted, procedurals } = this.tally();
-    const madePar = complete && s.length > 0 && time <= d.parTime;
+    const madePar = complete && s.length > 0 && this.withinPar(time);
     const problems = [];
     if (procedurals) problems.push(`${procedurals} extra shot${procedurals > 1 ? 's' : ''}: procedural${procedurals > 1 ? 's' : ''} (${procedurals * CONFIG.stage.procedural})`);
     if (mikes) problems.push(`${mikes} miss${mikes > 1 ? 'es' : ''} (-${mikes * -CONFIG.stage.missPenalty})`);
@@ -156,6 +168,7 @@ export class StageRunner extends DrillRunner {
       passed: complete && madePar && mikes === 0 && this.nsHits === 0 && !procedurals,
       early: this.early,
       notes: problems.join('; '),
+      ...this.extraResult(),
     };
     this.state = State.Done;
     this.closingCalls();
@@ -325,5 +338,128 @@ export class StringsRunner extends StageRunner {
       return head + lines.join('\n') + '\n' + footer;
     }
     return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${this.plates.length} plates + stop plate · ${this.nStrings} strings, slowest thrown out · goal ${d.parTime.toFixed(1)}s\n` + footer;
+  }
+}
+
+// ---- Classifier style: several strings on one stage (course type 'classifier') ----
+// stage.strings: [{ name, say? }, ...] - e.g. freestyle, strong hand only,
+// weak hand only. Each string: the RO calls it, "Are you ready? Standby",
+// beep; it ends when every paper has perPaper hits from this string and the
+// steel is down (or par + incompleteGrace passes). The paper is scored once
+// at the end (holes from all strings count: the best perPaper x strings per
+// paper), each steel once per string (it's reset between strings). Stage
+// time = the strings' times added up; hit factor = points / that time.
+export class ClassifierRunner extends StageRunner {
+  setCourse(course) {
+    super.setCourse(course);
+    this.defs = this.course.stage.strings || [{ name: 'Freestyle' }];
+  }
+
+  get perPaper() { return (this.course.stage.perPaper ?? CONFIG.stage.perPaper) * (this.defs?.length || 1); }
+  get perString() { return this.course.stage.perPaper ?? CONFIG.stage.perPaper; }
+  shotZero() { return this.runStart; }
+
+  clearRun() {
+    super.clearRun();
+    this.stringTimes = [];
+    this.steelDown = []; // per finished string: how many steel went down
+    this.cur = {};       // paper id -> hits this string
+  }
+
+  start(nowMs) {
+    if (this.busy) return;
+    super.start(nowMs);
+    // The RO names the first string before "Make ready".
+    if (!CONFIG.timer.commands.on) return;
+    const gap = 2400;
+    for (const c of this.calls) c.at += gap;
+    this.standbyAt += gap;
+    this.beepAt += gap;
+    this.calls.unshift({ at: nowMs, text: this.stringCall(0) });
+  }
+
+  timerHTML(now) {
+    const head = `<b class="title">SHOT TIMER</b>`, k = this.stringTimes.length, N = this.defs.length;
+    if (this.state === State.Delay) return head + `String ${k + 1} of ${N}: ${this.defs[k].name}\n` + super.timerHTML(now).slice(head.length);
+    if (this.state === State.Running) return head + `String ${k + 1} of ${N}: ${this.defs[k].name}\n` + super.timerHTML(now).slice(head.length);
+    if (this.state !== State.Done || !this.result?.strings) return super.timerHTML(now);
+    const r = this.result;
+    const rows = r.strings.map((st, i) => `<tr${st.complete ? '' : ' class="bad"'}><td>${i + 1}</td><td>${st.name}</td><td>${f2(st.time)}</td></tr>`).join('');
+    return head + `<span class="bigtime">${f2(r.time)}</span>total of ${r.strings.length} strings · par ${r.parTime.toFixed(2)} each\n` +
+      `<table class="shots"><tr><th>#</th><th>string</th><th>time</th></tr>${rows}</table>` +
+      this.sessionLine() + `<span class="muted small">[Space] run again</span>`;
+  }
+
+  stringCall(k) { const d = this.defs[k]; return d.say || `String ${k + 1}: ${d.name}.`; }
+
+  update(nowMs) {
+    this.speakCalls(nowMs);
+    if (this.state === State.Delay && this.resetAt != null && nowMs >= this.resetAt) { this.resetAt = null; this.wantsSteelReset = true; }
+    if (this.state === State.Delay && nowMs >= this.beepAt) {
+      startBeep();
+      this.runStart = nowMs;
+      this.stringShots = 0;
+      this.parPlayed = false;
+      this.state = State.Running;
+    }
+    if (this.state !== State.Running) return;
+    const e = this.elapsed(nowMs);
+    if (!this.parPlayed && e >= this.course.parTime) { this.parPlayed = true; parBeep(); }
+    if (e >= this.course.parTime + CONFIG.timer.incompleteGrace) this.endString(this.lastShotAt ?? nowMs, false);
+  }
+
+  onShot(score) {
+    DrillRunner.prototype.onShot.call(this, score); // timing, counts, early shots
+    if (this.state !== State.Running) return;
+    this.lastShotAt = score.t;
+    const id = score.targetId;
+    if (score.zone === 'NS') this.nsHits++;
+    else if (score.zone === 'Steel' && id) this.down.add(id);
+    else if (isHit(score.zone) && this.papers.includes(id)) {
+      (this.paperHits[id] ??= []).push({ zone: score.zone, points: score.points });
+      this.cur[id] = (this.cur[id] || 0) + 1;
+    }
+    const done = this.steel.every(s => this.down.has(s)) && this.papers.every(p => (this.cur[p] || 0) >= this.perString);
+    if (done) this.endString(score.t, true);
+  }
+
+  endString(tMs, complete) {
+    this.stringTimes.push({ time: Math.max(0, (tMs - this.runStart) / 1000), complete });
+    this.steelDown.push(this.down.size);
+    this.lastShotAt = null;
+    if (this.stringTimes.length >= this.defs.length) return this.finish(this.stringTimes.every(s => s.complete));
+    // Next string: steel reset, the RO calls it, then "Are you ready? Standby".
+    const now = performance.now();
+    this.down = new Set();
+    this.cur = {};
+    this.resetAt = now + SC().resetAfter * 1000;
+    this.calls = [];
+    let t = this.resetAt + SC().readyAfter * 1000;
+    if (CONFIG.timer.commands.on) {
+      for (const [text, gap] of [[this.stringCall(this.stringTimes.length), 2.4], ...SC().say]) { this.calls.push({ at: t, text }); t += gap * 1000; }
+    } else t += 2000;
+    this.standbyAt = t;
+    this.beepAt = t + (CONFIG.timer.minDelay + Math.random() * (CONFIG.timer.maxDelay - CONFIG.timer.minDelay)) * 1000;
+    this.state = State.Delay;
+  }
+
+  // Steel once per string (it's reset between strings).
+  steelScore() {
+    const S = CONFIG.stage, P = CONFIG.points, n = this.steelDown.length, total = this.steel.length * n;
+    const down = this.steelDown.reduce((a, k) => a + k, 0);
+    const sheet = this.steelDown.map((k, i) => ({ id: `String ${i + 1} steel`, marks: [`${k}/${this.steel.length} down`], points: k * P.Steel + (this.steel.length - k) * S.missPenalty }));
+    return { sheet, points: down * P.Steel, mikes: total - down };
+  }
+
+  stageTime() { return this.stringTimes.reduce((a, s) => a + s.time, 0); }
+  withinPar() { return this.stringTimes.every(s => s.time <= this.course.parTime); }
+  extraResult() { return { type: 'classifier', strings: this.stringTimes.map((s, k) => ({ ...s, name: this.defs[k].name })) }; }
+
+  finish(complete) {
+    if (this.state === State.Running && this.stringTimes.length < this.defs.length) {
+      this.stringTimes.push({ time: this.elapsed(performance.now()), complete: false });
+      this.steelDown.push(this.down.size);
+    }
+    super.finish(complete && this.stringTimes.length >= this.defs.length);
   }
 }

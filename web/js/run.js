@@ -109,7 +109,7 @@ export class DrillRunner extends Runner {
   sessionLine() {
     const runs = (DrillRunner.history?.[this.course.name] || []).filter(r => r.complete);
     if (runs.length < 2) return '';
-    const stage = this.course.type === 'stage';
+    const stage = this.course.type === 'stage' || this.course.type === 'classifier'; // judged by hit factor
     const vals = runs.map(r => (stage ? r.hf : r.time));
     const best = stage ? Math.max(...vals) : Math.min(...vals), avg = vals.reduce((a, b) => a + b, 0) / vals.length;
     const passed = runs.filter(r => r.passed).length;
