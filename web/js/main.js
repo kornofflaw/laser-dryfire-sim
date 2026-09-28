@@ -366,14 +366,16 @@ $('#drill').addEventListener('mouseover', e => {
   range.view3d?.flashTag?.(id && /^(P|S|NS)\d+$/.test(id) ? id : null);
 });
 // ...and clicking one walks you up to that paper target (like I).
-$('#drill').addEventListener('click', e => {
-  const id = e.target.closest?.('.sheet tr')?.cells?.[0]?.textContent, v = range.view3d;
+// (the Controller's copy of the sheet sends the same: 'inspectTarget')
+function inspectTarget(id) {
+  const v = range.view3d;
   if (!id || !v?.inspectable || active().busy) return;
   const i = v.inspectable().findIndex(t => t.card?.id === id);
   if (i < 0) return toast(`${id}: steel - nothing to walk up to.`);
   v.inspect(i);
   active().stopCalls?.();
-});
+}
+$('#drill').addEventListener('click', e => inspectTarget(e.target.closest?.('.sheet tr')?.cells?.[0]?.textContent));
 $('#drill').addEventListener('mouseout', e => { if (!e.relatedTarget?.closest?.('.sheet')) range.view3d?.flashTag?.(null); });
 $('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
@@ -1503,6 +1505,8 @@ if (remote) {
       actions[m.name]();
     } else if (m.t === 'key') {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: m.key, shiftKey: !!m.shiftKey }));
+    } else if (m.t === 'inspectTarget') {
+      inspectTarget(String(m.id || ''));
     } else if (m.t === 'cover') {
       active().setCover?.(!!m.on);
     } else if (m.t === 'course') {

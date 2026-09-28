@@ -13,6 +13,11 @@ import * as audio from './audio.js';
 const $ = s => document.querySelector(s);
 const ch = new BroadcastChannel(CHANNEL);
 const send = m => ch.postMessage(m);
+// Stage score sheet (in the course panel): tap a row to walk up to that target on the Display.
+document.addEventListener('click', e => {
+  const id = e.target.closest?.('#drill .sheet tr')?.cells?.[0]?.textContent;
+  if (id && /^(P|S|NS)\d+$/.test(id)) send({ t: 'inspectTarget', id });
+});
 
 let state = null;
 let lastStateAt = 0;
