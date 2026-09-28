@@ -57,6 +57,7 @@ export class StageRunner extends DrillRunner {
     this.down = new Set();      // steel ids down
     this.downAt = {};           // steel id -> when it went down (ms)
     this.station = 0;           // shooting position (stages with positions)
+    this.stationTimes = [];     // when each position's array was finished (s from the beep)
     this.nsHits = 0;
   }
 
@@ -82,7 +83,10 @@ export class StageRunner extends DrillRunner {
     else if (score.zone === 'Steel' && id) { this.down.add(id); this.downAt[id] ??= score.t; }
     else if (isHit(score.zone) && this.papers.includes(id)) (this.paperHits[id] ??= []).push({ zone: score.zone, points: score.points });
     // Array done at this position: run to the next one (the view moves).
-    if (this.positions && this.station < this.positions.length - 1 && this.arrayDone(this.station)) this.wantsMove = ++this.station;
+    if (this.positions && this.station < this.positions.length - 1 && this.arrayDone(this.station)) {
+      this.stationTimes.push(this.elapsed(score.t));
+      this.wantsMove = ++this.station;
+    }
     if (this.engaged) this.finish(true);
     else if (this.course.maxShots && this.shots >= this.course.maxShots) this.finish(false);
   }
@@ -178,6 +182,7 @@ export class StageRunner extends DrillRunner {
       passed: complete && madePar && mikes === 0 && this.nsHits === 0 && !procedurals,
       early: this.early,
       notes: problems.join('; '),
+      ...(this.positions ? { stations: [...this.stationTimes, time] } : {}),
       ...this.extraResult(),
     };
     this.state = State.Done;
@@ -209,6 +214,8 @@ export class StageRunner extends DrillRunner {
         `A ${r.counts.A}  C ${r.counts.C}  D ${r.counts.D}  M ${r.counts.Miss}  NS ${r.counts.NS}`,
         `Points <b>${r.points}</b> <span class="muted small">${CONFIG.points.C === CONFIG.powerFactor.major.C ? 'major' : 'minor'}</span> · time <b>${f2(r.time)}</b> · hit factor <b>${f2(r.hitFactor)}</b>`,
         r.madePar ? '<span class="go">made par</span>' : '<span class="bad">over par</span>'];
+      // Stages with positions: when each array was done, and the time spent at / getting to each.
+      if (r.stations?.length > 1) lines.push(`<span class="small">Positions: ${r.stations.map((t, i) => `${i + 1} ${f2(t)}s (+${f2(t - (r.stations[i - 1] || 0))})`).join(' · ')}</span>`);
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;
     }
