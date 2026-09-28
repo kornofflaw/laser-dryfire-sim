@@ -461,7 +461,10 @@ export const CONFIG = {
     holeRadiusCm: 0.45,     // 9 mm bullet hole
     // Between runs the holes are pasted over (Setup): pasters sizeCm square
     // in these tans; a fresh target once `limit` pasters are on it.
-    paste: { on: true, sizeCm: 1.9, limit: 60, colors: ['#a97d48', '#a2773f', '#b0844f'] },
+    // Stage targets start as found at a match: `earlier` [min, max] pasters
+    // from the shooters before you (x earlierNoShoot on a no-shoot), spread
+    // spreadCm [x, y] around a point spreadCm[2] cm above the centre.
+    paste: { on: true, sizeCm: 1.9, limit: 60, colors: ['#a97d48', '#a2773f', '#b0844f'], earlier: [8, 34], earlierNoShoot: 0.15, spreadCm: [7, 9, 3] },
     // A hit rocks the target on its stand (a damped spring, radians). A hit
     // off to one side twists it more (twist x offset from centre, -1..1); a
     // high hit pushes the top back more (push + tilt x height, -1..1). A round

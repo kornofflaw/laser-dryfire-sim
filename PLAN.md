@@ -597,3 +597,7 @@ he reports a problem.
   m/s, speeding up over 0.4 s) and stops behind the other wall. Scored as a
   disappearing target, like the drop turner. New stage "Activated Mover"
   (CONFIG.range3d.trolley; courses.js run: { by, to }).
+- Stage targets are set up as found at a match: already pasted where the
+  shooters before you hit them (8-34 pasters, mostly around the A zone, a
+  few on no-shoots, none on hard cover), so your fresh holes stand out
+  among old pasters (CONFIG.range3d.paste.earlier / spreadCm).

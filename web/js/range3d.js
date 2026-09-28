@@ -501,18 +501,7 @@ export class Range3DView {
     c.jolt = null;
     if (!holes.length) return;
     if (P.on && (c.pasted || 0) + holes.length <= P.limit) {
-      const g = c.color.g, s = P.sizeCm * c.pxPerCm, white = c.meta.kind === 'noshoot';
-      for (const h of holes) {
-        g.save();
-        g.translate(h.x, h.y);
-        g.rotate((Math.random() - 0.5) * 0.5);
-        g.fillStyle = 'rgba(0,0,0,0.18)'; // the paster's edge casts a hair of shadow
-        g.fillRect(-s / 2 + 0.6, -s / 2 + 0.8, s, s);
-        g.fillStyle = white ? '#eeeeea' : P.colors[Math.floor(Math.random() * P.colors.length)];
-        g.fillRect(-s / 2, -s / 2, s, s);
-        g.restore();
-      }
-      c.pasted = (c.pasted || 0) + holes.length;
+      this.paste(c, holes);
     } else {
       c.color.reset();
       c.pasted = 0;
@@ -521,6 +510,39 @@ export class Range3DView {
     c.alpha.reset(); // pasted over or fresh: no through-holes
     c.colorTex.needsUpdate = true;
     c.alphaTex.needsUpdate = true;
+  }
+
+  // Paste over these hole positions (canvas px): tan pasters, white on a
+  // no-shoot, each at a slight angle with a hair of shadow at its edge.
+  paste(c, holes) {
+    const P = R().paste, g = c.color.g, s = P.sizeCm * c.pxPerCm, white = c.meta.kind === 'noshoot';
+    for (const h of holes) {
+      g.save();
+      g.translate(h.x, h.y);
+      g.rotate((Math.random() - 0.5) * 0.5);
+      g.fillStyle = 'rgba(0,0,0,0.18)';
+      g.fillRect(-s / 2 + 0.6, -s / 2 + 0.8, s, s);
+      g.fillStyle = white ? '#eeeeea' : P.colors[Math.floor(Math.random() * P.colors.length)];
+      g.fillRect(-s / 2, -s / 2, s, s);
+      g.restore();
+    }
+    c.pasted = (c.pasted || 0) + holes.length;
+    c.colorTex.needsUpdate = true;
+  }
+
+  // A stage target as it's found at a match: pasted over where the shooters
+  // before you hit it (mostly around the A zone; a few on a no-shoot).
+  earlierShooters(c) {
+    const P = R().paste, U = Ucfg(), k = c.pxPerCm, [lo, hi] = P.earlier;
+    let n = Math.round(lo + Math.random() * (hi - lo));
+    if (c.meta.kind === 'noshoot') n = Math.round(n * P.earlierNoShoot);
+    const holes = [];
+    for (let tries = 0; holes.length < n && tries < n * 20; tries++) {
+      const x = gauss() * P.spreadCm[0], y = P.spreadCm[2] + gauss() * P.spreadCm[1];
+      if (!classifyUspsa(x, y, 0) || inHardCover(c.meta.hard, { x, y })) continue; // off the cardboard, or not pasted
+      holes.push({ x: (x + U.width / 2) * k, y: (U.height / 2 - y) * k });
+    }
+    this.paste(c, holes);
   }
 
   // A cardboard target on stakes in a stand. opts: z (m), id, noShoot, dy
@@ -760,9 +782,11 @@ export class Range3DView {
     for (const it of stageTargets(def)) {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
-      this.targets.push(this.makeTarget(it.x, slot++, {
+      const t = this.makeTarget(it.x, slot++, {
         z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
-      }));
+      });
+      if (R().paste.on) this.earlierShooters(t.card);
+      this.targets.push(t);
     }
     if (steel.length) {
       this.steel = new StageSteel(steel, this.steelMats);
@@ -1649,6 +1673,8 @@ function strikeMark(scene, point, normal) {
 }
 
 // ---------------------------------------------------------------------------
+function gauss() { return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random()); }
+
 function smooth(x) { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); }
 
 function valueNoise(seed) {
