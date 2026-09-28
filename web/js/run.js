@@ -140,7 +140,11 @@ export class DrillRunner extends Runner {
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
 
     const d = this.course;
-    if (d.requiredShots && this.shots >= d.requiredShots) this.finish(true);
+    if (d.clearSteel) {
+      // Done when the steel is cleared (dueling tree: every paddle over).
+      if (score.clears) this.finish(true);
+      else if (d.maxShots && this.shots >= d.maxShots) this.finish(false);
+    } else if (d.requiredShots && this.shots >= d.requiredShots) this.finish(true);
     else if (d.requiredHits && this.hits >= d.requiredHits) this.finish(true);
     else if (d.requiredHits && d.maxShots && this.shots >= d.maxShots) this.finish(false);
   }
@@ -268,7 +272,7 @@ export class DrillRunner extends Runner {
     const footer = `<span class="muted small">[D] courses  ·  [Tab] next  ·  [Space] run</span>`;
     let goal = 'any number of rounds';
     if (d.requiredShots) goal = `${d.requiredShots} rounds`;
-    if (d.requiredHits) goal = `${d.requiredHits} hits${d.maxShots ? `, ${d.maxShots} rounds max` : ''}`;
+    if (d.requiredHits) goal = `${d.clearSteel ? `clear all ${d.requiredHits}` : `${d.requiredHits} hits`}${d.maxShots ? `, ${d.maxShots} rounds max` : ''}`;
 
     if (this.busy) {
       let counts = `Points: ${this.points}   A: ${this.counts.A}`;

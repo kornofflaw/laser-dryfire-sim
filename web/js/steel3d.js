@@ -180,6 +180,97 @@ export class Poppers extends FallingSet {
   }
 }
 
+// Dueling tree: square paddles on arms hinged to a post, stacked up it. Each
+// rests on a stop, leaning out to one side; a hit throws it over the top to
+// the other side. Solo, they all start on the left: clear the tree by
+// putting every one over to the right. A hit on one that's already over
+// swings it back (it doesn't count). CONFIG.range3d.steel.tree.
+export class DuelingTree {
+  constructor(mats) {
+    const T = S().tree;
+    this.name = 'tree';
+    this.group = new THREE.Group();
+    this.solids = [];
+    this.items = [];
+    this.clearedAt = null;
+    const frame = (w, h, d, x, y, z) => {
+      const m = box(w, h, d, mats.frame);
+      m.position.set(x, y, z);
+      m.userData.surface = 'steel-frame';
+      this.group.add(m);
+      this.solids.push(m);
+    };
+    frame(T.post, T.height, T.post, 0, T.height / 2, -0.05);        // the post
+    frame(0.7, 0.04, 0.08, 0, 0.02, -0.05);                          // base
+    frame(0.08, 0.04, 0.7, 0, 0.02, -0.05);
+    for (let k = 0; k < T.paddles; k++) {
+      const pivot = new THREE.Group();
+      // Lower paddles hinge a little further forward so they swing past the ones above.
+      pivot.position.set(0, T.height - T.top - k * T.gap, 0.01 + (T.paddles - 1 - k) * 0.028);
+      const arm = box(0.028, T.arm, 0.012, mats.frame);
+      arm.position.set(0, T.arm / 2, 0);
+      arm.userData.surface = 'steel-frame';
+      const plate = box(T.paddle, T.paddle, THICK, mats.paint);
+      plate.position.set(0, T.arm + T.paddle / 2 - 0.02, 0.012);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 12).rotateX(Math.PI / 2), mats.frame);
+      pivot.add(arm, plate, hub);
+      this.group.add(pivot);
+      this.solids.push(arm);
+      plate.userData.steel = this.items.length;
+      this.items.push({ pivot, mesh: plate, faceZ: THICK / 2, size: T.paddle, side: -1, from: -1, t0: null, marks: [], length: T.arm + T.paddle });
+    }
+    this.reset();
+    castShadows(this.group);
+  }
+
+  get standing() { return this.items.filter(t => t.side < 0).length; } // still on the left
+  get moving() { const now = performance.now() / 1000; return this.items.some(t => t.t0 != null && now - t.t0 < S().tree.swing * 2.5); }
+  hittables() { return this.items.map(t => t.mesh); }
+  // Already over on the right: a hit swings it back and doesn't count.
+  backHit(i) { return this.items[i]?.side > 0; }
+  // Would this hit clear the tree (the last one on the left going over)?
+  clears(i) { return this.items[i]?.side < 0 && this.standing === 1; }
+
+  hit(i, point, dir, nowSec) { this.swing(i, point, nowSec); }
+  nudge(i, point, nowSec) { this.swing(i, point, nowSec); }
+
+  swing(i, point, nowSec) {
+    const t = this.items[i];
+    if (!t) return;
+    t.marks.push(addSplash(t.mesh, point, t.faceZ));
+    t.from = t.pivot.rotation.z;
+    t.side = -t.side;
+    t.t0 = nowSec;
+    this.clearedAt = this.standing ? null : nowSec;
+  }
+
+  update(dt, now = performance.now() / 1000) {
+    const T = S().tree;
+    for (const t of this.items) {
+      if (t.t0 == null) continue;
+      const to = -t.side * T.rest, u = (now - t.t0) / T.swing;
+      if (u < 1) {
+        t.pivot.rotation.z = t.from + (to - t.from) * u * u * (3 - 2 * u);
+      } else {
+        // It hits the stop and bounces back a little.
+        const b = u - 1;
+        t.pivot.rotation.z = to + Math.sign(t.from - to) * T.bounce * Math.abs(Math.sin(b * 9)) * Math.exp(-b * 6);
+        if (b > 1.5) { t.pivot.rotation.z = to; t.t0 = null; }
+      }
+    }
+  }
+
+  reset() {
+    for (const t of this.items) {
+      Object.assign(t, { side: -1, t0: null });
+      t.pivot.rotation.z = S().tree.rest; // leaning out to the left
+      t.marks.forEach(m => m.removeFromParent());
+      t.marks = [];
+    }
+    this.clearedAt = null;
+  }
+}
+
 // Mixed steel for a stage (courses.js stage items with world x, z):
 // { type: 'popper' | 'mini' | 'plate', x, z, id, h? }. Item i's target id is its
 // stage id (S1, S2 ...), so the stage runner can tell them apart.

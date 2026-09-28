@@ -18,6 +18,8 @@
 //   requiredShots  run ends after this many rounds (0 = ends at the par beep)
 //   requiredHits   run ends after this many hits (pop-ups, movers, steel)
 //   maxShots       with requiredHits: out of ammo after this many rounds = fail
+//   clearSteel     with requiredHits: ends when the steel is cleared (a
+//                  dueling tree: every paddle over), not at a hit count
 //   parTime        seconds from the beep
 //   minAHits / minBodyHits / minHeadHits   pass criteria
 //   perTargetMin   every bay target needs at least this many hits
@@ -75,6 +77,8 @@ const DRILLS = [
     desc: 'Clear all 5 plates. It starts spinning after the first plate falls.' },
   { name: 'Plate Rack', category: 'Steel', layout: 'range3d-plates', requiredHits: 6, maxShots: 12, parTime: 6.0,
     desc: 'Six 8-inch plates on a rack at 10 yards (3D). Knock them all down.' },
+  { name: 'Dueling Tree', category: 'Steel', layout: 'range3d-tree', requiredHits: 6, clearSteel: true, maxShots: 14, parTime: 5.0,
+    desc: 'Six paddles on a tree at 10 yards (3D). Throw every one over to the right. Hit one that\'s already over and it swings back.' },
   { name: 'Poppers', category: 'Steel', layout: 'range3d-poppers', requiredHits: 4, maxShots: 8, parTime: 4.0,
     desc: 'Four full-size poppers (3D). Every one has to fall.' },
 ];

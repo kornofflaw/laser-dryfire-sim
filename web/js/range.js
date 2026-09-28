@@ -31,6 +31,7 @@ export const LAYOUTS = {
   'range3d-popup': '3D range: pop-ups',
   'range3d-star': '3D range: Texas Star',
   'range3d-plates': '3D range: plate rack',
+  'range3d-tree': '3D range: dueling tree',
   'range3d-poppers': '3D range: poppers',
   'range3d-movers': '3D range: movers',
   'range3d-grid': '3D range: flip grid',
@@ -43,6 +44,7 @@ export const RANGE3D_KIND = {
   'range3d-stage': 'stage', // items at their own distances (range.stageDef, courses.js)
   'range3d-movers': 'movers',
   'range3d-grid': 'grid',
+  'range3d-tree': 'tree',
 };
 // The 3D range version of a 2D layout, used when the 3D range is switched on.
 export const TO_3D = { single: 'range3d-single', bay: 'range3d-bay', popup: 'range3d-popup', star: 'range3d-star', movers: 'range3d-movers', grid: 'range3d-grid', scene: 'scene3d' };

@@ -259,9 +259,11 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-2. Steel: plates and poppers get fresh paint (white) when reset, lead splashes build up during a run; a popper that's hit low on the base doesn't fall (calibration zone).
-4. Target marking: printed perforation-slit zone lines and the small USPSA logo on the cardboard; slight weathering on older targets.
-5. Range sounds from recordings only: steel ring on far plates, bullet hitting the berm (thud) - check the CC0 sets first.
+1. Dueling tree: steel paddles on a post that swing across to the other side when hit (two shooters, or you clearing it).
+2. IDPA option: the IDPA cardboard (-0 / -1 / -3 zones, head and body circles) and time-plus scoring (points down x 0.5 s + penalties).
+3. More complete stages mixing the activators (swinger, turner, mover, clamshell) with walls, ports and no-shoots, classifier-style.
+4. Bobber (activated target that rises and sinks behind cover) and a berm-hit thud from a CC0 recording.
+(Done this cycle: steel repainted on reset, popper calibration zone, perforations and earlier shooters' pasters, far steel ring timing, recorded range background.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -617,3 +619,10 @@ he reports a problem.
   standard par it's forgotten). Pass/fail and the par beep use it. Pop-up
   and flip courses keep [ ] for time up. Controller buttons renamed "Par /
   up time". CONFIG.timer.par.
+- Dueling tree (3D range, new drill "Dueling Tree" under Steel): six square
+  paddles on arms hinged up a post, all leaning out to the left; a hit
+  throws a paddle over the top to the right (with a bounce off the stop).
+  Clear the tree = all six over; a hit on one that's already over swings it
+  back and doesn't count, as on a real tree. New drill field clearSteel
+  (ends when the steel is cleared, not at a hit count).
+  CONFIG.range3d.steel.tree; Setup distance slider covers it.

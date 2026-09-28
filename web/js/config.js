@@ -447,9 +447,9 @@ export const CONFIG = {
   range3d: {
     // Distance to the targets in yards, per kind of target (Setup slider), the
     // slider's limits, and the height (m) the fixed camera looks at.
-    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8, grid: 5 },
-    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25], grid: [3, 20] },
-    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3, grid: 1.25 },
+    yards: { paper: 5, popup: 10, star: 10, plates: 10, poppers: 12, movers: 8, grid: 5, tree: 10 },
+    yardsRange: { paper: [3, 25], popup: [5, 25], star: [5, 25], plates: [5, 25], poppers: [5, 25], movers: [5, 25], grid: [3, 20], tree: [5, 25] },
+    aimY: { paper: 1.4, popup: 1.15, star: 1.5, plates: 1.1, poppers: 0.8, stage: 1.15, movers: 1.3, grid: 1.25, tree: 1.2 },
     // Flip grid in 3D: plate size (m, square) and the frame's centre height;
     // columns, rows, spin and faces come from CONFIG.flip and the FlipBoard.
     flipGrid: { plate: 0.25, centerY: 1.25 },
@@ -547,6 +547,11 @@ export const CONFIG = {
       // 8" plates on 12" centres; paddle = hinge to plate centre (m); kick = rad/s a hit gives;
       // fallTo = angle (rad) where it lands on the stop bar / ground.
       rack: { plates: 6, spacing: 0.3048, plateRadius: 0.1016, beamY: 0.95, paddle: 0.22, kick: 3.0, fallTo: 1.3 },
+      // Dueling tree: `paddles` square paddles (paddle m) on arms `arm` m long,
+      // hinged `gap` m apart down a post `height` m tall (the first `top` m
+      // below its top); each rests `rest` rad from vertical, swings over in
+      // `swing` s and bounces `bounce` rad off the stop.
+      tree: { paddles: 6, paddle: 0.15, arm: 0.42, gap: 0.24, height: 1.9, top: 0.12, post: 0.07, rest: 1.0, swing: 0.32, bounce: 0.07 },
       // holdBelow: a hit on the bottom this share of a popper's height doesn't
       // knock it over (below the calibration zone: it rocks, rings, stays up,
       // scores a miss); wobble: that rock (radians, s, rad/s, 1/s).

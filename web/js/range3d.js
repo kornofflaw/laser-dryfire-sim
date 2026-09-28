@@ -33,7 +33,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
 import { RANGE3D_KIND } from './range.js';
-import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D } from './steel3d.js';
+import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D, DuelingTree } from './steel3d.js';
 import { stageTargets } from './courses.js';
 
 const R = () => CONFIG.range3d;
@@ -426,7 +426,8 @@ export class Range3DView {
     } else {
       const S = kind === 'star' ? new Star3D(this.star, this.steelMats)
         : kind === 'grid' ? new FlipGrid3D(this.flip, this.steelMats)
-        : kind === 'plates' ? new PlateRack(this.steelMats) : new Poppers(this.steelMats);
+        : kind === 'plates' ? new PlateRack(this.steelMats)
+        : kind === 'tree' ? new DuelingTree(this.steelMats) : new Poppers(this.steelMats);
       this.steel = S;
       this.layoutGroup.add(S.group);
       this.addSolids(S.solids);
@@ -1128,6 +1129,9 @@ export class Range3DView {
         const s = { zone: 'Steel', points: CONFIG.points.Steel, targetId: id, kind: 'steel', steel: i, point: h.point, dir, size, dist: h.distance };
         // Too low on a popper: it rings but doesn't go down - a miss.
         if (this.steel.holdsLow?.(i, h.point)) return { ...s, zone: 'Miss', points: 0, noFall: true };
+        // Dueling tree: a paddle already over swings back (doesn't count).
+        if (this.steel.backHit?.(i)) return { ...s, zone: 'Miss', points: 0, noFall: true, back: true };
+        if (this.steel.clears?.(i)) s.clears = true;
         if (this.kind === 'star') s.plate = i; // range.js knocks it off the star's physics
         return s;
       }
