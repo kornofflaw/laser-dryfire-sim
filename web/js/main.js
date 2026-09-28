@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
-import { loadStages, stageCourse, openBuilder } from './builder.js';
+import { loadStages, stageCourse, openBuilder, stageRows } from './builder.js';
 import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot, setRain, say } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
@@ -701,10 +701,12 @@ const actions = {
     if (active().busy) return toast('Finish or cancel the run first (Esc).');
     closeCourses();
     const current = course().custom ? loadStages().find(s => s.name === course().name) || null : null;
+    // A stock stage picked: start from a copy of it (saved as a new stage of yours).
+    const prefill = !current && course().type === 'stage' && course().stage ? stageRows(course()) : null;
     // (point the selection at the first course while the list changes)
     const drop = name => { const i = COURSES.findIndex(c => c.custom && c.name === name); if (i >= 0) { courseIndex = 0; COURSES.splice(i, 1); } };
     openBuilder(current, {
-      toast,
+      toast, prefill,
       onSave(stage, oldName) {
         if (oldName) drop(oldName);
         drop(stage.name);

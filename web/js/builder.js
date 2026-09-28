@@ -30,7 +30,8 @@ export function stageCourse(s) {
   const positions = [{ x: 0, yd: 0 }], items = [], props = [];
   for (const r of s.rows) {
     const pos = positions.length - 1;
-    if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
+    if (r.type === 'position' && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd }; // before any target: where you start
+    else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
     else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}) });
   }
@@ -44,17 +45,38 @@ export function stageCourse(s) {
   };
 }
 
+// A stock stage as builder rows (to copy it into My Stages): the targets
+// shot from each position follow that position's row; props come first.
+// (Movers and bobbers become plain paper; the builder has no such rows.)
+export function stageRows(course) {
+  const st = course.stage, rows = [];
+  for (const p of st.props || []) if (PROPS.includes(p.type)) rows.push({ type: p.type, x: p.x, yd: p.yd, ...(p.by ? { by: p.by } : {}) });
+  const n = st.positions?.length || 1;
+  for (let k = 0; k < n; k++) {
+    const P = st.positions?.[k];
+    if (k || (P && (P.x || P.yd))) rows.push({ type: 'position', x: P.x || 0, yd: P.yd || 0 });
+    for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
+      const act = ['pop', 'turn', 'swing'].find(a => it[a]);
+      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd });
+    }
+  }
+  return { name: `${course.name} (my copy)`, par: course.parTime, rows, start: st.start };
+}
+
 // Open the form. current: a saved stage to edit (or null for a new one);
+// prefill: a new stage's starting values (a copy of a stock stage);
 // onSave(stage) / onDelete(name) are called with the result.
-export function openBuilder(current, { onSave, onDelete, toast }) {
+export function openBuilder(current, { onSave, onDelete, toast, prefill = null }) {
   const el = document.getElementById('builder');
   const B = CONFIG.builder;
-  let rows = current ? current.rows.map(r => ({ ...r })) : B.starter.map(r => ({ ...r }));
+  const from = current || prefill;
+  let rows = from ? from.rows.map(r => ({ ...r })) : B.starter.map(r => ({ ...r }));
   const $ = s => el.querySelector(s);
-  $('#b-name').value = current?.name || '';
-  $('#b-par').value = current?.par ?? B.par;
-  $('#b-start').innerHTML = B.starts.map(s => `<option>${s}</option>`).join('');
-  $('#b-start').value = current?.start || B.starts[0];
+  $('#b-name').value = from?.name || '';
+  $('#b-par').value = from?.par ?? B.par;
+  const starts = from?.start && !B.starts.includes(from.start) ? [from.start, ...B.starts] : B.starts;
+  $('#b-start').innerHTML = starts.map(s => `<option>${s}</option>`).join('');
+  $('#b-start').value = from?.start || B.starts[0];
   $('#b-delete').hidden = !current;
   const render = () => {
     const ids = steelIds(rows);
@@ -73,11 +95,12 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
     g.strokeStyle = 'rgba(0,0,0,0.12)'; g.fillStyle = 'rgba(0,0,0,0.45)'; g.font = '10px system-ui, sans-serif'; g.textAlign = 'left';
     for (let yd = 5; yd <= maxYd; yd += 5) { g.beginPath(); g.moveTo(0, py(yd)); g.lineTo(W, py(yd)); g.stroke(); g.fillText(`${yd} yd`, 4, py(yd) - 2); }
     const ids = steelIds(rows);
-    let pos = 1, steelN = 0;
-    g.fillStyle = '#2e7d32'; g.fillRect(px(0) - 8, py(0) - 8, 16, 12); // start position
+    let pos = 1, steelN = 0, target = false, start = null;
     g.textAlign = 'center';
     for (const r of rows) {
       const x = px(r.x), y = py(r.yd);
+      if (r.type === 'position' && !target && !start) { start = [x, y]; continue; } // where you start
+      if (r.type !== 'position' && !PROPS.includes(r.type)) target = true;
       if (r.type === 'position') { pos++; g.fillStyle = '#2e7d32'; g.fillRect(x - 8, y - 8, 16, 12); g.fillStyle = '#fff'; g.fillText(pos, x, y + 2); continue; }
       if (r.type === 'wall') { g.fillStyle = '#8d6e3f'; g.fillRect(x - 12, y - 2, 24, 4); continue; }
       if (r.type === 'barrel') { g.fillStyle = '#24569e'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); continue; }
@@ -87,6 +110,9 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
       g.fillRect(x - 6, y - 3, 12, 6);
       if (ACTIVATED.includes(r.type)) { g.fillStyle = '#333'; g.fillText(r.type, x, y - 6); }
     }
+    const [sx, sy] = start || [px(0), py(0)];
+    g.fillStyle = '#2e7d32'; g.fillRect(sx - 8, sy - 8, 16, 12); // start position
+    g.fillStyle = '#fff'; g.fillText('1', sx, sy + 2);
   };
   const render0 = render;
   const rerender = () => { render0(); drawMap(); };
