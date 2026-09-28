@@ -411,6 +411,21 @@ const STAGES = [
       ],
       props: [{ type: 'wall', x: 0, yd: 1.5, w: 1.22, h: 2.13, ports: [{ y: 1.55, w: 0.3, h: 0.36 }, { y: 1.0, w: 0.3, h: 0.36 }, { y: 0.36, w: 0.34, h: 0.26 }] }],
     } },
+  { name: 'Angles', category: 'Stages', parTime: 11.0, maxShots: 16,
+    desc: 'Start on the left: one paper between two no-shoots and a plate. Run right: a paper turned 40 degrees (thin from the start - don\'t take it early), a paper and a popper. 2 per paper, the steel down.',
+    stage: {
+      start: 'standing at position 1, hands relaxed at your sides',
+      positions: [{ x: -3, yd: 0 }, { x: 3, yd: 2 }],
+      items: [
+        { type: 'paper', x: -1.5, yd: 8 },
+        { type: 'noshoot', x: -1.85, yd: 7.8, dy: -0.25 },
+        { type: 'noshoot', x: -1.15, yd: 7.8, dy: -0.25 },
+        { type: 'plate', x: -3.2, yd: 12 },
+        { type: 'paper', x: 1.5, yd: 8, pos: 1, face: 40 },
+        { type: 'paper', x: 4.4, yd: 9, pos: 1, face: -20 },
+        { type: 'popper', x: 3, yd: 13, pos: 1 },
+      ],
+    } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
     stage: {
