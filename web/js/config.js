@@ -98,7 +98,7 @@ export const CONFIG = {
     par: { step: 0.1, min: 0.5, max: 60 }, // your own par ([ ] on drills and stages), seconds
     // Called drills: the first call `first` s after the beep, each next one
     // `next` s after the last round on the called target.
-    called: { first: 0.15, next: 0.25, words: ['One', 'Two', 'Three'] },
+    called: { first: 0.15, next: 0.25, words: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'] },
     splitGoal: 0,           // Setup: a split slower than this (s) is flagged in the review (0 = off)
     drawGoal: 0,            // Setup: a first shot slower than this (s from the beep) is flagged (0 = off)
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)

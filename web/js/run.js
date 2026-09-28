@@ -167,17 +167,19 @@ export class DrillRunner extends Runner {
     }
   }
 
-  // Called drills (course.called { rounds, calls }): the RO calls a target
-  // number (1-3, left to right); `rounds` on it, then the next call.
+  // Called drills (course.called { rounds, calls, targets?, unique?, words? }):
+  // the RO calls a target number (1..targets, left to right; 3 = the bay,
+  // 6 = the plate rack); `rounds` on it, then the next call (unique: each
+  // target called once - steel that has fallen).
   // (called.head: the chance a call is for the head - "Two, head!")
   callNext(atMs) {
     const n = this.callSeq.length, prev = this.callSeq[n - 1], C = this.course.called;
-    let k;
-    do k = Math.floor(Math.random() * 3); while (k === prev);
+    const n0 = C.targets || 3, left = [...Array(n0).keys()].filter(k => (C.unique ? !this.callSeq.includes(k) : k !== prev));
+    const k = left[Math.floor(Math.random() * left.length)];
     this.callSeq.push(k);
     const head = Math.random() < (C.head || 0);
     (this.callHead ??= [])[n] = head;
-    (this.calls ??= []).push({ at: atMs, text: CONFIG.timer.called.words[k] + (head ? ', head!' : '') });
+    (this.calls ??= []).push({ at: atMs, text: (C.words || CONFIG.timer.called.words)[k] + (head ? ', head!' : '') });
   }
 
   elapsed(nowMs) { return (nowMs - this.runStart) / 1000; }
@@ -196,7 +198,7 @@ export class DrillRunner extends Runner {
     this.points += score.points;
     this.counts[score.zone] = (this.counts[score.zone] || 0) + 1;
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
-    this.shotSlots.push(isHit(score.zone) ? score.slot ?? null : null);
+    this.shotSlots.push(isHit(score.zone) ? score.slot ?? score.steel ?? null : null);
     this.shotHead = [...(this.shotHead || []), score.zone === 'Head'];
     if (score.back) this.backs++;
 
