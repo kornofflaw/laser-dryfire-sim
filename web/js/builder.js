@@ -11,11 +11,14 @@ import { load, save } from './storage.js';
 const TYPES = {
   paper: 'Paper (USPSA)', pop: 'Paper: pop-up', turn: 'Paper: drop turner', swing: 'Paper: swinger',
   noshoot: 'No-shoot', popper: 'Popper', mini: 'Mini popper',
-  plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', barrel: 'Barrel',
+  plate: 'Plate (8 in)', wall: 'Wall (4 x 6 ft)', barrel: 'Barrel', clamshell: 'Clamshell (drop cover)',
+  position: 'You run to here (next position)',
 };
 const STEEL = ['popper', 'mini', 'plate'];
-const PROPS = ['wall', 'barrel'];
-const ACTIVATED = ['pop', 'turn', 'swing']; // paper released by a steel (row.by)
+const PROPS = ['wall', 'barrel', 'clamshell'];
+const ACTIVATED = ['pop', 'turn', 'swing', 'clamshell']; // released by a steel (row.by)
+// A 'position' row: you run there; the targets listed after it are shot
+// from there (the first position is the start, x 0 at the firing line).
 
 // Stage ids of the steel rows, in order (as courses.js stageTargets gives them).
 const steelIds = rows => rows.filter(r => STEEL.includes(r.type)).map((_, i) => `S${i + 1}`);
@@ -24,16 +27,20 @@ export const loadStages = () => { const s = load(CONFIG.storage.stages, []); ret
 
 // A saved stage as a course (courses.js stage format).
 export function stageCourse(s) {
-  const items = s.rows.filter(r => !PROPS.includes(r.type)).map(r =>
-    ACTIVATED.includes(r.type) ? { type: 'paper', x: r.x, yd: r.yd, [r.type]: { by: r.by } } : { type: r.type, x: r.x, yd: r.yd });
-  const props = s.rows.filter(r => PROPS.includes(r.type)).map(r => ({ type: r.type, x: r.x, yd: r.yd }));
+  const positions = [{ x: 0, yd: 0 }], items = [], props = [];
+  for (const r of s.rows) {
+    const pos = positions.length - 1;
+    if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
+    else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
+    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}) });
+  }
   const act = items.filter(i => i.pop || i.turn || i.swing).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
   return {
     name: s.name, category: 'My Stages', type: 'stage', layout: 'range3d-stage', parTime: s.par, custom: true,
     maxShots: paper * 2 + steel + CONFIG.builder.spareRounds,
     desc: `Your stage: ${paper} paper${act ? ` (${act} activated)` : ''}, ${steel} steel${props.length ? `, ${props.length} prop${props.length > 1 ? 's' : ''}` : ''}. Edit it with B.`,
-    stage: { items, props },
+    stage: { items, props, ...(positions.length > 1 ? { positions } : {}) },
   };
 }
 
@@ -70,10 +77,10 @@ export function openBuilder(current, { onSave, onDelete, toast }) {
     const name = $('#b-name').value.trim() || `My stage ${loadStages().length + 1}`;
     const par = Math.max(1, Number($('#b-par').value) || B.par);
     const ids = steelIds(rows);
-    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: clamp(r.yd, B.yards[0], B.yards[1]),
+    rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: r.type === 'position' ? clamp(r.yd, 0, B.maxRun) : clamp(r.yd, B.yards[0], B.yards[1]),
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}) }));
-    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot')) return toast('Add at least one target to shoot.');
-    if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner or swinger needs a steel target to release it.');
+    if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'position')) return toast('Add at least one target to shoot.');
+    if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger or clamshell needs a steel target to release it.');
     const stage = { name, par, rows };
     const all = loadStages().filter(s => s.name !== name && s.name !== current?.name);
     all.push(stage);

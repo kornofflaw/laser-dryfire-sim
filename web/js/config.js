@@ -728,7 +728,7 @@ export const CONFIG = {
   // New stages start from `starter`; x across (m, left negative) up to maxX,
   // distance within `yards`; maxShots = 2 per paper + steel + spareRounds.
   builder: {
-    par: 10, maxX: 5, yards: [3, 30], spareRounds: 8,
+    par: 10, maxX: 5, yards: [3, 30], spareRounds: 8, maxRun: 10, // a position row: up to maxRun yd forward
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
   },
 };

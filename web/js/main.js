@@ -1294,6 +1294,8 @@ const remote = displayMode && 'BroadcastChannel' in window ? {
     this.checkedAt = now;
     const state = JSON.stringify({
       t: 'state', courseIndex, course: course().name, busy: active().busy, layout: range.layout,
+      // your own stages (builder.js): the Controller lists them from here
+      customs: COURSES.map((c, i) => [c, i]).filter(([c]) => c.custom).map(([c, i]) => ({ name: c.name, desc: c.desc, index: i })),
       hud: { timer: hudCache.timer, drill: hudCache.drill, stats: hudCache.stats },
       controls: snapshotControls(document),
       review: { open: review.isOpen, has: review.hasRuns },

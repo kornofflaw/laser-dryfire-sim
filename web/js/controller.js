@@ -68,7 +68,8 @@ function renderCourses() {
   const list = $('#course-list');
   list.innerHTML = '';
   for (const cat of CATEGORIES) {
-    const items = COURSES.map((c, i) => [c, i]).filter(([c]) => c.category === cat);
+    // (My Stages come from the Display: they're saved in its browser)
+    const items = cat === 'My Stages' ? (state?.customs || []).map(c => [c, c.index]) : COURSES.map((c, i) => [c, i]).filter(([c]) => c.category === cat);
     if (!items.length) continue;
     const h = document.createElement('h3');
     h.textContent = cat;
@@ -160,7 +161,7 @@ const html = {};
 function setHTML(sel, v) { if (html[sel] !== v) { html[sel] = v; $(sel).innerHTML = v || ''; } }
 
 function render() {
-  const c = COURSES[state.courseIndex];
+  const c = COURSES[state.courseIndex] || state.customs?.find(x => x.index === state.courseIndex);
   $('#course-name').textContent = c?.name ?? state.course;
   $('#course-desc').textContent = c?.desc ?? '';
   const start = $('#start');
