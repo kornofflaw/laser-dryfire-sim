@@ -1242,10 +1242,14 @@ export class Range3DView {
   }
 
   // A drill's stance ('kneel' / 'prone' / null = standing): the eyes drop.
-  setStance(s) {
+  // (animate: get down / up over the stance's time; no shots count meanwhile)
+  setStance(s, animate = false) {
     s ||= null;
     if (this.stance === s) return;
+    const S = R().stances, time = Math.max(S[s]?.time || 0, S[this.stance]?.time || 0);
+    const from = { pos: this.camera.position.clone(), look: (this.look || this.homeView().look).clone() };
     this.stance = s;
+    if (animate && !this.walk && !this.inspecting) { this.lean = this.leanNow = 0; this.walk = { from, to: this.homeView(), t0: performance.now() / 1000, back: true, time }; return; }
     if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
   }
 

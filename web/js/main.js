@@ -844,9 +844,13 @@ let walkU = 0, lastStride = 0;
 function walkOn(now) {
   const A = course().advance, v = range.view3d;
   if (!v?.setStep) return;
-  v.setStance(course().stance); // drills shot kneeling / prone
+  // Drills shot kneeling / prone; stanceAfter { shots, stance }: after that
+  // many shots you get down (the view drops) and finish from there.
+  const C = course(), S = C.stanceAfter, R0 = active();
+  const late = S && (R0.state === 'Running' || R0.state === 'Done') && R0.shots >= S.shots;
+  v.setStance(late ? S.stance : C.stance, late);
   if (!A) return v.setStep(null);
-  const R = active(), W = CONFIG.range3d.advance;
+  const R = R0, W = CONFIG.range3d.advance;
   const dist = Math.hypot(A.to[0] - A.from[0], (A.to[1] - A.from[1]) * 0.9144);
   if (R.state === 'Running') {
     const t = (now - R.runStart) / 1000, u = Math.min(1, (t * A.speed) / dist);

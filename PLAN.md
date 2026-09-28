@@ -821,3 +821,4 @@ he reports a problem.
 - 2026-09-28: Stages with positions: a shooting box of 2x4 boards on the ground at each position (CONFIG.range3d.props.box).
 - 2026-09-28: Deploys paused: the Hobby plan allows 100 deployments a day and every push built twice (main + the claude/ branch). web/vercel.json now turns off builds for claude/** branches, so only main deploys.
 - 2026-09-28: Stage briefing: a Positions line when a stage has kneeling / prone / walk-while-shooting positions ("1 standing · 2 kneeling · 3 prone").
+- 2026-09-28: New drill "Stand and Kneel" (Positions): two on each target standing, then the view drops to kneeling (0.9 s, no shots count while getting down) and two on each again; the timer runs through. Course field stanceAfter { shots, stance }.

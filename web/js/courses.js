@@ -75,6 +75,9 @@ const DRILLS = [
     desc: 'From kneeling (the view is at kneeling eye height): two on each target, left to right.' },
   { name: 'Prone 2-2-2', category: 'Positions', layout: 'range3d-bay', requiredShots: 6, parTime: 5.0, perTargetMin: 2, stance: 'prone', minAHits: 4,
     desc: 'Prone (eyes 35 cm off the ground): two on each target, at least 4 A. A steady position - make the hits count.' },
+  { name: 'Stand and Kneel', category: 'Positions', layout: 'range3d-bay', requiredShots: 12, parTime: 7.0, perTargetMin: 4,
+    stanceAfter: { shots: 6, stance: 'kneel' },
+    desc: 'Two on each target standing, then drop to kneeling (the view goes down) and two on each again. The timer runs through the position change.' },
   // Shooting on the move (3D): the view walks after the beep; shots count on the way.
   { name: 'Walk Up', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 6.0, perTargetMin: 2,
     advance: { from: [0, -6], to: [0, -1], speed: 0.9 }, minBodyHits: 6,
