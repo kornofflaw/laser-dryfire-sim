@@ -62,6 +62,7 @@ export class DrillRunner extends Runner {
     this.shotZones = [];     // what each shot hit (A, C, D, Head, Steel, Miss...)
     this.slots = [];         // bay slot of each hit, in order
     this.early = 0;
+    this.backs = 0;          // dueling tree: hits that swung a paddle back
     this.points = 0;
     this.counts = { A: 0, C: 0, D: 0, Head: 0, Steel: 0, Dot: 0, NS: 0, Miss: 0 };
   }
@@ -158,6 +159,7 @@ export class DrillRunner extends Runner {
     this.points += score.points;
     this.counts[score.zone] = (this.counts[score.zone] || 0) + 1;
     if (isHit(score.zone) && score.slot != null) this.slots.push(score.slot);
+    if (score.back) this.backs++;
 
     const d = this.course;
     if (d.clearSteel) {
@@ -288,6 +290,13 @@ export class DrillRunner extends Runner {
     return head;
   }
 
+  // Steel still to go: down (or, on a dueling tree, paddles over: a hit that
+  // swung one back takes one off).
+  steelLine(steel, backs, sep) {
+    const d = this.course;
+    return d.clearSteel ? `Paddles over: ${steel - backs}${sep}${d.requiredHits}` : `Steel down: ${steel}${sep}${d.requiredHits}`;
+  }
+
   panelHTML() {
     const d = this.course;
     const head = `<b class="title">DRILL · ${d.category.toUpperCase()}</b>`;
@@ -299,7 +308,7 @@ export class DrillRunner extends Runner {
     if (this.busy) {
       let counts = `Points: ${this.points}   A: ${this.counts.A}`;
       if (d.minBodyHits || d.minHeadHits) counts = `Body: ${this.bodyHits}   Head: ${this.counts.Head}`;
-      if (d.category === 'Steel') counts = `Steel down: ${this.counts.Steel} / ${d.requiredHits}`;
+      if (d.category === 'Steel') counts = this.steelLine(this.counts.Steel, this.backs, ' / ');
       const progress = d.requiredHits ? `Hits: ${this.hits} / ${d.requiredHits}` :
         `Shots: ${this.shots}${d.requiredShots ? ' / ' + d.requiredShots : ''}`;
       return head + `<span class="go">${d.name}</span>\n${progress}\n${counts}`;
@@ -314,7 +323,7 @@ export class DrillRunner extends Runner {
       const lines = [`<b>${d.name}</b> — ${verdict}`];
       if (!r.complete) lines.push(`<span class="bad">Incomplete: ${d.requiredHits ? r.hits + '/' + d.requiredHits + ' hits' : r.shots + '/' + d.requiredShots + ' rounds'}</span>`);
       lines.push(`Time: ${f2(r.time)}s` + (d.requiredShots || d.requiredHits ? `   ${parTag}` : ''));
-      if (d.category === 'Steel') lines.push(`Steel down: ${r.counts.Steel}/${d.requiredHits}   Rounds: ${r.shots}`);
+      if (d.category === 'Steel') lines.push(`${this.steelLine(r.counts.Steel, this.backs, '/')}   Rounds: ${r.shots}`);
       else if (d.minBodyHits || d.minHeadHits) lines.push(`Body: ${r.bodyHits}   Head: ${r.counts.Head}   A: ${r.counts.A}`);
       else lines.push(`Points: ${r.points}   A: ${r.counts.A}  C: ${r.counts.C}  D: ${r.counts.D}  M: ${r.counts.Miss}`);
       lines.push(`Hit factor: ${f2(r.hitFactor)}`);

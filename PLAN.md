@@ -644,3 +644,5 @@ he reports a problem.
   (everything muffled and quieter). All sound now goes through one master
   output. The RO's voice (browser speech) isn't affected.
   CONFIG.sound.earPro. Also on the Controller.
+- Dueling tree HUD shows "Paddles over: n / 6" (a hit that swings one back
+  takes one off) instead of "Steel down".
