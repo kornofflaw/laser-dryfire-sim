@@ -82,6 +82,9 @@ const DRILLS = [
   { name: 'Stand and Kneel', category: 'Positions', layout: 'range3d-bay', requiredShots: 12, parTime: 7.0, perTargetMin: 4,
     stanceAfter: { shots: 6, stance: 'kneel' },
     desc: 'Two on each target standing, then drop to kneeling (the view goes down) and two on each again. The timer runs through the position change.' },
+  { name: 'Box to Box', category: 'Movement', layout: 'range3d-bay', requiredShots: 12, parTime: 8.0, perTargetMin: 4,
+    moveAfter: { shots: 6, to: [-3, 0] },
+    desc: 'Two on each target from the first box, then run 3 m to the left box (the view moves; no shots count on the way) and two on each again. The timer runs through the move.' },
   // Shooting on the move (3D): the view walks after the beep; shots count on the way.
   { name: 'Walk Up', category: 'Movement', layout: 'range3d-bay', requiredShots: 6, parTime: 6.0, perTargetMin: 2,
     advance: { from: [0, -6], to: [0, -1], speed: 0.9 }, minBodyHits: 6,

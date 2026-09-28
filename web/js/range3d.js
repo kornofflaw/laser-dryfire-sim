@@ -1275,10 +1275,18 @@ export class Range3DView {
 
   // Shooting on the move: stand at x m across, yd downrange of the line
   // (bob: head height m). null = back on the line.
-  setStep(x, yd, bob = 0) {
+  // (run: move there at running pace with footsteps; no shots count on the way)
+  setStep(x, yd, bob = 0, run = false) {
     const s = this.step;
     if (x == null ? !s : s && s.x === x && s.yd === yd && s.bob === bob) return;
+    const from = { pos: this.camera.position.clone(), look: (this.look || this.homeView().look).clone() };
     this.step = x == null ? null : { x, yd, bob };
+    if (run && !this.walk && !this.inspecting) {
+      const M = R().move, to = this.homeView(), dist = from.pos.distanceTo(to.pos);
+      this.lean = this.leanNow = 0;
+      this.walk = { from, to, t0: performance.now() / 1000, back: true, time: Math.max(M.min, dist / M.speed), stride: M.stride, steps: 0 };
+      return;
+    }
     if (!this.walk && !this.inspecting && !this.lean && !this.leanNow) this.homeCamera();
   }
 

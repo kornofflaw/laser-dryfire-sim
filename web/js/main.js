@@ -854,6 +854,13 @@ function walkOn(now) {
   v.setStance(late ? S.stance : C.stance, late);
   // Drills that start facing uprange (El Presidente): turned away until the beep.
   v.setFacing(!!C.turnStart && R0.state === 'Delay');
+  // moveAfter { shots, to: [x m, yd] }: after that many shots you run to a
+  // second box and finish from there (no shots count on the way).
+  const M = C.moveAfter;
+  if (!A && M) {
+    const moved = (R0.state === 'Running' || R0.state === 'Done') && R0.shots >= M.shots;
+    return moved ? v.setStep(M.to[0], M.to[1], 0, true) : v.setStep(null);
+  }
   if (!A) return v.setStep(null);
   const R = R0, W = CONFIG.range3d.advance;
   const dist = Math.hypot(A.to[0] - A.from[0], (A.to[1] - A.from[1]) * 0.9144);
