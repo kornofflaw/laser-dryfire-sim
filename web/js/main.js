@@ -361,7 +361,7 @@ function showSquadResults() {
 }
 $('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
-  log.add(result, lastInput);
+  log.add(result, lastInput, match && result.course === match.def.stages[match.i] ? { shooter: match.shooters.length > 1 ? match.shooters[match.j] : '', match: match.def.name } : {});
   const inMatch = matchStageDone(result);
   if (result.newBest) setTimeout(() => toast(`New personal best on ${result.course}!`), 400);
   const [zero, label] = reviewZero(active());

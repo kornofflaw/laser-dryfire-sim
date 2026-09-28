@@ -10,7 +10,7 @@ const COLUMNS = [
   'datetime', 'drill', 'type', 'input', 'par_s', 'complete', 'time_s', 'first_shot_s',
   'reaction_s', 'shots', 'hits', 'accuracy_pct', 'points', 'a', 'c', 'd', 'head',
   'steel', 'no_shoot', 'miss', 'hit_factor', 'made_par', 'passed', 'early_shots',
-  'splits_s', 'notes',
+  'splits_s', 'notes', 'shooter', 'match',
 ];
 
 export class RunLog {
@@ -19,7 +19,8 @@ export class RunLog {
     if (!Array.isArray(this.rows)) this.rows = [];
   }
 
-  add(r, input) {
+  // extra: { shooter, match } in a squad match.
+  add(r, input, extra = {}) {
     const f = (v, n = 3) => (v == null ? '' : Number(v).toFixed(n));
     const c = r.counts || {};
     const row = {
@@ -44,6 +45,8 @@ export class RunLog {
       early_shots: r.early || 0,
       splits_s: (r.splits || []).map(s => s.toFixed(3)).join(' '),
       notes: r.notes || '',
+      shooter: extra.shooter || '',
+      match: extra.match || '',
     };
     this.rows.push(row);
     save(CONFIG.storage.log, this.rows);
