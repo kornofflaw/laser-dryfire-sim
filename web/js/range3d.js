@@ -354,14 +354,23 @@ export class Range3DView {
     if (this.timeWanted) this.setTime(this.timeWanted);
   }
 
-  // Time of day: 'day' (default), 'morning' or 'evening'. Swaps the sky photo
-  // (loaded the first time), moves the sun to where it is in that photo and
-  // sets its colour. Only the look changes; targets and scoring don't.
+  // Time of day: 'day' (default), 'morning', 'evening' or 'night'. Swaps the
+  // sky photo (loaded the first time), moves the sun to where it is in that
+  // photo and sets its colour. Night: the day sky nearly black, no sun, a
+  // floodlight on a pole behind you lighting the bay (made the first time
+  // night is picked; off, and not casting shadows, otherwise). Only the look
+  // changes; targets and scoring don't.
   async setTime(kind = 'day') {
     this.timeWanted = kind;
     if (!this.sun || this.time === kind) return;
     const T = kind === 'day' ? null : R().times[kind];
     if (kind !== 'day' && !T) return;
+    if (T?.flood && !this.flood) this.buildFlood();
+    if (this.flood) {
+      this.flood.intensity = T?.flood ? T.flood.intensity : 0;
+      this.flood.castShadow = !!T?.flood;
+    }
+    if (T && !T.hdr) this.skies[kind] = this.skies.day; // night: the day sky, dimmed
     if (T && !this.skies[kind]) {
       const sky = await new HDRLoader().loadAsync(ASSETS + T.hdr).catch(() => null);
       if (!sky) return;
@@ -389,6 +398,21 @@ export class Range3DView {
     this.sun.color.set(T ? T.sunColor : '#fff3df');
     this.sun.intensity = T ? T.sun : R().sunIntensity;
     this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  // The night floodlight: a spot on a pole behind and above the shooter.
+  buildFlood() {
+    const F = R().times.night.flood;
+    const flood = new THREE.SpotLight(F.color, 0, 0, F.angle, F.penumbra, 2);
+    flood.position.set(...F.pos);
+    flood.target.position.set(...F.aim);
+    flood.shadow.mapSize.set(2048, 2048);
+    flood.shadow.camera.near = 1;
+    flood.shadow.camera.far = 80;
+    flood.shadow.bias = -0.0004;
+    flood.shadow.normalBias = 0.02;
+    this.scene.add(flood, flood.target);
+    this.flood = flood;
   }
 
   // ---- targets ---------------------------------------------------------------------

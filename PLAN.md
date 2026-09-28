@@ -681,3 +681,8 @@ he reports a problem.
   per string; stage time = the strings added up, one hit factor. The shot
   timer lists each string's time. New stage "Classifier style: Three
   Strings" (freestyle / strong hand only / weak hand only).
+- Low-light range: Setup -> 3D range -> Time of day -> Night. The sky goes
+  nearly black and the sun off; a floodlight on a pole behind you lights
+  the bay (pools of light, long shadows forward), the berm fades into the
+  dark. The light is only made the first time night is picked (a one-off
+  shader rebuild then); day is unchanged. CONFIG.range3d.times.night.

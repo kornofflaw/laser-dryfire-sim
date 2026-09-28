@@ -45,7 +45,7 @@ const settings = Object.assign({
   blood: true,        // 3D blood effects
   lotNight: false,    // parking lot at night (knife attack, 3D judgment scenes)
   lotRain: false,     // parking lot in the rain (wet asphalt, rain, rain sound)
-  rangeTime: 'day',   // 3D range time of day: day / morning / evening
+  rangeTime: 'day',   // 3D range time of day: day / morning / evening / night
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
   quality: 'auto',    // 3D graphics: auto | high | medium | low (CONFIG.post)

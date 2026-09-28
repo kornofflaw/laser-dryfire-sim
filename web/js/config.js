@@ -496,6 +496,11 @@ export const CONFIG = {
       morning: { hdr: 'morning.hdr', sunDir: [0.8, 0.14, 0.58], sun: 1.9, sunColor: '#ffd6a8', env: 0.9, bg: 0.9, exposure: 1.0, haze: '#d9cdbf' },
       // Evening's photo has a city skyline except behind the sun: turned 90° (rotate) to keep it out of view.
       evening: { hdr: 'evening.hdr', sunDir: [-0.93, 0.14, -0.34], rotate: 1.571, sun: 1.7, sunColor: '#ffc48e', env: 0.85, bg: 0.85, exposure: 1.0, haze: '#d6c9bd' },
+      // Night (a low-light match): the day sky nearly black, no sun; a
+      // floodlight (candela, from pos aimed at aim, cone angle rad, soft
+      // edge penumbra) behind and above you lights the bay.
+      night: { hdr: null, sunDir: [-0.85, 0.75, 0.35], sun: 0, sunColor: '#9fb3d6', env: 0.035, bg: 0.012, exposure: 1.0, haze: '#07090d',
+        flood: { intensity: 260, color: '#fff2dc', pos: [1.5, 7, 3], aim: [0, 0.8, -12], angle: 0.5, penumbra: 0.6 } },
     },
     cardboardRelief: 0.25,  // strength of the corrugation / fibre normal map
     hazeColor: '#c9d3dc',
