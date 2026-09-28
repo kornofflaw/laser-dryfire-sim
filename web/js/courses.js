@@ -124,6 +124,8 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// bob: { by: 'S1', times? } makes a paper a bobber: sunk behind low cover
+// until that steel falls, then it rises and sinks `times` times.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
 // (port = an opening to shoot through, y = its centre height, m),
 // { type: 'barrel', x, yd } and { type: 'clamshell', x, yd, by: 'S1' } (a
@@ -236,6 +238,17 @@ const STAGES = [
         { type: 'clamshell', x: 0.6, yd: 8.6, by: 'S3' },
         { type: 'wall', x: 3.55, yd: 9.3, w: 1.22, h: 2.44 },
       ],
+    } },
+  { name: 'Bobber', category: 'Stages', parTime: 10.0, maxShots: 14,
+    desc: 'A paper each side and a popper. The popper makes the middle target bob up from behind the low wall three times: about a second up each time. Get two hits on it. Misses on it aren\'t penalised once it has bobbed.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.6, yd: 7 },
+        { type: 'popper', x: 1.0, yd: 12 },
+        { type: 'paper', x: -0.4, yd: 9, bob: { by: 'S1' } },
+        { type: 'paper', x: 2.6, yd: 7 },
+      ],
+      props: [{ type: 'wall', x: -0.4, yd: 8.4, w: 1.22, h: 1.0 }],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

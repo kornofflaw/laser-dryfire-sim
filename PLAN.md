@@ -646,3 +646,7 @@ he reports a problem.
   CONFIG.sound.earPro. Also on the Controller.
 - Dueling tree HUD shows "Paddles over: n / 6" (a hit that swings one back
   takes one off) instead of "Steel down".
+- Bobber (activated, disappearing): a paper sunk out of sight behind a low
+  wall until its popper falls; then it rises for about a second, sinks,
+  and comes up again, three times, and stays down. Scored like the turner
+  and mover. New stage "Bobber" (CONFIG.range3d.bobber; courses.js bob: { by }).

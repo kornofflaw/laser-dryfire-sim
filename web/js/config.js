@@ -515,6 +515,10 @@ export const CONFIG = {
     // Activated mover (stage paper with run: { by, to }): its stand rides a
     // trolley on a timber rail (h x d m), up to `speed` m/s after `accel` s.
     trolley: { speed: 1.8, accel: 0.4, rail: [0.06, 0.1] },
+    // Bobber (stage paper with bob: { by }): sunk `drop` m out of sight
+    // behind low cover; once released it rises in `rise` s, stays `up` s,
+    // sinks and waits `down` s, `times` times, then stays down.
+    bobber: { drop: 1.0, rise: 0.25, up: 0.9, down: 0.8, times: 3 },
     // Activators (a popper for a swinger or turner) release it by a cable as
     // they fall: this many seconds after the hit.
     activateDelay: 0.3,

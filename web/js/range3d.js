@@ -408,6 +408,7 @@ export class Range3DView {
     this.swingers = [];
     this.turners = [];
     this.trolleys = [];
+    this.bobbers = [];
     this.clamshells = [];
     this.steel = null;
     this.walk = this.inspecting = null;
@@ -603,6 +604,7 @@ export class Range3DView {
     if (opts.swing) this.hangSwinger(group, card, base, opts.swing);
     if (opts.turn) this.mountTurner(group, card, opts.turn);
     if (opts.run) this.mountTrolley(group, card, opts.run);
+    if (opts.bob) this.mountBobber(group, card, opts.bob);
     return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
@@ -685,7 +687,7 @@ export class Range3DView {
     rail.userData.surface = 'wood';
     this.layoutGroup.add(rail);
     this.addSolids([rail]);
-    card.meta.run = true; // not walked up to (it ends behind cover)
+    card.meta.hides = true; // not walked up to (it ends behind cover)
     this.trolleys.push({ group, by: run.by, x0, x1, speed: run.speed ?? T.speed, t0: null });
   }
 
@@ -698,6 +700,29 @@ export class Range3DView {
       const a = u < 1 ? u * u : 1 - C.bounce * Math.max(0, Math.sin(Math.PI * (u - 1) / 0.35)) * Math.exp(-3 * (u - 1)) * (u < 2.4 ? 1 : 0);
       s.hinge.rotation.x = (Math.PI / 2 - 0.02) * a;
     }
+  }
+
+  // A bobber (activated target): sunk out of sight behind low cover until its
+  // activator steel falls; then it rises, stays up, sinks and waits, `times`
+  // times, and ends hidden: a disappearing target. bob: { by, times? }.
+  mountBobber(group, card, bob) {
+    card.meta.hides = true;
+    group.position.y = -R().bobber.drop;
+    this.bobbers.push({ group, by: bob.by, times: bob.times ?? R().bobber.times, t0: null });
+  }
+
+  // How far up a released bobber is, 0 (sunk) .. 1 (up), u s after release.
+  bobberUp(u, times) {
+    const B = R().bobber, period = 2 * B.rise + B.up + B.down;
+    if (u < 0 || u >= times * period) return 0;
+    const p = u % period;
+    return p < B.rise ? smooth(p / B.rise)
+      : p < B.rise + B.up ? 1
+      : p < 2 * B.rise + B.up ? 1 - smooth((p - B.rise - B.up) / B.rise) : 0;
+  }
+
+  updateBobbers(now) {
+    for (const s of this.bobbers) s.group.position.y = -R().bobber.drop * (1 - (s.t0 == null ? 0 : this.bobberUp(now - s.t0, s.times)));
   }
 
   // Run the released trolleys (render()).
@@ -796,7 +821,7 @@ export class Range3DView {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
       const t = this.makeTarget(it.x, slot++, {
-        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, bob: it.bob, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       });
       if (R().paste.on) this.earlierShooters(t.card);
       this.targets.push(t);
@@ -933,6 +958,7 @@ export class Range3DView {
     this.swingers?.forEach(s => { s.t0 = null; });
     this.turners?.forEach(s => { s.t0 = null; });
     this.trolleys?.forEach(s => { s.t0 = null; });
+    this.bobbers?.forEach(s => { s.t0 = null; });
     this.clamshells?.forEach(s => { s.t0 = null; });
     this.steel?.reset();
     this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
@@ -977,7 +1003,7 @@ export class Range3DView {
   // the firing line. Pop-ups and movers are skipped. No shots count while
   // away from the line (walking).
   inspectable() {
-    return this.targets.filter(t => t.card?.face && t.card.meta.kind !== 'popup' && t.card.meta.mover == null && !t.card.meta.run);
+    return this.targets.filter(t => t.card?.face && t.card.meta.kind !== 'popup' && t.card.meta.mover == null && !t.card.meta.hides);
   }
 
   get walking() { return !!this.walk; }
@@ -1053,6 +1079,7 @@ export class Range3DView {
     if (this.swingers?.length) this.updateSwingers(now);
     if (this.turners?.length) this.updateTurners(now);
     if (this.trolleys?.length) this.updateTrolleys(now);
+    if (this.bobbers?.length) this.updateBobbers(now);
     if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
     if (this.kind === 'popup' && this.bank) {
@@ -1156,7 +1183,7 @@ export class Range3DView {
         this.steel.hit(score.steel, score.point, score.dir, now);
         // An activator: releases its swinger.
         // (released by a cable as it falls: activateDelay s later)
-        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || []), ...(this.clamshells || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
+        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || []), ...(this.clamshells || []), ...(this.bobbers || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
       }
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
@@ -1222,6 +1249,7 @@ export class Range3DView {
     return this.fx.length > 0 || this.targets.some(t => t.card.jolt) || !!this.steel?.moving || this.movers?.length > 0 ||
       this.swingers?.some(s => s.t0 != null) || this.turners?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 2 * R().turner.time + s.show) ||
       this.trolleys?.some(s => s.t0 != null && Math.abs(s.group.position.x - s.x1) > 1e-4) ||
+      this.bobbers?.some(s => s.t0 != null && s.group.position.y > -R().bobber.drop + 1e-4) ||
       this.clamshells?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 3 * R().props.clamshell.fall) ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }

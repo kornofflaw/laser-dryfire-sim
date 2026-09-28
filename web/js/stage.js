@@ -14,9 +14,10 @@
 // Target ids come from stageTargets() (courses.js): P1.. paper, NS1..
 // no-shoots, S1.. steel; range3d.js gives each hit the same id.
 //
-// Disappearing targets (a drop turner: paper with turn: { by }, or an
-// activated mover: run: { by, to }): once its activator steel is down it
-// shows for a moment and turns away (or runs behind cover). Its missing
+// Disappearing targets (a drop turner: paper with turn: { by }, an
+// activated mover: run: { by, to }, or a bobber: bob: { by }): once its
+// activator steel is down it shows for a while, then turns away (runs
+// behind cover, sinks for good). Its missing
 // hits aren't penalised if it was activated (USPSA); if its activator was
 // never hit, they're misses as usual. The run counts it as engaged once it
 // has turned away.
@@ -27,6 +28,7 @@ const R = () => CONFIG.range3d;
 // How long a disappearing target can be seen once released (s).
 function showWindow(it) {
   if (it.turn) return 2 * R().turner.time + (it.turn.show ?? R().turner.show);
+  if (it.bob) { const B = R().bobber; return (it.bob.times ?? B.times) * (2 * B.rise + B.up + B.down) - B.down; }
   const speed = it.run.speed ?? R().trolley.speed;
   return Math.abs(it.run.to - it.x) / speed + R().trolley.accel / 2;
 }
@@ -40,7 +42,7 @@ export class StageRunner extends DrillRunner {
     const items = stageTargets(this.course.stage);
     this.papers = items.filter(i => i.type === 'paper').map(i => i.id);
     this.steel = items.filter(i => i.steel).map(i => i.id);
-    this.vanish = items.filter(i => i.turn || i.run).map(i => ({ id: i.id, by: (i.turn || i.run).by, window: showWindow(i) }));
+    this.vanish = items.filter(i => i.turn || i.run || i.bob).map(i => ({ id: i.id, by: (i.turn || i.run || i.bob).by, window: showWindow(i) }));
   }
 
   // A disappearing paper: was it activated, and has it turned away (ms)?
