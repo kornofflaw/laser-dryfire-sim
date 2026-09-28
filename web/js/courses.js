@@ -31,7 +31,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'Match', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'My Stages', 'Match', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals

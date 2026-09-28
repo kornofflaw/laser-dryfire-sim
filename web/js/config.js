@@ -721,5 +721,14 @@ export const CONFIG = {
     settings: 'ldfs.settings.v1',
     calibration: 'ldfs.calibration.v1',
     log: 'ldfs.log.v1',
+    stages: 'ldfs.stages.v1', // your own stages (builder.js)
+  },
+
+  // ---- Stage builder (builder.js) ------------------------------------------------
+  // New stages start from `starter`; x across (m, left negative) up to maxX,
+  // distance within `yards`; maxShots = 2 per paper + steel + spareRounds.
+  builder: {
+    par: 10, maxX: 5, yards: [3, 30], spareRounds: 8,
+    starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
   },
 };

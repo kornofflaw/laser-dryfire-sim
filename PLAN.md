@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Rain on the steel: water sheeting and duller paint; puddles on the bay floor.
-3. A stage builder: Andrew picks targets, props and distances in a simple form and saves his own stages (browser storage).
+3. Stage builder extras: activators (swinger / turner / pop-up / clamshell) and shooting positions in the form; show My Stages on the Controller.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -737,3 +737,9 @@ he reports a problem.
   count. New stage "Pop-up Surprise" (CONFIG.range3d.popUp).
 - "Night Match: 3 Stages" (Low Light, Pop-up Surprise, Drop Turner), all
   under the floodlight: a match can set the time of day for its stages.
+- Stage builder: Courses -> "Build a stage" (or B). Name, par, and rows of
+  paper, no-shoots, poppers, mini poppers, plates, walls and barrels, each
+  at x metres across and a distance in yards. Saved in this browser and
+  listed under "My Stages"; B on one of your stages edits (or deletes) it.
+  builder.js, CONFIG.builder, CONFIG.storage.stages. (Not on the
+  Controller's list yet.)

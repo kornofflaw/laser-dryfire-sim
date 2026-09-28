@@ -7,6 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { load, save, remove } from './storage.js';
+import { loadStages, stageCourse, openBuilder } from './builder.js';
 import { unlockAudio, shotPop, hitDing, steelPing, penaltyBuzz, setAudioForwarder, setAmbience, setVolumes, setSoundChoices, footstep, glassBreak, distantShot, setRain, say } from './audio.js';
 import { CHANNEL, REMOTE_ACTIONS, snapshotControls } from './remote.js';
 import { Range, LAYOUTS, RANGE3D_KIND, TO_3D, is3DLayout } from './range.js';
@@ -212,6 +213,8 @@ range.onReset = () => {
   if (!v.setLayout(range.layout)) v.resetTargets(); // rebuilt for a new layout/stage, or just cleared
 };
 
+// Your own stages (builder.js) join the course list, at the end.
+for (const s of loadStages()) COURSES.push(stageCourse(s));
 let courseIndex = Math.max(0, COURSES.findIndex(c => c.name === settings.course));
 const course = () => COURSES[courseIndex];
 const active = () => runners[course().type];
@@ -693,6 +696,25 @@ const actions = {
     calibration.open();
   },
   hideHud() { $('#hud').classList.toggle('hidden'); },
+  // Build (or edit, if one of yours is picked) a stage.
+  builder() {
+    if (active().busy) return toast('Finish or cancel the run first (Esc).');
+    closeCourses();
+    const current = course().custom ? loadStages().find(s => s.name === course().name) || null : null;
+    // (point the selection at the first course while the list changes)
+    const drop = name => { const i = COURSES.findIndex(c => c.custom && c.name === name); if (i >= 0) { courseIndex = 0; COURSES.splice(i, 1); } };
+    openBuilder(current, {
+      toast,
+      onSave(stage, oldName) {
+        if (oldName) drop(oldName);
+        drop(stage.name);
+        COURSES.push(stageCourse(stage));
+        selectCourse(COURSES.length - 1, false);
+        toast(`Saved "${stage.name}" (Courses -> My Stages). Space to shoot it.`);
+      },
+      onDelete(name) { drop(name); selectCourse(0, false); toast(`Deleted "${name}".`); },
+    });
+  },
   review() {
     if (active().busy) return toast('Finish or cancel the run first (Esc).');
     if (!review.open()) toast('No runs to review yet. Finish a course first.');
@@ -744,8 +766,13 @@ window.addEventListener('keydown', e => {
     if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#match').hidden = true; }
     return;
   }
+  if (!$('#builder').hidden) {
+    if (e.key === 'Escape') { e.preventDefault(); $('#builder').hidden = true; }
+    return;
+  }
   if (!$('#courses').hidden) {
     if (e.key === 'Escape' || e.key.toLowerCase() === 'd') { e.preventDefault(); closeCourses(); }
+    if (e.key.toLowerCase() === 'b') { e.preventDefault(); actions.builder(); }
     return;
   }
   if (!$('#help').hidden) {
@@ -768,6 +795,7 @@ window.addEventListener('keydown', e => {
     '?': () => actions.help(),
     v: () => actions.review(),
     i: () => actions.inspect(),
+    b: () => actions.builder(),
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
     x: () => active().setCover?.(true), // hold: take cover (office)
@@ -1207,6 +1235,7 @@ function openCourses() {
 }
 function closeCourses() { $('#courses').hidden = true; }
 $('[data-act="close-courses"]').onclick = () => closeCourses();
+$('[data-act="builder"]').onclick = () => actions.builder();
 $('#courses').addEventListener('click', e => {
   if (e.target.id === 'courses') closeCourses(); // click outside the card
 });
