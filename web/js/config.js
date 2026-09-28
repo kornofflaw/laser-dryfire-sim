@@ -751,6 +751,12 @@ export const CONFIG = {
       'standing in the box, loaded gun on the table, hands at your sides',
       'seated on the chair, hands flat on your thighs',
     ],
+    // Hard cover a paper row can carry: black paint cm in from that edge of
+    // the target (shots there don't score; USPSA hard cover).
+    hardCover: {
+      left: { cm: 15, label: 'cover: left third' }, right: { cm: 15, label: 'cover: right third' },
+      bottom: { cm: 38, label: 'cover: lower half' }, top: { cm: 22, label: 'cover: head' },
+    },
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
   },
 };

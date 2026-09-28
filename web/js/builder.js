@@ -18,6 +18,7 @@ const TYPES = {
 const STEEL = ['popper', 'mini', 'plate'];
 const PROPS = ['wall', 'barrel', 'clamshell'];
 const ACTIVATED = ['pop', 'turn', 'swing', 'bob', 'run', 'clamshell']; // released by a steel (row.by); a mover runs to row.to
+const PAPER = ['paper', 'pop', 'turn', 'swing', 'bob', 'run']; // may carry hard cover (row.hard: a side of CONFIG.builder.hardCover)
 // A 'position' row: you run there; the targets listed after it are shot
 // from there (the first position is the start, x 0 at the firing line).
 
@@ -34,7 +35,7 @@ export function stageCourse(s) {
     if (r.type === 'position' && !items.length && positions.length === 1) positions[0] = { x: r.x, yd: r.yd }; // before any target: where you start
     else if (r.type === 'position') positions.push({ x: r.x, yd: r.yd });
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
-    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}) });
+    else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)) });
   }
   const act = items.filter(i => i.pop || i.turn || i.swing || i.bob || i.run).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
@@ -45,6 +46,12 @@ export function stageCourse(s) {
     stage: { items, props, ...(positions.length > 1 ? { positions } : {}), ...(s.start ? { start: s.start } : {}) },
   };
 }
+
+// Hard cover painted on a paper row: { hard: { side, cm } } or nothing.
+const hardCover = r => {
+  const cm = PAPER.includes(r.type) && CONFIG.builder.hardCover[r.hard]?.cm;
+  return cm ? { hard: { side: r.hard, cm } } : {};
+};
 
 // A stock stage as builder rows (to copy it into My Stages): the targets
 // shot from each position follow that position's row; props come first.
@@ -58,7 +65,8 @@ export function stageRows(course) {
     if (k || (P && (P.x || P.yd))) rows.push({ type: 'position', x: P.x || 0, yd: P.yd || 0 });
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
       const act = ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
-      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by, ...(act === 'run' ? { to: it.run.to } : {}) } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd });
+      const hard = it.hard?.side ? { hard: it.hard.side } : {};
+      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard });
     }
   }
   return { name: `${course.name} (my copy)`, par: course.parTime, rows, start: st.start };
@@ -85,7 +93,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}</td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -109,6 +117,10 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       if (STEEL.includes(r.type)) { g.fillStyle = '#f2f2ee'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.fillStyle = '#333'; g.fillText(ids[steelN++], x, y - 8); continue; }
       g.fillStyle = r.type === 'noshoot' ? '#f4f4f0' : ACTIVATED.includes(r.type) ? '#d19a4a' : '#c49a64';
       g.fillRect(x - 6, y - 3, 12, 6);
+      if (PAPER.includes(r.type) && B.hardCover[r.hard]) { // hard cover: the painted edge, black
+        g.fillStyle = '#161616';
+        g.fillRect(...{ left: [x - 6, y - 3, 4, 6], right: [x + 2, y - 3, 4, 6], top: [x - 6, y - 3, 12, 2], bottom: [x - 6, y + 1, 12, 2] }[r.hard]);
+      }
       if (ACTIVATED.includes(r.type)) { g.fillStyle = '#333'; g.fillText(r.type, x, y - 6); }
     }
     const [sx, sy] = start || [px(0), py(0)];
@@ -122,7 +134,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
     const r = rows[Number(tr.dataset.i)];
-    r[k] = k === 'type' || k === 'by' ? e.target.value : Number(e.target.value);
+    r[k] = k === 'type' || k === 'by' || k === 'hard' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();
   };
@@ -134,7 +146,8 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const ids = steelIds(rows);
     rows = rows.map(r => ({ type: r.type, x: clamp(r.x, -B.maxX, B.maxX), yd: r.type === 'position' ? clamp(r.yd, 0, B.maxRun) : clamp(r.yd, B.yards[0], B.yards[1]),
       ...(ACTIVATED.includes(r.type) ? { by: ids.includes(r.by) ? r.by : ids[0] } : {}),
-      ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}) }));
+      ...(r.type === 'run' ? { to: clamp(r.to ?? -r.x, -B.maxX, B.maxX) } : {}),
+      ...(PAPER.includes(r.type) && B.hardCover[r.hard] ? { hard: r.hard } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'position')) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
     const stage = { name, par, rows, start: $('#b-start').value };
@@ -178,7 +191,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
 // Stage codes: 'DFS1.' + base64url(JSON). Checked on the way back in.
 const CODE = 'DFS1.';
 export function encodeStage(s) {
-  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '']) });
+  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '']) });
   return CODE + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function decodeStage(code) {
@@ -187,8 +200,9 @@ export function decodeStage(code) {
     if (!code.startsWith(CODE)) return null;
     const b64 = code.slice(CODE.length).replace(/-/g, '+').replace(/_/g, '/');
     const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
-    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to]) => ({
+    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard]) => ({
       type, x: Number(x) || 0, yd: Number(yd) || 0, ...(by ? { by: String(by) } : {}), ...(to !== '' && to != null ? { to: Number(to) } : {}),
+      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}),
     }));
     if (!rows.length) return null;
     return { name: String(o.n || 'Shared stage').slice(0, 40), par: Number(o.p) || CONFIG.builder.par, start: o.s ? String(o.s).slice(0, 120) : '', rows };
