@@ -38,6 +38,7 @@ const settings = Object.assign({
   course: 'Free Run',
   seenHelp: false,
   upTimes: {},        // per-course "time up" overrides (seconds)
+  pars: {},           // per-course par time overrides (seconds; [ ] on drills and stages)
   real3d: true,       // courses whose targets exist in 3D use the photo-realistic 3D range
   yards3d: {},        // 3D range distance per kind of target (defaults: CONFIG.range3d.yards)
   cars3d: CONFIG.knife3d.defaultCars, // parked cars in the 3D lot
@@ -463,6 +464,8 @@ function frame(now) {
 // ---- Actions ---------------------------------------------------------------------------
 // A course with the user's saved "time up" applied (flip grid / pop-ups).
 function withUpTime(c) {
+  const par = settings.pars?.[c.name];
+  if (par != null && c.parTime != null && c.upTime == null) c = { ...c, parTime: par }; // your own par ([ ])
   const base = settings.upTimes?.[c.name];
   if (base == null || c.upTime == null) return c;
   return { ...c, upTime: scaledUpTime(c.upTime, base) };
@@ -493,8 +496,25 @@ function setUpTime(value) {
 }
 
 function adjustUpTime(dir) {
-  if (course().upTime == null) return toast('[ and ] change the time up on flip grid and pop-up courses.');
+  if (course().upTime == null) return adjustPar(dir);
   setUpTime(upTimeBase(course()) + dir * CONFIG.upTime.step);
+}
+
+// Drills and stages: [ and ] set your own par, as on a shot timer (kept per
+// course; back at the standard par it's forgotten).
+function adjustPar(dir) {
+  const c = course(), P = CONFIG.timer.par;
+  if (c.parTime == null) return toast('[ and ] change the par time on drills and stages, and the time up on flip grid and pop-up courses.');
+  if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  const cur = active().course?.name === c.name ? active().course.parTime : withUpTime(c).parTime;
+  const v = Math.round(Math.min(P.max, Math.max(P.min, cur + dir * P.step)) * 100) / 100;
+  const pars = { ...(settings.pars || {}) };
+  if (Math.abs(v - c.parTime) < 1e-6) delete pars[c.name]; else pars[c.name] = v;
+  settings.pars = pars;
+  persist();
+  active().setCourse(withUpTime(c));
+  refreshSetup();
+  toast(`Par ${v.toFixed(2)} s${Math.abs(v - c.parTime) < 1e-6 ? ' (standard)' : ` (standard ${c.parTime.toFixed(2)} s)`}`);
 }
 
 // Pick a course: set its runner and put up its targets.

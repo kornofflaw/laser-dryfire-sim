@@ -612,3 +612,8 @@ he reports a problem.
   the targets showed pasters, not your hits). Now after a run the targets
   stay as shot until the next run (Space) or R; free practice still resets
   itself.
+- Your own par time, as on a real shot timer: on drills and stages [ and ]
+  lower / raise the par by 0.1 s (remembered per course; back at the
+  standard par it's forgotten). Pass/fail and the par beep use it. Pop-up
+  and flip courses keep [ ] for time up. Controller buttons renamed "Par /
+  up time". CONFIG.timer.par.

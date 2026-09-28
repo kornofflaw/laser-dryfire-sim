@@ -85,6 +85,7 @@ export const CONFIG = {
       afterPause: 1.5,
     },
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
+    par: { step: 0.1, min: 0.5, max: 60 }, // your own par ([ ] on drills and stages), seconds
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
