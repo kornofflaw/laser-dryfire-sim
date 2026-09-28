@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Share a stage: export / import your stage as a short text code (copy between browsers or send to a friend).
+3. Stage timer per position (split times at each position on the review sheet).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -772,3 +772,7 @@ he reports a problem.
   you start.
 - Stage builder: bobbers and activated movers (with the x it runs to), so
   every stock stage can be copied faithfully.
+- Stage builder: share codes. "Make code" turns the form into a short text
+  code (copied to the clipboard); paste one into "Share code" and "Load
+  code" to bring a stage into another browser (then Save). Codes are
+  checked on the way in.

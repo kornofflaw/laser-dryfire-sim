@@ -150,8 +150,47 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     el.hidden = true;
     onDelete(current.name);
   };
+  // Share: the form as a short text code (to paste into another browser).
+  $('#b-code').value = '';
+  $('#b-export').onclick = () => {
+    const code = encodeStage({ name: $('#b-name').value.trim() || 'Shared stage', par: Number($('#b-par').value) || B.par, start: $('#b-start').value, rows });
+    $('#b-code').value = code;
+    $('#b-code').select();
+    navigator.clipboard?.writeText(code).then(() => toast('Stage code copied.'), () => toast('Stage code made: copy it from the box.'));
+  };
+  $('#b-import').onclick = () => {
+    const s = decodeStage($('#b-code').value);
+    if (!s) return toast('That isn\'t a stage code.');
+    rows = s.rows;
+    $('#b-name').value = s.name;
+    $('#b-par').value = s.par;
+    if (s.start && ![...$('#b-start').options].some(o => o.value === s.start)) $('#b-start').add(new Option(s.start, s.start), 0);
+    $('#b-start').value = s.start || B.starts[0];
+    rerender();
+    toast(`Loaded "${s.name}" - Save to keep it.`);
+  };
   $('#b-close').onclick = () => { el.hidden = true; };
   el.hidden = false;
 }
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
+
+// Stage codes: 'DFS1.' + base64url(JSON). Checked on the way back in.
+const CODE = 'DFS1.';
+export function encodeStage(s) {
+  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '']) });
+  return CODE + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+export function decodeStage(code) {
+  try {
+    code = String(code).trim();
+    if (!code.startsWith(CODE)) return null;
+    const b64 = code.slice(CODE.length).replace(/-/g, '+').replace(/_/g, '/');
+    const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to]) => ({
+      type, x: Number(x) || 0, yd: Number(yd) || 0, ...(by ? { by: String(by) } : {}), ...(to !== '' && to != null ? { to: Number(to) } : {}),
+    }));
+    if (!rows.length) return null;
+    return { name: String(o.n || 'Shared stage').slice(0, 40), par: Number(o.p) || CONFIG.builder.par, start: o.s ? String(o.s).slice(0, 120) : '', rows };
+  } catch { return null; }
+}
