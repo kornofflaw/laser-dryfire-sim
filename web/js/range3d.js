@@ -1010,6 +1010,30 @@ export class Range3DView {
     for (const pr of def.props || []) this.addProp(pr);
     // Shooting boxes: a square of 2x4 boards on the ground at each position.
     for (const P of def.positions || []) this.addBox(this.layoutGroup, P.x || 0, P.yd || 0);
+    // Target numbers (as on the score sheet) on small tags at the foot of the
+    // static paper and the steel.
+    const L = R().targetTags;
+    if (L.on) for (const it of stageTargets(def)) {
+      if (it.type === 'noshoot' || it.swing || it.turn || it.run || it.bob || it.pop) continue;
+      this.addTag(it.id, it.x + (it.steel ? L.steelDx : L.paperDx), it.yd);
+    }
+  }
+
+  // A little white tag with a painted number, stood on the ground.
+  addTag(text, x, yd) {
+    const L = R().targetTags, c = document.createElement('canvas');
+    c.width = 128; c.height = 80;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ecebe4'; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#1b1b1b'; g.font = '900 54px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, c.width / 2, c.height * 0.54);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const tag = new THREE.Mesh(new THREE.PlaneGeometry(L.w, L.w * 0.625), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 }));
+    tag.position.set(x, L.h, -yd * YARD + L.dz);
+    tag.rotation.x = -0.25; // leaning back a little, readable from the box
+    tag.castShadow = true;
+    this.layoutGroup.add(tag);
   }
 
   // A shooting box (a square of 2x4 boards) at x m, yd downrange of the line.

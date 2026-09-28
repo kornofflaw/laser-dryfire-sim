@@ -633,6 +633,9 @@ export const CONFIG = {
     // Drills that start facing uprange (course turnStart): the turn to the
     // targets at the beep takes `time` s (side 1 / -1: which way round).
     turnAround: { time: 0.55, side: 1 },
+    // Stage target numbers (P1, S1... as on the score sheet): tags w m wide,
+    // centre h m up, dz m in front, offset across from the paper / steel.
+    targetTags: { on: true, w: 0.24, h: 0.13, dz: 0.35, paperDx: -0.32, steelDx: -0.25 },
     walkthroughPause: 2.5,  // stage walkthrough (W): seconds looking from each position
     // Stage positions with a stance (kneel / prone): eye height m and the
     // height it looks at downrange (low ports sit low).
