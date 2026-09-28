@@ -184,6 +184,7 @@ export class StageRunner extends DrillRunner {
       notes: problems.join('; '),
       ...(this.positions ? { stations: [...this.stationTimes, time] } : {}),
       ...(this.benchmark() ? { benchmark: this.benchmark() } : {}),
+      maxPoints: this.papers.length * this.perPaper * CONFIG.points.A + this.steel.length * CONFIG.points.Steel, // (a clean all-A run)
       ...this.extraResult(),
     };
     this.state = State.Done;

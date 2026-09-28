@@ -64,6 +64,7 @@ const settings = Object.assign({
   paperDing: true,    // a ding on paper hits (real cardboard is silent)
   splitGoal: 0,       // shot timer: flag splits slower than this (s; 0 = off)
   drawGoal: 0,        // shot timer: flag a first shot slower than this (s; 0 = off)
+  squad: '',         // match squad: names, comma separated (each shoots every stage in turn)
   autoRepeat: 0,      // shot timer REP mode: next drill / stage run starts this many s after the last (0 = off)
   earPro: 'none',     // hearing protection you hear through: none | electronic | passive
   paste: true,        // 3D range: paste holes between runs
@@ -284,8 +285,11 @@ DrillRunner.saveBests = b => save(CONFIG.storage.bests, b);
 // loads by itself (once you're back from walking the targets / the review);
 // after the last, the results. Picking any other course ends the match.
 let match = null, matchSelecting = false;
+// A squad (Setup): every shooter shoots each stage in turn, then the next stage.
+const squad = () => settings.squad.split(',').map(s => s.trim()).filter(Boolean).slice(0, CONFIG.match.maxSquad);
 function startMatch(def) {
-  match = { def, i: 0, results: [], nextAt: null };
+  const names = squad();
+  match = { def, i: 0, j: 0, shooters: names.length ? names : ['You'], results: [], nextAt: null };
   loadMatchStage();
 }
 function loadMatchStage() {
@@ -294,12 +298,13 @@ function loadMatchStage() {
   selectCourse(COURSES.findIndex(c => c.name === name), false);
   matchSelecting = false;
   match.nextAt = null;
-  toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}. Space when ready.`);
+  const who = match.shooters.length > 1 ? ` Shooter: ${match.shooters[match.j]}${match.shooters[match.j + 1] ? ` (on deck: ${match.shooters[match.j + 1]})` : ''}.` : '';
+  toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}.${who} Space when ready.`);
 }
 function matchStageDone(result) {
   if (!match || result.course !== match.def.stages[match.i]) return false;
-  match.results.push({ name: result.course, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete, bench: result.benchmark || 0 });
-  match.i++;
+  match.results.push({ name: result.course, shooter: match.shooters[match.j], stage: match.i, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete, bench: result.benchmark || 0, max: result.maxPoints || 0 });
+  if (++match.j >= match.shooters.length) { match.j = 0; match.i++; }
   if (match.i < match.def.stages.length) match.nextAt = performance.now() + CONFIG.match.nextStageAfter * 1000;
   else setTimeout(showMatchResults, 1500);
   return true;
@@ -309,6 +314,7 @@ function showMatchResults() {
   const r = match.results, f = v => v.toFixed(2);
   const pts = r.reduce((a, s) => a + s.points, 0), time = r.reduce((a, s) => a + s.time, 0);
   $('#match-title').textContent = `${match.def.name}: results`;
+  if (match.shooters.length > 1) return showSquadResults();
   if (r.every(s => s.type === 'strings')) {
     // Steel Challenge style: each stage's total time, lowest wins.
     $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Total time</th></tr>` +
@@ -325,6 +331,31 @@ function showMatchResults() {
     r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${s.points}</td><td>${f(s.time)}</td><td>${f(s.hf)}</td><td>${pct(s) != null ? pct(s) + '%' : '-'}</td></tr>`).join('') +
     `<tr><th>Match</th><th>${pts}</th><th>${f(time)}</th><th>${f(time > 0 ? pts / time : 0)}</th><th>${pcts.length ? Math.round(pcts.reduce((a, v) => a + v, 0) / pcts.length) + '%' : '-'}</th></tr></table>` +
     `<p class="note">Match hit factor = all points / all time. Stage hit factors can be compared with other shooters' on the same stage; the benchmark is an estimated top-shooter run.</p>`;
+  $('#match').hidden = false;
+  match = null;
+}
+// A squad's results, scored as at a USPSA match: on each stage the best hit
+// factor gets the stage's points (its maximum), everyone else those points x
+// their HF / the best HF; the match is the sum, and % of the winner.
+// (Steel Challenge style matches: total time, lowest wins.)
+function showSquadResults() {
+  const f = v => v.toFixed(2), S = match.def.stages, names = match.shooters, R = match.results;
+  const of = (who, k) => R.find(r => r.shooter === who && r.stage === k);
+  let rows;
+  if (R.every(r => r.type === 'strings')) {
+    rows = names.map(n => ({ n, cells: S.map((_, k) => of(n, k)?.time ?? null), total: S.reduce((a, _, k) => a + (of(n, k)?.time ?? 0), 0) })).sort((a, b) => a.total - b.total);
+    $('#match-body').innerHTML = `<table><tr><th>#</th><th>Shooter</th>${S.map((s, k) => `<th title="${s}">Stage ${k + 1}</th>`).join('')}<th>Total time</th></tr>` +
+      rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.n}</td>${r.cells.map(c => `<td>${c == null ? '-' : f(c)}</td>`).join('')}<td><b>${f(r.total)}</b></td></tr>`).join('') +
+      `</table><p class="note">Lowest total time wins.</p>`;
+  } else {
+    const best = S.map((_, k) => Math.max(0, ...names.map(n => of(n, k)?.hf || 0)));
+    const stagePts = (n, k) => { const r = of(n, k); if (!r || !best[k]) return 0; const max = r.max || Math.max(...names.map(m => of(m, k)?.points || 0)); return (max * r.hf) / best[k]; };
+    rows = names.map(n => ({ n, cells: S.map((_, k) => stagePts(n, k)), total: S.reduce((a, _, k) => a + stagePts(n, k), 0) })).sort((a, b) => b.total - a.total);
+    const top = rows[0]?.total || 0;
+    $('#match-body').innerHTML = `<table><tr><th>#</th><th>Shooter</th>${S.map((s, k) => `<th title="${s}">Stage ${k + 1}</th>`).join('')}<th>Match pts</th><th>%</th></tr>` +
+      rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.n}</td>${r.cells.map((c, k) => `<td title="HF ${f(of(r.n, k)?.hf || 0)}">${f(c)}</td>`).join('')}<td><b>${f(r.total)}</b></td><td>${top ? (100 * r.total / top).toFixed(1) : '0.0'}%</td></tr>`).join('') +
+      `</table><p class="note">USPSA match scoring: on each stage the best hit factor earns the stage's full points; everyone else earns them in proportion to their hit factor. Stages: ${S.map((s, k) => `${k + 1} ${s}`).join(' · ')}.</p>`;
+  }
   $('#match').hidden = false;
   match = null;
 }
@@ -1160,6 +1191,7 @@ $('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = 
 $('#opt-ding').onchange = e => { settings.paperDing = e.target.checked; persist(); };
 $('#opt-draw').onchange = e => { settings.drawGoal = CONFIG.timer.drawGoal = Number(e.target.value); persist(); };
 $('#opt-split').onchange = e => { settings.splitGoal = CONFIG.timer.splitGoal = Number(e.target.value); persist(); };
+$('#opt-squad').onchange = e => { settings.squad = e.target.value; persist(); toast(squad().length > 1 ? `Squad: ${squad().join(', ')} - pick a match (Courses -> Match).` : 'Squad cleared: matches are just you.'); };
 $('#opt-repeat').onchange = e => { settings.autoRepeat = Number(e.target.value); repeatAt = null; persist(); };
 $('#opt-earpro').onchange = e => {
   settings.earPro = e.target.value;
@@ -1171,6 +1203,7 @@ function refreshSound() {
   $('#opt-ro').checked = settings.roCommands;
   $('#opt-ding').checked = settings.paperDing;
   $('#opt-repeat').value = String(settings.autoRepeat);
+  $('#opt-squad').value = settings.squad;
   $('#opt-draw').value = settings.drawGoal ? Number(settings.drawGoal).toFixed(2) : '0';
   $('#opt-split').value = Number(settings.splitGoal).toFixed(2) === '0.00' ? '0' : Number(settings.splitGoal).toFixed(2);
   $('#opt-earpro').value = settings.earPro;

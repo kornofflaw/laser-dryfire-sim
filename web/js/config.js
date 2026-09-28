@@ -111,7 +111,9 @@ export const CONFIG = {
   // ---- Match (course type 'match', main.js) ------------------------------------
   // After a stage's run the next stage loads nextStageAfter s later (once
   // you're back from walking the targets or the review).
-  match: { nextStageAfter: 8 },
+  // maxSquad: shooters in a squad (Setup -> Match squad): each shoots every
+  // stage in turn; results use USPSA match scoring.
+  match: { nextStageAfter: 8, maxSquad: 8 },
 
   // ---- Steel Challenge style (course type 'strings', stage.js) -------------------
   // `strings` strings per run; a string ends on the stop plate, each plate
