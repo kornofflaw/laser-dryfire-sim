@@ -299,7 +299,8 @@ function loadMatchStage() {
   matchSelecting = false;
   match.nextAt = null;
   const who = match.shooters.length > 1 ? ` Shooter: ${match.shooters[match.j]}${match.shooters[match.j + 1] ? ` (on deck: ${match.shooters[match.j + 1]})` : ''}.` : '';
-  toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}.${who} Space when ready.`);
+  const walk = course().stage?.positions?.length > 1 ? ' W for the walkthrough,' : '';
+  toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}.${who}${walk} Space when ready.`);
 }
 function matchStageDone(result) {
   if (!match || result.course !== match.def.stages[match.i]) return false;
