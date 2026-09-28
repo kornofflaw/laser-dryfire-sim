@@ -47,6 +47,7 @@ const settings = Object.assign({
   lotRain: false,     // parking lot in the rain (wet asphalt, rain, rain sound)
   rangeTime: 'day',   // 3D range time of day: day / morning / evening / night
   rangeWind: 'breezy', // 3D range wind: calm / breezy / windy
+  rangeWeather: 'dry', // 3D range weather: dry / rain
   office: {},         // office scenario options (defaults: CONFIG.office3d.options)
   lifeSize: false,    // 3D field of view matched to the screen (CONFIG.lifeSize)
   quality: 'auto',    // 3D graphics: auto | high | medium | low (CONFIG.post)
@@ -164,6 +165,7 @@ function ensureRange3D() {
     await view.init({ yards, star: range.star, popups: range.popups, flip: range.flip, stage: () => range.stageDef });
     view.setTime(rangeTime());
     view.setWind(settings.rangeWind);
+    view.setWeather(settings.rangeWeather);
     resize3D();
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
@@ -469,7 +471,7 @@ function frame(now) {
   // Background sound for the scene on screen (none for 2D courses).
   const amb = range.layout === 'office3d' ? 'office' : (range.layout === 'lot3d' || range.layout === 'scene3d') ? 'lot' : range.layout.startsWith('range3d') ? 'range' : null;
   if (amb !== lastAmbience) { lastAmbience = amb; setAmbience(amb); }
-  const rain = amb === 'lot' && settings.lotRain;
+  const rain = (amb === 'lot' && settings.lotRain) || (amb === 'range' && settings.rangeWeather === 'rain');
   if (rain !== lastRain) { lastRain = rain; setRain(rain); }
   if (v3) v3.autoReset = range.autoResetStar; // free practice: steel stands back up
   for (const v of Object.values(views3d)) v.setVisible(v === v3 && v.ready);
@@ -1003,6 +1005,11 @@ function refreshSound() {
   }
 }
 
+$('#opt-weather').onchange = e => {
+  settings.rangeWeather = e.target.value;
+  persist();
+  views3d['range3d-single']?.setWeather(settings.rangeWeather);
+};
 $('#opt-wind').onchange = e => {
   settings.rangeWind = e.target.value;
   persist();
@@ -1037,6 +1044,7 @@ function refreshSetup() {
   $('#opt-rain').checked = settings.lotRain;
   $('#opt-time').value = settings.rangeTime;
   $('#opt-wind').value = settings.rangeWind;
+  $('#opt-weather').value = settings.rangeWeather;
   $('#opt-real3d').checked = settings.real3d;
   const l3 = setupLayout3D(), kind = RANGE3D_KIND[l3];
   $('#range3d-row').hidden = !l3;

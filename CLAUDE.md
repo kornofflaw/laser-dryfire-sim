@@ -101,6 +101,7 @@ web/                    the app; deploy this folder as-is
   js/fliptiles.js       FlipBoard: steel frame of square plates that spin
   js/knife.js           KnifeRunner: parking-lot knife charge (real-world distances/speeds)
   js/knife3d.js         3D version: Lot3DView (three.js scene, rigged man, raycast hits, hit reactions) + Knife3DRunner
+  js/rain3d.js          falling rain streaks shared by 3D scenes (parking lot, range)
   js/blood3d.js         3D blood: wound stains on bones, droplet spray, mist, ground drops
   js/holes3d.js         3D bullet holes left on walls, desks, glass, cars and ground (office, lot, judgment scenes)
   js/char3d.js          reusable 3D Character: retargeted clips, IK poses (aim/handsUp/hostage), hits, falls, pistol

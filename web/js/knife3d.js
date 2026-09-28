@@ -24,6 +24,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { rainStreaks, moveRain } from './rain3d.js';
 import { CONFIG } from './config.js';
 import { KnifeRunner } from './knife.js';
 import { GroundDrops } from './blood3d.js';
@@ -379,19 +380,8 @@ export class Lot3DView {
   // Move the rain streaks (called every frame; they follow the camera).
   updateRain(dt) {
     if (!this.raining || !this.rain) return;
-    const R = V().rain, pos = this.rain.geometry.attributes.position, a = pos.array;
-    const [W, D, H] = R.area, c = this.camera.position;
-    const fall = R.speed * dt, drift = R.wind * dt;
-    for (let i = 0; i < a.length; i += 6) {
-      a[i + 1] -= fall; a[i + 4] -= fall; a[i] += drift; a[i + 3] += drift;
-      if (a[i + 4] < 0) { // hit the ground: start again at the top, somewhere new
-        const x = (Math.random() - 0.5) * W, z = -Math.random() * D, y = H * (0.8 + Math.random() * 0.2);
-        a[i] = x; a[i + 1] = y; a[i + 2] = z;
-        a[i + 3] = x + R.wind / R.speed * R.length; a[i + 4] = y - R.length; a[i + 5] = z;
-      }
-    }
-    pos.needsUpdate = true;
-    this.rain.position.set(c.x, 0, c.z + 2);
+    const R = V().rain, c = this.camera.position;
+    moveRain(this.rain, R, dt, c.x, c.z);
     // Lamp reflections: where the lamp mirrors in the wet ground as seen from
     // the camera (between you and the lamp), stretched toward you.
     const G = R.glint, lampPos = new THREE.Vector3();
@@ -794,21 +784,6 @@ function glintTexture() {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
-}
-
-// Falling rain: thin streaks (line segments) in a box that follows the camera.
-function rainStreaks(R) {
-  const n = R.drops, a = new Float32Array(n * 6), [W, D, H] = R.area;
-  for (let i = 0; i < n; i++) {
-    const x = (Math.random() - 0.5) * W, z = -Math.random() * D, y = Math.random() * H;
-    a.set([x, y, z, x + R.wind / R.speed * R.length, y - R.length, z], i * 6);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(a, 3));
-  const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: R.color, transparent: true, opacity: R.opacity, depthWrite: false, fog: true }));
-  lines.frustumCulled = false;
-  lines.renderOrder = 3;
-  return lines;
 }
 
 // Alpha mask for worn paint.

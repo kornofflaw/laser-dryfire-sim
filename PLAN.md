@@ -706,3 +706,7 @@ he reports a problem.
 - Setup -> 3D range -> Wind: Calm / Light breeze (default, as before) /
   Windy: the grass sways harder and the paper targets twist and lean in
   gusts (up to ~2 degrees; scoring follows the target). CONFIG.range3d.winds.
+- Setup -> 3D range -> Weather -> Rain: overcast grey sky, weaker sun and
+  soft shadows, grey haze closing in, darker wet gravel, falling rain and
+  the recorded rain sound. The rain streaks moved into a small shared
+  module (rain3d.js) used by the parking lot too. CONFIG.range3d.rain.

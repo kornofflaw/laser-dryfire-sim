@@ -32,6 +32,7 @@ import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { CONFIG } from './config.js';
 import { classifyUspsa } from './uspsa.js';
+import { rainStreaks, moveRain } from './rain3d.js';
 import { RANGE3D_KIND } from './range.js';
 import { steelMaterials, PlateRack, Poppers, Star3D, StageSteel, FlipGrid3D, DuelingTree } from './steel3d.js';
 import { stageTargets } from './courses.js';
@@ -399,6 +400,44 @@ export class Range3DView {
     this.sun.position.set(x, y, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), T ? rot : 0).normalize().multiplyScalar(40).add(this.sun.target.position);
     this.sun.color.set(T ? T.sunColor : '#fff3df');
     this.sun.intensity = T ? T.sun : R().sunIntensity;
+    this.base = { sun: this.sun.intensity, env: this.scene.environmentIntensity, bg: this.scene.backgroundIntensity, haze: this.scene.fog.color.clone(), sky: this.scene.background };
+    this.applyWeather();
+    this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  // Weather (Setup): 'dry' or 'rain'. Rain: overcast (weaker sun and sky
+  // light, grey haze closing in), darker wet ground, falling rain streaks.
+  setWeather(kind) {
+    this.weatherWanted = kind;
+    if (this.base) this.applyWeather();
+  }
+
+  applyWeather() {
+    const wet = this.weatherWanted === 'rain', W = R().rain, B = this.base;
+    this.raining = wet;
+    this.sun.intensity = B.sun * (wet ? W.sun : 1);
+    this.scene.environmentIntensity = B.env * (wet ? W.env : 1);
+    this.scene.backgroundIntensity = B.bg * (wet ? W.bg : 1);
+    // An overcast sky: flat grey cloud, lighter toward the horizon.
+    if (wet && !this.overcast) {
+      const c = document.createElement('canvas');
+      c.width = 4; c.height = 256;
+      const g = c.getContext('2d'), grad = g.createLinearGradient(0, 0, 0, 256);
+      W.sky.forEach((col, i) => grad.addColorStop(i / (W.sky.length - 1), col));
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 4, 256);
+      this.overcast = new THREE.CanvasTexture(c);
+      this.overcast.colorSpace = THREE.SRGBColorSpace;
+    }
+    this.scene.background = wet && this.time !== 'night' ? this.overcast : B.sky;
+    this.scene.fog.color.copy(B.haze);
+    if (wet) this.scene.fog.color.lerp(new THREE.Color(W.haze), W.hazeMix);
+    this.scene.fog.near = wet ? W.hazeNear : R().hazeNear;
+    this.scene.fog.far = wet ? W.hazeFar : R().hazeFar;
+    this.gravelColor ??= this.mats.gravel.color.clone();
+    this.mats.gravel.color.copy(this.gravelColor).multiplyScalar(wet ? W.darken : 1);
+    if (wet && !this.rain) { this.rain = rainStreaks(W); this.scene.add(this.rain); }
+    if (this.rain) this.rain.visible = wet;
     this.renderer.shadowMap.needsUpdate = true;
   }
 
@@ -1139,6 +1178,7 @@ export class Range3DView {
     if (this.bobbers?.length) this.updateBobbers(now);
     if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
+    if (this.raining && this.rain) moveRain(this.rain, R().rain, dt, this.camera.position.x, this.camera.position.z);
     if (this.flashAt != null && this.time !== 'night') this.flashAt = null;
     if (this.flashAt != null) {
       // Night: the muzzle flash lights everything for a moment.

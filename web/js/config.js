@@ -512,6 +512,15 @@ export const CONFIG = {
     dirtTint: [0.66, 0.76, 1.2],   // linear RGB multipliers: turns the dirt photo into brown berm dirt
     gravelTint: [0.9, 0.9, 0.92],
     woodTint: [0.72, 0.64, 0.56],  // pine furring strips, not bleached dowels
+    // Rain (Setup -> 3D range -> Weather): overcast (sun / sky light / sky
+    // backdrop x sun / env / bg; a grey `sky` backdrop by day), haze mixed toward `haze` and closing in to
+    // hazeNear..hazeFar m, gravel darkened (x darken), and streaks as the
+    // parking lot's (drops, area, speed, length, wind, opacity, colour).
+    rain: {
+      sun: 0.15, env: 0.45, bg: 1, haze: '#8a9098', hazeMix: 0.8, hazeNear: 10, hazeFar: 120, darken: 0.72,
+      sky: ['#5c636c', '#7a8189', '#a2a8ae'], // overcast backdrop, top to horizon (not at night)
+      drops: 3500, area: [30, 36, 12], speed: 9, length: 0.4, wind: 0.6, opacity: 0.28, color: '#b8c2cc',
+    },
     // Wind (Setup -> 3D range): grass sway and paper flutter multipliers.
     winds: { calm: { grass: 0.3, flutter: 0.3 }, breezy: { grass: 1, flutter: 1 }, windy: { grass: 2.6, flutter: 4 } },
     weeds: { back: 900, side: 520, floor: 160, height: [0.2, 0.6], wind: 1 }, // dry grass tufts

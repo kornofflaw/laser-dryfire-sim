@@ -59,6 +59,7 @@ export const SETUP_CONTROLS = [
   { id: 'opt-paste', kind: 'check', label: 'Paste holes between runs' },
   { id: 'dist3d', kind: 'range', label: 'Distance', out: 'dist3d-val' },
   { id: 'opt-time', kind: 'select', label: 'Time of day' },
+  { id: 'opt-weather', kind: 'select', label: 'Weather' },
   { id: 'opt-wind', kind: 'select', label: 'Wind' },
   { id: 'cars3d', kind: 'range', label: 'Parked cars', out: 'cars3d-val' },
   { id: 'opt-night', kind: 'check', label: 'Night' },
