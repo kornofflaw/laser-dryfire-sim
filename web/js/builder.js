@@ -133,7 +133,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><input data-k="x" type="number" step="0.05" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.1" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
       <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${SWINGS.includes(r.type) ? ` <select data-k="left" title="Where it's held (behind cover) until released"><option value="">held right</option><option value="1"${r.left ? ' selected' : ''}>held left</option></select>` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${r.type === 'noshoot' ? ` <select data-k="over" title="Put it in front of the paper row above, partly covering it"><option value="">place it myself</option>${Object.entries(B.nsCover.spots).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
-      <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
+      <td class="b-acts"><button class="icon" data-up="${i}" aria-label="Move up" title="Move up"${i ? '' : ' disabled'}>↑</button><button class="icon" data-down="${i}" aria-label="Move down" title="Move down"${i < rows.length - 1 ? '' : ' disabled'}>↓</button><button class="icon" data-dup="${i}" aria-label="Duplicate" title="Duplicate (placed a little to the right)">⧉</button><button class="icon" data-del="${i}" aria-label="Remove" title="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
   const drawMap = () => {
@@ -189,7 +189,16 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();
   };
-  $('#b-rows').onclick = e => { const i = e.target.dataset.del; if (i != null) { rows.splice(Number(i), 1); rerender(); } };
+  $('#b-rows').onclick = e => {
+    const d = e.target.closest('button')?.dataset;
+    if (!d) return;
+    if (d.del != null) rows.splice(Number(d.del), 1);
+    else if (d.up != null && d.up > 0) { const i = Number(d.up); [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; }
+    else if (d.down != null && d.down < rows.length - 1) { const i = Number(d.down); [rows[i], rows[i + 1]] = [rows[i + 1], rows[i]]; }
+    else if (d.dup != null) { const r = rows[Number(d.dup)]; rows.splice(Number(d.dup) + 1, 0, { ...r, x: Math.min(B.maxX, Math.round((r.x + B.dupStep) * 100) / 100) }); }
+    else return;
+    rerender();
+  };
   $('#b-add').onclick = () => { const last = rows[rows.length - 1]; rows.push({ type: 'paper', x: last ? Math.min(B.maxX, last.x + 1.5) : 0, yd: last?.yd ?? 7 }); rerender(); };
   $('#b-save').onclick = () => {
     const name = $('#b-name').value.trim() || `My stage ${loadStages().length + 1}`;

@@ -262,9 +262,9 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Paper target backers: some stages staple paper to a full-size cardboard backer or a stick frame without legs (hanging from a rope/frame) - variety in how targets are mounted.
-3. Stage builder: a 'duplicate row' button and moving rows up / down (building bigger stages without retyping).
+3. Steel target variety: a USPSA 'Pepper popper' vs 'Classic popper' sizes, and 8" vs 10" / 12" plates in the builder (sizes on the steel rows).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: builder no-shoot overlap, swinging no-shoot, builder target heights, kneeling / prone drills, VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: builder duplicate / reorder rows, builder no-shoot overlap, swinging no-shoot, builder target heights, kneeling / prone drills, VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -823,3 +823,4 @@ he reports a problem.
 - 2026-09-28: Stage briefing: a Positions line when a stage has kneeling / prone / walk-while-shooting positions ("1 standing · 2 kneeling · 3 prone").
 - 2026-09-28: New drill "Stand and Kneel" (Positions): two on each target standing, then the view drops to kneeling (0.9 s, no shots count while getting down) and two on each again; the timer runs through. Course field stanceAfter { shots, stance }.
 - 2026-09-28: Stage builder: a no-shoot row can be placed "covering the paper above" (left / right / upper left / upper right) - it sets the x, distance and height so it hangs just in front of that paper, partly over it. Two more heights (a little low / a little high); finer x and distance steps.
+- 2026-09-28: Stage builder: each row has move up / move down / duplicate (placed 1.2 m to the right) buttons; the form is wider so everything fits.
