@@ -130,9 +130,9 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
     const ids = steelIds(rows);
     $('#b-rows').innerHTML = rows.map((r, i) => `<tr data-i="${i}">
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
-      <td><input data-k="x" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
-      <td><input data-k="yd" type="number" step="0.5" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${SWINGS.includes(r.type) ? ` <select data-k="left" title="Where it's held (behind cover) until released"><option value="">held right</option><option value="1"${r.left ? ' selected' : ''}>held left</option></select>` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
+      <td><input data-k="x" type="number" step="0.05" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
+      <td><input data-k="yd" type="number" step="0.1" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${SWINGS.includes(r.type) ? ` <select data-k="left" title="Where it's held (behind cover) until released"><option value="">held right</option><option value="1"${r.left ? ' selected' : ''}>held left</option></select>` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${r.type === 'noshoot' ? ` <select data-k="over" title="Put it in front of the paper row above, partly covering it"><option value="">place it myself</option>${Object.entries(B.nsCover.spots).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
       <td><button class="icon" data-del="${i}" aria-label="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -177,7 +177,14 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
   $('#b-rows').onchange = e => {
     const tr = e.target.closest('tr'), k = e.target.dataset.k;
     if (!tr || !k) return;
-    const r = rows[Number(tr.dataset.i)];
+    const i = Number(tr.dataset.i), r = rows[i];
+    if (k === 'over') { // a no-shoot in front of the paper above: set its x / yd / height from that paper
+      const spot = B.nsCover.spots[e.target.value], above = rows.slice(0, i).reverse().find(p => PAPER.includes(p.type));
+      if (!spot) return;
+      if (!above) return toast('Add a paper row above the no-shoot first.');
+      Object.assign(r, { x: Math.round((above.x + spot.dx) * 100) / 100, yd: Math.round((above.yd - B.nsCover.front) * 10) / 10, h: spot.h });
+      return rerender();
+    }
     r[k] = k === 'left' ? !!e.target.value : k === 'type' || k === 'by' || k === 'hard' || k === 'stance' || k === 'h' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();

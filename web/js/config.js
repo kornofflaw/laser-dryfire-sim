@@ -775,7 +775,14 @@ export const CONFIG = {
     ],
     // Heights a paper / no-shoot row can stand at: m up (+) or down (-)
     // from the normal stand height.
-    heights: { low: { dy: -0.45, label: 'low' }, high: { dy: 0.3, label: 'high' } },
+    heights: { low: { dy: -0.45, label: 'low' }, lowish: { dy: -0.25, label: 'a little low' }, highish: { dy: 0.2, label: 'a little high' }, high: { dy: 0.35, label: 'high' } },
+    // A no-shoot row can be put in front of the paper row above it, covering
+    // part of it: dx m across, `front` yd nearer, at that height.
+    nsCover: {
+      front: 0.2,
+      spots: { left: { dx: -0.3, h: 'lowish', label: 'cover the paper above: left' }, right: { dx: 0.3, h: 'lowish', label: 'cover the paper above: right' },
+        upleft: { dx: -0.25, h: 'highish', label: 'cover the paper above: upper left' }, upright: { dx: 0.25, h: 'highish', label: 'cover the paper above: upper right' } },
+    },
     // Hard cover a paper row can carry: black paint cm in from that edge of
     // the target (shots there don't score; USPSA hard cover).
     hardCover: {
