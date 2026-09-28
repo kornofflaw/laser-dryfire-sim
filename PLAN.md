@@ -262,9 +262,9 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Paper target backers: some stages staple paper to a full-size cardboard backer or a stick frame without legs (hanging from a rope/frame) - variety in how targets are mounted.
-3. Builder: Steel Challenge stop plate (red pole) choice on a plate row, so builder stages can be Steel Challenge style (strings).
+3. Plate height on the builder's plate rows (low / normal / high posts) - Steel Challenge plates stand at different heights.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: builder plate sizes, builder duplicate / reorder rows, builder no-shoot overlap, swinging no-shoot, builder target heights, kneeling / prone drills, VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: builder stop plate / Steel Challenge, builder plate sizes, builder duplicate / reorder rows, builder no-shoot overlap, swinging no-shoot, builder target heights, kneeling / prone drills, VTAC barricade + prone, port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -825,3 +825,4 @@ he reports a problem.
 - 2026-09-28: Stage builder: a no-shoot row can be placed "covering the paper above" (left / right / upper left / upper right) - it sets the x, distance and height so it hangs just in front of that paper, partly over it. Two more heights (a little low / a little high); finer x and distance steps.
 - 2026-09-28: Stage builder: each row has move up / move down / duplicate (placed 1.2 m to the right) buttons; the form is wider so everything fits.
 - 2026-09-28: Stage builder: plate rows have a size (6 / 8 / 10 / 12 in round or an 18 x 24 in rectangle); kept in codes and copies.
+- 2026-09-28: Stage builder: a plate row can be the stop plate - then your stage runs Steel Challenge style (5 strings, the slowest thrown out, shoot the stop plate last). B on a stock Steel Challenge stage opens a copy of it.

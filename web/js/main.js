@@ -724,7 +724,7 @@ const actions = {
     closeCourses();
     const current = course().custom ? loadStages().find(s => s.name === course().name) || null : null;
     // A stock stage picked: start from a copy of it (saved as a new stage of yours).
-    const prefill = !current && course().type === 'stage' && course().stage ? stageRows(course()) : null;
+    const prefill = !current && ['stage', 'strings'].includes(course().type) && course().stage ? stageRows(course()) : null;
     // (point the selection at the first course while the list changes)
     const drop = name => { const i = COURSES.findIndex(c => c.custom && c.name === name); if (i >= 0) { courseIndex = 0; COURSES.splice(i, 1); } };
     openBuilder(current, {

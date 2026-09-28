@@ -54,11 +54,19 @@ export function stageCourse(s) {
     else if (r.type === 'wall8') props.push({ type: 'wall', x: r.x, yd: r.yd, h: CONFIG.builder.tallWall });
     else if (PROPS.includes(r.type)) props.push({ type: r.type, x: r.x, yd: r.yd, ...(r.type === 'clamshell' ? { by: r.by } : {}) });
     else if (r.type === 'nsswing') items.push({ type: 'noshoot', swing: { by: r.by, ...rest(r) }, x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...height(r) });
-    else if (r.type === 'plate') items.push({ type: 'plate', x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...plateSize(r.size) });
+    else if (r.type === 'plate') items.push({ type: 'plate', x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...plateSize(r.size), ...(r.stop && !items.some(i => i.stop) ? { stop: true } : {}) });
     else items.push({ ...(ACTIVATED.includes(r.type) ? { type: 'paper', [r.type]: { by: r.by, ...(r.type === 'run' ? { to: r.to ?? -r.x } : {}), ...(r.type === 'swing' ? rest(r) : {}) } } : { type: r.type }), x: r.x, yd: r.yd, ...(pos ? { pos } : {}), ...(hardCover(r)), ...height(r) });
   }
   const act = items.filter(i => i.pop || i.turn || i.swing || i.bob || i.run).length;
   const paper = items.filter(i => i.type === 'paper').length, steel = items.filter(i => STEEL.includes(i.type)).length;
+  if (items.some(i => i.stop)) { // a stop plate: Steel Challenge style (strings, lowest total time)
+    const plates = items.filter(i => STEEL.includes(i.type)).length - 1;
+    return {
+      name: s.name, category: 'My Stages', type: 'strings', layout: 'range3d-stage', parTime: s.par, custom: true,
+      desc: `Your Steel Challenge style stage: ${plates} plate${plates === 1 ? '' : 's'} and the stop plate (red pole) - shoot it last. ${CONFIG.steelChallenge.strings} strings, the slowest thrown out. Edit it with B.`,
+      stage: { items: items.filter(i => STEEL.includes(i.type)), props, ...(s.start ? { start: s.start } : {}) },
+    };
+  }
   return {
     name: s.name, category: 'My Stages', type: 'stage', layout: 'range3d-stage', parTime: s.par, custom: true,
     maxShots: paper * 2 + steel + CONFIG.builder.spareRounds,
@@ -113,7 +121,7 @@ export function stageRows(course) {
     for (const it of st.items.filter(i => (i.pos ?? 0) === k)) {
       const act = it.type === 'noshoot' ? (it.swing ? 'nsswing' : null) : ['pop', 'turn', 'swing', 'bob', 'run'].find(a => it[a]);
       const hard = { ...(it.hard?.side ? { hard: it.hard.side } : {}), ...heightOf(it.dy) };
-      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act === 'nsswing' ? 'swing' : act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...(SWINGS.includes(act) && it.swing.rest < 0 ? { left: true } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard, ...(it.type === 'plate' && sizeOf(it) ? { size: sizeOf(it) } : {}) });
+      rows.push(act ? { type: act, x: it.x, yd: it.yd, by: it[act === 'nsswing' ? 'swing' : act].by, ...(act === 'run' ? { to: it.run.to } : {}), ...(SWINGS.includes(act) && it.swing.rest < 0 ? { left: true } : {}), ...hard } : { type: TYPES[it.type] ? it.type : 'paper', x: it.x, yd: it.yd, ...hard, ...(it.type === 'plate' && sizeOf(it) ? { size: sizeOf(it) } : {}), ...(it.stop ? { stop: true } : {}) });
     }
   }
   return { name: `${course.name} (my copy)`, par: course.parTime, rows, start: st.start };
@@ -140,7 +148,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       <td><select data-k="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === r.type ? ' selected' : ''}>${v}</option>`).join('')}</select></td>
       <td><input data-k="x" type="number" step="0.05" min="${-B.maxX}" max="${B.maxX}" value="${r.x}"></td>
       <td><input data-k="yd" type="number" step="0.1" min="${B.yards[0]}" max="${B.yards[1]}" value="${r.yd}"></td>
-      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${SWINGS.includes(r.type) ? ` <select data-k="left" title="Where it's held (behind cover) until released"><option value="">held right</option><option value="1"${r.left ? ' selected' : ''}>held left</option></select>` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${r.type === 'plate' ? ` <select data-k="size"><option value="">8 in</option>${Object.entries(B.plateSizes).map(([k, v]) => `<option value="${k}"${k === r.size ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${r.type === 'noshoot' ? ` <select data-k="over" title="Put it in front of the paper row above, partly covering it"><option value="">place it myself</option>${Object.entries(B.nsCover.spots).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
+      <td>${ACTIVATED.includes(r.type) ? `<select data-k="by">${ids.map(id => `<option${id === r.by ? ' selected' : ''}>${id}</option>`).join('') || '<option value="">add steel</option>'}</select>` : ''}${r.type === 'run' ? ` to x <input data-k="to" type="number" step="0.1" min="${-B.maxX}" max="${B.maxX}" value="${r.to ?? -r.x}">` : ''}${SWINGS.includes(r.type) ? ` <select data-k="left" title="Where it's held (behind cover) until released"><option value="">held right</option><option value="1"${r.left ? ' selected' : ''}>held left</option></select>` : ''}${r.type === 'position' ? `<select data-k="stance">${[['', 'standing'], ['kneel', 'kneeling'], ['prone', 'prone']].map(([k, v]) => `<option value="${k}"${k === (r.stance || '') ? ' selected' : ''}>${v}</option>`).join('')}</select>` : ''}${r.type === 'plate' ? ` <select data-k="stop" title="A stop plate makes it a Steel Challenge style stage: strings, shoot the stop plate last"><option value="">plate</option><option value="1"${r.stop ? ' selected' : ''}>stop plate</option></select>` : ''}${r.type === 'plate' ? ` <select data-k="size"><option value="">8 in</option>${Object.entries(B.plateSizes).map(([k, v]) => `<option value="${k}"${k === r.size ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${r.type === 'noshoot' ? ` <select data-k="over" title="Put it in front of the paper row above, partly covering it"><option value="">place it myself</option>${Object.entries(B.nsCover.spots).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) || r.type === 'noshoot' ? ` <select data-k="h" title="Height of the target on its stand"><option value="">normal height</option>${Object.entries(B.heights).map(([k, v]) => `<option value="${k}"${k === r.h ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}${PAPER.includes(r.type) ? ` <select data-k="hard" title="Hard cover: black paint, shots through it don't score"><option value="">no cover</option>${Object.entries(B.hardCover).map(([k, v]) => `<option value="${k}"${k === r.hard ? ' selected' : ''}>${v.label}</option>`).join('')}</select>` : ''}</td>
       <td class="b-acts"><button class="icon" data-up="${i}" aria-label="Move up" title="Move up"${i ? '' : ' disabled'}>↑</button><button class="icon" data-down="${i}" aria-label="Move down" title="Move down"${i < rows.length - 1 ? '' : ' disabled'}>↓</button><button class="icon" data-dup="${i}" aria-label="Duplicate" title="Duplicate (placed a little to the right)">⧉</button><button class="icon" data-del="${i}" aria-label="Remove" title="Remove">✕</button></td></tr>`).join('');
   };
   // Top-down map (you at the bottom, downrange up): x across, yards up.
@@ -193,7 +201,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       Object.assign(r, { x: Math.round((above.x + spot.dx) * 100) / 100, yd: Math.round((above.yd - B.nsCover.front) * 10) / 10, h: spot.h });
       return rerender();
     }
-    r[k] = k === 'left' ? !!e.target.value : k === 'type' || k === 'by' || k === 'hard' || k === 'stance' || k === 'h' || k === 'size' ? e.target.value : Number(e.target.value);
+    r[k] = k === 'left' || k === 'stop' ? !!e.target.value : k === 'type' || k === 'by' || k === 'hard' || k === 'stance' || k === 'h' || k === 'size' ? e.target.value : Number(e.target.value);
     if (k === 'type') render(); // (activated paper gets its "released by" choice)
     drawMap();
   };
@@ -219,6 +227,7 @@ export function openBuilder(current, { onSave, onDelete, toast, prefill = null }
       ...(r.type === 'position' && STANCES.includes(r.stance) ? { stance: r.stance } : {}),
       ...(SWINGS.includes(r.type) && r.left ? { left: true } : {}),
       ...(r.type === 'plate' && Object.hasOwn(B.plateSizes, r.size || '') ? { size: r.size } : {}),
+      ...(r.type === 'plate' && r.stop ? { stop: true } : {}),
       ...((PAPER.includes(r.type) || r.type === 'noshoot') && Object.hasOwn(B.heights, r.h || '') ? { h: r.h } : {}) }));
     if (!rows.some(r => !PROPS.includes(r.type) && r.type !== 'noshoot' && r.type !== 'nsswing' && !MOVES.includes(r.type))) return toast('Add at least one target to shoot.');
     if (rows.some(r => ACTIVATED.includes(r.type)) && !ids.length) return toast('A pop-up, turner, swinger, bobber, mover or clamshell needs a steel target to release it.');
@@ -263,7 +272,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
 // Stage codes: 'DFS1.' + base64url(JSON). Checked on the way back in.
 const CODE = 'DFS1.';
 export function encodeStage(s) {
-  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.stance || '', r.h || '', r.left ? 1 : '', r.size || '']) });
+  const json = JSON.stringify({ n: s.name, p: s.par, s: s.start, r: s.rows.map(r => [r.type, r.x, r.yd, r.by || '', r.to ?? '', r.hard || '', r.stance || '', r.h || '', r.left ? 1 : '', r.size || '', r.stop ? 1 : '']) });
   return CODE + btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 export function decodeStage(code) {
@@ -272,9 +281,9 @@ export function decodeStage(code) {
     if (!code.startsWith(CODE)) return null;
     const b64 = code.slice(CODE.length).replace(/-/g, '+').replace(/_/g, '/');
     const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
-    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, stance, h, left, size]) => ({
+    const rows = (o.r || []).filter(r => TYPES[r[0]]).slice(0, 60).map(([type, x, yd, by, to, hard, stance, h, left, size, stop]) => ({
       type, x: Number(x) || 0, yd: Number(yd) || 0, ...(by ? { by: String(by) } : {}), ...(to !== '' && to != null ? { to: Number(to) } : {}),
-      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(STANCES.includes(stance) ? { stance } : {}), ...(Object.hasOwn(CONFIG.builder.heights, h || '') ? { h } : {}), ...(left ? { left: true } : {}), ...(Object.hasOwn(CONFIG.builder.plateSizes, String(size ?? '')) ? { size: String(size) } : {}),
+      ...(Object.hasOwn(CONFIG.builder.hardCover, hard) ? { hard } : {}), ...(STANCES.includes(stance) ? { stance } : {}), ...(Object.hasOwn(CONFIG.builder.heights, h || '') ? { h } : {}), ...(left ? { left: true } : {}), ...(Object.hasOwn(CONFIG.builder.plateSizes, String(size ?? '')) ? { size: String(size) } : {}), ...(stop ? { stop: true } : {}),
     }));
     if (!rows.length) return null;
     return { name: String(o.n || 'Shared stage').slice(0, 40), par: Number(o.p) || CONFIG.builder.par, start: o.s ? String(o.s).slice(0, 120) : '', rows };
