@@ -638,3 +638,9 @@ he reports a problem.
   passed 3/4" for the drill you're repeating (a stage shows its best and
   average hit factor). In memory for this visit; the full history stays in
   the run log / CSV.
+- Setup -> Sound -> Hearing protection: None (as before), Electronic muffs
+  (a narrower band, gunshots clamped by a fast limiter, quiet sounds like
+  the outdoors and steel ringing lifted) or Passive muffs / plugs
+  (everything muffled and quieter). All sound now goes through one master
+  output. The RO's voice (browser speech) isn't affected.
+  CONFIG.sound.earPro. Also on the Controller.

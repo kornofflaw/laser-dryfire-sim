@@ -592,6 +592,16 @@ export const CONFIG = {
     hitHz: 1568,            // ~G6 "ding"
     // Setup sliders: gunshot and background volume, as a multiple of normal.
     mix: { min: 0, max: 2, step: 0.05 },
+    // Hearing protection (Setup -> Sound): what you hear through it. Electronic
+    // muffs: a narrow band (highpass / lowpass Hz), loud bangs clamped by a
+    // fast limiter (clamp: threshold dB, attack / release s; the browser adds
+    // its own make-up gain, so `gain` brings it back: a shot ~4 dB under no
+    // protection, quiet sounds ~6 dB up). Passive muffs or plugs: muffled
+    // and quieter.
+    earPro: {
+      electronic: { highpass: 140, lowpass: 6500, clamp: { threshold: -18, attack: 0.0005, release: 0.12 }, gain: 0.65 },
+      passive: { lowpass: 900, gain: 0.5 },
+    },
     steelHz: 2350,          // base pitch of the steel "ping"
     // Steel rings by size: steelHz is an 8" plate (ref, metres). A plate r times
     // that size rings at steelHz / r^pitch for r^decay times as long (thicker

@@ -13,10 +13,41 @@ const useRec = k => choice[k] !== 'synth';
 const useSynth = k => choice[k] !== 'rec';
 
 // Volume sliders (Setup): gunshots and background, 1 = normal.
-const mix = { gun: 1, amb: 1 };
+const mix = { gun: 1, amb: 1, earPro: 'none' };
+
+// Every sound goes to `master`, then through the hearing protection you're
+// wearing (Setup -> Sound, CONFIG.sound.earPro) to the speakers: electronic
+// muffs clamp loud bangs and lift quiet sounds, passive muffs dull it all.
+// (The RO's voice is the browser's speech and isn't affected.)
+let master = null, earNodes = [];
+const dest = () => master || ctx.destination;
+function buildEarPro() {
+  if (!ctx) return;
+  if (!master) master = ctx.createGain();
+  master.disconnect();
+  earNodes.forEach(n => n.disconnect());
+  earNodes = [];
+  const E = CONFIG.sound.earPro[mix.earPro];
+  if (!E) { master.connect(ctx.destination); return; }
+  let node = master;
+  const add = n => { node.connect(n); node = n; earNodes.push(n); };
+  if (E.highpass) { const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = E.highpass; add(f); }
+  if (E.lowpass) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = E.lowpass; add(f); }
+  if (E.clamp) {
+    const c = ctx.createDynamicsCompressor();
+    c.threshold.value = E.clamp.threshold; c.knee.value = 0; c.ratio.value = 20;
+    c.attack.value = E.clamp.attack; c.release.value = E.clamp.release;
+    add(c);
+  }
+  const g = ctx.createGain();
+  g.gain.value = E.gain;
+  add(g);
+  g.connect(ctx.destination);
+}
 export function setVolumes(v = {}) {
   if (typeof v.gun === 'number') mix.gun = v.gun;
   if (typeof v.amb === 'number') mix.amb = v.amb;
+  if (typeof v.earPro === 'string' && v.earPro !== mix.earPro) { mix.earPro = v.earPro; buildEarPro(); }
   if (rain && ctx) rain.gain.gain.setTargetAtTime(CONFIG.sound.rain * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.05);
   if (alarm && ctx) alarm.gain.gain.setTargetAtTime(CONFIG.sound.alarm.level * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.05);
   if (amb && ctx) { // follow the slider now
@@ -53,6 +84,7 @@ export function unlockAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
+    buildEarPro();
   }
   loadSamples();
   const wasRunning = ctx.state === 'running';
@@ -111,7 +143,7 @@ function tone(freq, seconds, gain, decay = 0) {
     g.gain.setValueAtTime(peak, t0 + seconds - 0.003);
     g.gain.linearRampToValueAtTime(0, t0 + seconds);
   }
-  osc.connect(g).connect(ctx.destination);
+  osc.connect(g).connect(dest());
   osc.start(t0);
   osc.stop(t0 + seconds + 0.01);
 }
@@ -156,7 +188,7 @@ export function steelPing(size, where = {}) {
   const long = Math.pow(r, SR.decay);
   const partials = [[1, 1.0, 0.9], [2.76, 0.5, 0.6], [5.4, 0.3, 0.35], [8.9, 0.15, 0.2]];
   const t0 = ctx.currentTime + delay;
-  let out = ctx.destination;
+  let out = dest();
   if (pan && ctx.createStereoPanner) {
     const p = ctx.createStereoPanner();
     p.pan.value = pan;
@@ -189,7 +221,7 @@ export function penaltyBuzz() {
   g.gain.setValueAtTime(0.25 * CONFIG.sound.volume, t0);
   g.gain.setValueAtTime(0.25 * CONFIG.sound.volume, t0 + 0.28);
   g.gain.linearRampToValueAtTime(0, t0 + 0.32);
-  osc.connect(g).connect(ctx.destination);
+  osc.connect(g).connect(dest());
   osc.start(t0);
   osc.stop(t0 + 0.34);
 }
@@ -209,7 +241,7 @@ export function clack() {
   const g = ctx.createGain();
   g.gain.value = CONFIG.sound.volume;
   src.buffer = buf;
-  src.connect(g).connect(ctx.destination);
+  src.connect(g).connect(dest());
   src.start();
 }
 
@@ -235,7 +267,7 @@ export function footstep(loudness) {
   const g = ctx.createGain();
   g.gain.value = Math.min(1, Math.max(0.05, loudness)) * CONFIG.sound.volume * 1.4;
   src.buffer = buf;
-  src.connect(lp).connect(g).connect(ctx.destination);
+  src.connect(lp).connect(g).connect(dest());
   src.start();
 }
 
@@ -304,7 +336,7 @@ export function radioStatic() {
   const g = ctx.createGain();
   g.gain.value = 0.5 * CONFIG.sound.volume;
   src.buffer = buf;
-  src.connect(bp).connect(g).connect(ctx.destination);
+  src.connect(bp).connect(g).connect(dest());
   src.start();
 }
 
@@ -328,7 +360,7 @@ export function enemyShot(opts = {}) {
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 4;
   comp.attack.value = 0.001; comp.release.value = 0.12;
-  out.connect(comp).connect(ctx.destination);
+  out.connect(comp).connect(dest());
   const synthShot = () => {
     const env = (node, peak, decay) => {
       const g = ctx.createGain();
@@ -366,7 +398,7 @@ export function enemyShot(opts = {}) {
   if (opts.indoor) {
     const wet = ctx.createGain();
     wet.gain.value = CONFIG.sound.indoorEchoMix;
-    out.connect(roomEcho()).connect(wet).connect(ctx.destination);
+    out.connect(roomEcho()).connect(wet).connect(dest());
   }
 }
 let gunNoise = null;
@@ -415,7 +447,7 @@ export function glassBreak() {
   const g = ctx.createGain();
   g.gain.value = 0.7 * CONFIG.sound.volume;
   src.buffer = buf;
-  src.connect(hp).connect(g).connect(ctx.destination);
+  src.connect(hp).connect(g).connect(dest());
   src.start();
 }
 
@@ -431,7 +463,7 @@ export function armorThud() {
   o.frequency.exponentialRampToValueAtTime(70, t0 + 0.12);
   g.gain.setValueAtTime(0.6 * CONFIG.sound.volume, t0);
   g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-  o.connect(g).connect(ctx.destination);
+  o.connect(g).connect(dest());
   o.start(t0);
   o.stop(t0 + 0.2);
 }
@@ -479,7 +511,7 @@ export function setAmbience(kind) {
   const out = ctx.createGain();
   out.gain.setValueAtTime(0, t);
   out.gain.linearRampToValueAtTime(A.level * CONFIG.sound.volume * mix.amb, t + A.fade);
-  out.connect(ctx.destination);
+  out.connect(dest());
   const nodes = [out];
   const filtered = (buf, type, f, q, level) => {
     const src = loopSource(buf), fl = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -562,7 +594,7 @@ export function fireAlarm(on) {
   src.buffer = alarmBuf; src.loop = true;
   lp.type = 'lowpass'; lp.frequency.value = 5000;
   g.gain.value = S.level * CONFIG.sound.volume * mix.amb;
-  src.connect(lp).connect(g).connect(ctx.destination);
+  src.connect(lp).connect(g).connect(dest());
   src.start();
   alarm = { src, gain: g };
 }
@@ -592,7 +624,7 @@ export function setRain(on) {
   src.buffer = rainBuf; src.loop = true;
   g.gain.setValueAtTime(0, ctx.currentTime);
   g.gain.setTargetAtTime(CONFIG.sound.rain * CONFIG.sound.volume * mix.amb, ctx.currentTime, 0.5);
-  src.connect(g).connect(ctx.destination);
+  src.connect(g).connect(dest());
   src.start(0, Math.random() * rainBuf.duration);
   rain = { src, gain: g };
 }
@@ -611,7 +643,7 @@ export function distantShot(into) {
   const lvl = into ? 1 : A.level * CONFIG.sound.volume * mix.amb;
   g.gain.setValueAtTime((0.5 + Math.random() * 0.4) * lvl, t0);
   g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
-  src.connect(lp).connect(g).connect(into || ctx.destination);
+  src.connect(lp).connect(g).connect(into || dest());
   src.start(t0);
 }
 
@@ -661,7 +693,7 @@ export function nearMiss() {
   for (let i = 0; i < n; i++) d[i] = i < n / 2 ? 1 - (4 * i) / n : -1 + (4 * (i - n / 2)) / n; // N-wave
   const src = ctx.createBufferSource(), g = ctx.createGain();
   src.buffer = b; g.gain.value = 0.8 * CONFIG.sound.volume * mix.gun;
-  src.connect(g).connect(ctx.destination);
+  src.connect(g).connect(dest());
   src.start();
 }
 
@@ -722,7 +754,7 @@ function playSample(name, level, opts = {}) {
     lp.type = 'lowpass'; lp.frequency.value = opts.lowpass;
     node = node.connect(lp);
   }
-  node.connect(g).connect(opts.out || ctx.destination);
+  node.connect(g).connect(opts.out || dest());
   src.start(ctx.currentTime + (opts.delay || 0));
   return true;
 }

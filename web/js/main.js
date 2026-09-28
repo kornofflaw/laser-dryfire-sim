@@ -57,6 +57,7 @@ const settings = Object.assign({
   volAmb: 1,          // background sound volume (Setup slider)
   roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
   paperDing: true,    // a ding on paper hits (real cardboard is silent)
+  earPro: 'none',     // hearing protection you hear through: none | electronic | passive
   paste: true,        // 3D range: paste holes between runs
   powerFactor: 'minor', // USPSA scoring of C and D hits (CONFIG.powerFactor)
   soundPicks: {},     // Sound choices (compare): overrides of SOUND_DEFAULTS
@@ -935,12 +936,12 @@ function refreshFlip() {
 }
 
 // Sound sliders.
-setVolumes({ gun: settings.volGun, amb: settings.volAmb });
+setVolumes({ gun: settings.volGun, amb: settings.volAmb, earPro: settings.earPro });
 for (const [id, key] of [['#vol-gun', 'volGun'], ['#vol-amb', 'volAmb']]) {
   $(id).oninput = e => {
     settings[key] = Number(e.target.value);
     persist();
-    setVolumes({ gun: settings.volGun, amb: settings.volAmb });
+    setVolumes({ gun: settings.volGun, amb: settings.volAmb, earPro: settings.earPro });
     refreshSound();
   };
 }
@@ -966,10 +967,16 @@ $('#test-glass').onclick = () => glassBreak();
 $('#test-distant').onclick = () => distantShot();
 $('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = e.target.checked; persist(); };
 $('#opt-ding').onchange = e => { settings.paperDing = e.target.checked; persist(); };
+$('#opt-earpro').onchange = e => {
+  settings.earPro = e.target.value;
+  persist();
+  setVolumes({ gun: settings.volGun, amb: settings.volAmb, earPro: settings.earPro });
+};
 $('#opt-paste').onchange = e => { settings.paste = CONFIG.range3d.paste.on = e.target.checked; persist(); };
 function refreshSound() {
   $('#opt-ro').checked = settings.roCommands;
   $('#opt-ding').checked = settings.paperDing;
+  $('#opt-earpro').value = settings.earPro;
   $('#opt-paste').checked = settings.paste;
   const c = soundChoices();
   for (const [key, id] of Object.entries(SOUND_SELECTS)) $(id).value = String(c[key]);
@@ -1160,7 +1167,7 @@ const remote = displayMode && 'BroadcastChannel' in window ? {
       controls: snapshotControls(document),
       review: { open: review.isOpen, has: review.hasRuns },
       calibrating: calibration.active,
-      volumes: { gun: settings.volGun, amb: settings.volAmb }, // the Controller plays sounds at these too
+      volumes: { gun: settings.volGun, amb: settings.volAmb, earPro: settings.earPro }, // the Controller plays sounds at these too
       sounds: soundChoices(), // ... and with these sound choices
     });
     if (state === this.sent && now - this.sentAt < 2000) return;
