@@ -719,3 +719,5 @@ he reports a problem.
   mode): after a drill or stage the next run starts by itself 5, 8 or 12 s
   later (RO commands, random delay, beep) for reps without touching
   anything; any key stops it. Also on the Controller.
+- Rain: the cardboard targets soak (darker, a little less matte);
+  CONFIG.range3d.rain.cardDarken / cardRoughness.

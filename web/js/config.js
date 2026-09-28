@@ -518,6 +518,7 @@ export const CONFIG = {
     // parking lot's (drops, area, speed, length, wind, opacity, colour).
     rain: {
       sun: 0.15, env: 0.45, bg: 1, haze: '#8a9098', hazeMix: 0.8, hazeNear: 10, hazeFar: 120, darken: 0.72,
+      cardDarken: 0.78, cardRoughness: 0.8, // soaked cardboard
       sky: ['#5c636c', '#7a8189', '#a2a8ae'], // overcast backdrop, top to horizon (not at night)
       drops: 3500, area: [30, 36, 12], speed: 9, length: 0.4, wind: 0.6, opacity: 0.28, color: '#b8c2cc',
     },

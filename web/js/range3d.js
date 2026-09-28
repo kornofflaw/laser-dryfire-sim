@@ -438,7 +438,17 @@ export class Range3DView {
     this.mats.gravel.color.copy(this.gravelColor).multiplyScalar(wet ? W.darken : 1);
     if (wet && !this.rain) { this.rain = rainStreaks(W); this.scene.add(this.rain); }
     if (this.rain) this.rain.visible = wet;
+    this.wetCards();
     this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  // Soaked cardboard is darker (and a little less matte) in the rain.
+  wetCards() {
+    const W = R().rain;
+    for (const c of this.cards || []) {
+      c.mat.color.setScalar(this.raining ? W.cardDarken : 1);
+      c.mat.roughness = this.raining ? W.cardRoughness : 0.92;
+    }
   }
 
   // Wind (Setup): 'calm', 'breezy' (default) or 'windy' - grass sway and how
@@ -511,6 +521,7 @@ export class Range3DView {
       this.addSolids(S.solids);
     }
     this.placeTargets();
+    this.wetCards();
     this.clearMarks();
     this.resize(window.innerWidth, window.innerHeight); // aim for the new kind
     this.shadowAt = 0; // redraw shadows now
