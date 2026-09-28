@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Transition splits: on multi-target drills show target-to-target transitions separately from same-target splits.
+3. Reload drills: detect the reload gap (the longest split) and show it as the reload time.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -791,3 +791,6 @@ he reports a problem.
   run the shot timer marks splits slower than the goal in orange and says
   "Split goal 0.25: 3 of 5 splits made it (slowest 0.41)". Also on the
   Controller. CONFIG.timer.splitGoal.
+- Shot timer review: a split that moved to another target is marked →,
+  and on multi-target drills a line compares "Splits on a target avg 0.22 ·
+  transitions (→) avg 0.35".
