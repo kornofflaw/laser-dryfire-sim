@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Progress over time: a small chart of your last runs on the course (time or hit factor) in the review screen.
+3. Split-time drills: show the target split (e.g. 0.20 s) as a line on the review timeline and flag slow splits.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -783,3 +783,7 @@ he reports a problem.
   stage, best time on a timed drill or Steel Challenge (complete runs that
   didn't fail). Shown under the shot timer after each run ("Personal best:
   HF 5.12", NEW! when beaten, with a toast). CONFIG.storage.bests.
+- Shot review (V): a progress chart under the timeline - your last 20
+  complete runs of that course from the run log (time for drills, hit
+  factor for stages), latest value labelled, hover a point for its value
+  and date (CONFIG.review.progressRuns).

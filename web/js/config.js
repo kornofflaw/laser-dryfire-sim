@@ -92,6 +92,10 @@ export const CONFIG = {
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
+  // ---- Shot review (V) ------------------------------------------------------------
+  // The progress chart: this course's last progressRuns complete runs (run log).
+  review: { progressRuns: 20 },
+
   // ---- Match (course type 'match', main.js) ------------------------------------
   // After a stage's run the next stage loads nextStageAfter s later (once
   // you're back from walking the targets or the review).

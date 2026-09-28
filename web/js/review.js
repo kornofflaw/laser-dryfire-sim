@@ -160,9 +160,32 @@ export class ShotReview {
     this.render();
   }
 
+  // Progress on this course (main.js sets progress(course) -> { label,
+  // better: 'low' | 'high', points: [{ v, date }] } from the run log): the last
+  // runs as a line, the latest labelled; hover a point for its value.
+  renderProgress(course) {
+    const box = this.el.querySelector('#review-progress');
+    const P = this.progress?.(course);
+    if (!box || !P || P.points.length < 2) { if (box) box.innerHTML = ''; return; }
+    const W = Math.max(300, box.clientWidth || 600), H = 110, L = 40, R = 60, T = 10, B = 18, pts = P.points, n = pts.length;
+    const vs = pts.map(p => p.v), lo = Math.min(...vs), hi = Math.max(...vs), pad = (hi - lo) * 0.15 || hi * 0.1 || 1;
+    const y0 = lo - pad, y1 = hi + pad;
+    const X = i => L + (n === 1 ? 0 : (i / (n - 1)) * (W - L - R)), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+    const f = v => v.toFixed(2);
+    const grid = [lo, hi].map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${f(v)}</text>`).join('');
+    const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+    const dots = pts.map((p, i) => `<circle class="pt" cx="${X(i)}" cy="${Y(p.v)}" r="4"><title>Run ${i + 1}: ${f(p.v)} ${P.unit} (${p.date})</title></circle>`).join('');
+    const last = pts[n - 1];
+    box.innerHTML = `<h3>${P.label} - your last ${n} runs on ${course} (${P.better === 'low' ? 'lower' : 'higher'} is better)</h3>` +
+      `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${P.label} over your last ${n} runs">${grid}<path class="ln" d="${path}"/>${dots}` +
+      `<text class="ax" x="${X(n - 1) + 8}" y="${Y(last.v) + 4}">${f(last.v)} ${P.unit}</text>` +
+      `<text class="ax" x="${L}" y="${H - 4}">oldest</text><text class="ax" x="${W - R}" y="${H - 4}" text-anchor="end">latest</text></svg>`;
+  }
+
   render() {
     const run = this.run;
     const q = s => this.el.querySelector(s);
+    this.renderProgress(run.course);
     // Run picker.
     const sel = q('#review-run');
     sel.innerHTML = '';

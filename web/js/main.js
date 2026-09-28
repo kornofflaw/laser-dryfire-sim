@@ -243,6 +243,14 @@ const calibration = new Calibration(camera, H => {
 
 // ---- Shot review -------------------------------------------------------------------
 const review = new ShotReview({ canvases: () => [views3d[range.layout]?.canvas, $('#range')] });
+// The review's progress chart: this course's last complete runs from the run log.
+review.progress = name => {
+  const c = COURSES.find(x => x.name === name);
+  const byHF = c && (c.type === 'stage' || c.type === 'classifier');
+  const rows = log.rows.filter(r => r.drill === name && r.complete === 'yes').slice(-CONFIG.review.progressRuns);
+  const points = rows.map(r => ({ v: Number(byHF ? r.hit_factor : r.time_s), date: r.datetime })).filter(p => p.v > 0);
+  return { label: byHF ? 'Hit factor' : 'Time', unit: byHF ? 'HF' : 's', better: byHF ? 'high' : 'low', points };
+};
 
 // What shot times count from, per course type.
 function reviewZero(r) {
