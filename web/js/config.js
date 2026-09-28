@@ -633,6 +633,7 @@ export const CONFIG = {
     // Drills that start facing uprange (course turnStart): the turn to the
     // targets at the beep takes `time` s (side 1 / -1: which way round).
     turnAround: { time: 0.55, side: 1 },
+    walkthroughPause: 2.5,  // stage walkthrough (W): seconds looking from each position
     // Stage positions with a stance (kneel / prone): eye height m and the
     // height it looks at downrange (low ports sit low).
     // `time`: seconds at least to get into (or up from) that stance.

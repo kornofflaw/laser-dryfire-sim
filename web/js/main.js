@@ -565,6 +565,7 @@ function frame(now) {
   // A stage with shooting positions: run to the next one.
   if (active().wantsMove != null) { views3d[range.layout]?.moveTo?.(active().wantsMove); active().wantsMove = null; }
   walkOn(now);
+  walkthroughStep(now);
   // A squad match: only the first shooter (this browser's owner) sets personal bests.
   DrillRunner.guest = !!(match && match.shooters.length > 1 && match.j > 0);
   // Between classifier strings only the steel is reset (paper is scored at the end).
@@ -861,6 +862,7 @@ window.addEventListener('keydown', e => {
     '[': () => adjustUpTime(-1),
     ']': () => adjustUpTime(1),
     x: () => active().setCover?.(true), // hold: take cover (office)
+    w: () => startWalkthrough(),
     q: () => lean(-1), // 3D range: lean out left / right (again: upright)
     e: () => lean(1),
     Escape: () => {
@@ -912,6 +914,29 @@ function walkOn(now) {
   const moving = R.state === 'Running' && walkU < 1;
   const bob = moving ? W.bob * Math.abs(Math.sin(((now - R.runStart) / 1000 / W.stride) * Math.PI)) - W.bob : 0;
   v.setStep(A.from[0] + (A.to[0] - A.from[0]) * walkU, A.from[1] + (A.to[1] - A.from[1]) * walkU, bob);
+}
+
+// Stage walkthrough (W): before shooting, the view goes to each shooting
+// position in turn (a look at what's shot from there), then back to the
+// start - like the walkthrough before a match stage. Any run cancels it.
+let walkthrough = null;
+function startWalkthrough() {
+  const v = range.view3d, P = course().stage?.positions;
+  if (course().type !== 'stage' || !v?.moveTo) return toast('The walkthrough is for 3D stages.');
+  if (active().busy) return toast('Finish or cancel the run first (Esc).');
+  if (!P || P.length < 2) return toast('One shooting position: everything is in view from the box.');
+  walkthrough = { steps: [...P.keys()].slice(1).concat(0), at: 0 };
+  toast(`Walkthrough: ${P.length} positions.`);
+}
+function walkthroughStep(now) {
+  const v = range.view3d;
+  if (!walkthrough) return;
+  if (active().busy || !v?.moveTo) { walkthrough = null; return; }
+  if (v.walk) { walkthrough.at = now + CONFIG.range3d.walkthroughPause * 1000; return; } // look for a moment once there
+  if (now < walkthrough.at) return;
+  const k = walkthrough.steps.shift();
+  if (k == null) { walkthrough = null; return; }
+  v.moveTo(k);
 }
 
 // 3D range: lean out left or right of cover (press the same side again to stand upright).
