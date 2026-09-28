@@ -1013,9 +1013,10 @@ export class Range3DView {
     // Target numbers (as on the score sheet) on small tags at the foot of the
     // static paper and the steel.
     const L = R().targetTags;
+    this.tags = {};
     if (L.on) for (const it of stageTargets(def)) {
       if (it.type === 'noshoot' || it.swing || it.turn || it.run || it.bob || it.pop) continue;
-      this.addTag(it.id, it.x + (it.steel ? L.steelDx : L.paperDx), it.yd);
+      this.tags[it.id] = this.addTag(it.id, it.x + (it.steel ? L.steelDx : L.paperDx), it.yd);
     }
   }
 
@@ -1034,6 +1035,17 @@ export class Range3DView {
     tag.rotation.x = -0.25; // leaning back a little, readable from the box
     tag.castShadow = true;
     this.layoutGroup.add(tag);
+    return tag;
+  }
+
+  // Light up a target's number tag (score sheet row hovered), or none.
+  flashTag(id) {
+    for (const [k, t] of Object.entries(this.tags || {})) {
+      if (!t.parent) continue;
+      t.material.emissive?.set(k === id ? '#ffcc33' : '#000000');
+      t.scale.setScalar(k === id ? 1.6 : 1);
+    }
+    this.shadowAt = 0;
   }
 
   // A shooting box (a square of 2x4 boards) at x m, yd downrange of the line.

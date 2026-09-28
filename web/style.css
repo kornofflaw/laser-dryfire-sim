@@ -367,3 +367,4 @@ table.shots td.slow { color: #ff8f6b; font-weight: 700; }
 #builder .b-acts { white-space: nowrap; }
 #builder .b-acts button.icon { padding: 4px 7px; margin-left: 2px; }
 #builder .b-acts button:disabled { opacity: 0.3; }
+#drill .sheet { pointer-events: auto; } /* score sheet rows: hover lights up the target (main.js) */

@@ -360,6 +360,12 @@ function showSquadResults() {
   $('#match').hidden = false;
   match = null;
 }
+// Stage score sheet: hovering a row lights up that target's number tag.
+$('#drill').addEventListener('mouseover', e => {
+  const id = e.target.closest?.('.sheet tr')?.cells?.[0]?.textContent;
+  range.view3d?.flashTag?.(id && /^(P|S|NS)\d+$/.test(id) ? id : null);
+});
+$('#drill').addEventListener('mouseout', e => { if (!e.relatedTarget?.closest?.('.sheet')) range.view3d?.flashTag?.(null); });
 $('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
   log.add(result, lastInput, match && result.course === match.def.stages[match.i] ? { shooter: match.shooters.length > 1 ? match.shooters[match.j] : '', match: match.def.name } : {});
