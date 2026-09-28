@@ -161,7 +161,7 @@ function ensureRange3D() {
     view.layoutName = isRange3D(range.layout) ? range.layout : 'range3d-single';
     const yards = Object.fromEntries(Object.keys(CONFIG.range3d.yards).map(k => [k, yards3d(k)]));
     await view.init({ yards, star: range.star, popups: range.popups, flip: range.flip, stage: () => range.stageDef });
-    view.setTime(settings.rangeTime);
+    view.setTime(rangeTime());
     resize3D();
   })().catch(e => { range3dError = `Could not load the 3D range (${e.message}). Turn it off in Setup.`; });
   return range3dLoading;
@@ -543,6 +543,9 @@ function adjustPar(dir) {
   toast(`Par ${v.toFixed(2)} s${Math.abs(v - c.parTime) < 1e-6 ? ' (standard)' : ` (standard ${c.parTime.toFixed(2)} s)`}`);
 }
 
+// The 3D range's time of day: the course's own (a night stage) or Setup's.
+const rangeTime = () => course().time || settings.rangeTime;
+
 // Pick a course: set its runner and put up its targets.
 function selectCourse(i, announce = true) {
   if (active().busy) return toast('Finish or cancel the run first (Esc).');
@@ -550,6 +553,7 @@ function selectCourse(i, announce = true) {
   const c = course();
   active().setCourse(withUpTime(c));
   showCourseLayout(c);
+  views3d['range3d-single']?.setTime(rangeTime());
   if (is3D(c.type)) ensure3D(c.type).catch(() => {});
   settings.course = c.name;
   persist();
@@ -1000,7 +1004,7 @@ function refreshSound() {
 $('#opt-time').onchange = e => {
   settings.rangeTime = e.target.value;
   persist();
-  views3d['range3d-single']?.setTime(settings.rangeTime);
+  views3d['range3d-single']?.setTime(rangeTime());
 };
 $('#opt-rain').onchange = e => {
   settings.lotRain = e.target.checked;

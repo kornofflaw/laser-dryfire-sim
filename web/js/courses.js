@@ -124,6 +124,8 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// A course's time: 'night' (or morning / evening) sets the 3D range's time of
+// day for it, whatever Setup says.
 // positions: [{ x, yd, look?: { x, yd } }, ...] (in stage): where you shoot
 // from (x m, yd forward); items with pos: k are shot from position k (default
 // 0). Once that array is done the view runs to the next position.
@@ -329,6 +331,18 @@ const STAGES = [
         { type: 'popper', x: 2.6, yd: 13, pos: 1 },
       ],
       props: [{ type: 'wall', x: 0, yd: 5, w: 1.22, h: 2.2 }],
+    } },
+  { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
+    desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.2, yd: 7 },
+        { type: 'paper', x: 0, yd: 9 },
+        { type: 'paper', x: 2.2, yd: 7 },
+        { type: 'plate', x: -4.4, yd: 10 },
+        { type: 'plate', x: 4.4, yd: 10 },
+        { type: 'popper', x: 1.1, yd: 15 },
+      ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',

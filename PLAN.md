@@ -695,3 +695,6 @@ he reports a problem.
 - Night range: each shot's muzzle flash lights the bay for a moment (the
   sky light jumps and dies away in ~0.1 s). CONFIG.range3d.times.night
   flash / flashTime.
+- A course can set its own time of day (course.time); new stage "Low
+  Light: Under the Lights" is always shot at night (floodlight, plates in
+  the half-dark), whatever Setup says; other courses go back to Setup's.
