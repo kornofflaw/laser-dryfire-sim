@@ -415,7 +415,10 @@ function frame(now) {
   lastFrame = now;
 
   active().update(now);
-  range.autoResetStar = !active().busy;
+  // Free practice: cleared steel stands back up. Not after a run: the
+  // targets stay as shot (holes, steel down) until the next one, to be
+  // looked at or walked up to.
+  range.autoResetStar = !active().busy && active().state !== 'Done';
   range.autoPopups = course().type !== 'popup'; // free practice pops targets itself
   range.autoFlip = course().type !== 'flip';
   range.update(dt, now / 1000);

@@ -607,3 +607,8 @@ he reports a problem.
   falling board, a small bounce). New stage "Clamshell"
   (CONFIG.range3d.props.clamshell; courses.js props { type: 'clamshell',
   by }).
+- Fix: after a run where all the steel fell, the free-practice auto-reset
+  stood it back up 2.5 s later and pasted over every hole (so walking to
+  the targets showed pasters, not your hits). Now after a run the targets
+  stay as shot until the next run (Space) or R; free practice still resets
+  itself.
