@@ -721,3 +721,10 @@ he reports a problem.
   anything; any key stops it. Also on the Controller.
 - Rain: the cardboard targets soak (darker, a little less matte);
   CONFIG.range3d.rain.cardDarken / cardRoughness.
+- Match mode (new "Match" category): "Mini Match: 4 Stages" loads Paper and
+  Steel, Swinger, Two Positions and Virginia Count: Three at Ten in turn;
+  after each stage's run the next loads by itself 8 s later (after you're
+  back from walking the targets / the review), Space to shoot it. At the
+  end a results table: points, time and hit factor per stage and the match
+  total (all points / all time). Picking another course ends the match.
+  Course type 'match' (courses.js stages list), CONFIG.match.

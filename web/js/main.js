@@ -255,13 +255,53 @@ function reviewZero(r) {
 }
 
 let repeatAt = null; // repeat mode: when the next run starts (performance.now ms)
+
+// ---- Match (course type 'match'): its stages one after another -------------------
+// Picking a match loads its first stage; after each stage's run the next one
+// loads by itself (once you're back from walking the targets / the review);
+// after the last, the results. Picking any other course ends the match.
+let match = null, matchSelecting = false;
+function startMatch(def) {
+  match = { def, i: 0, results: [], nextAt: null };
+  loadMatchStage();
+}
+function loadMatchStage() {
+  const name = match.def.stages[match.i];
+  matchSelecting = true;
+  selectCourse(COURSES.findIndex(c => c.name === name), false);
+  matchSelecting = false;
+  match.nextAt = null;
+  toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}. Space when ready.`);
+}
+function matchStageDone(result) {
+  if (!match || result.course !== match.def.stages[match.i]) return false;
+  match.results.push({ name: result.course, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete });
+  match.i++;
+  if (match.i < match.def.stages.length) match.nextAt = performance.now() + CONFIG.match.nextStageAfter * 1000;
+  else setTimeout(showMatchResults, 1500);
+  return true;
+}
+function showMatchResults() {
+  if (!match) return;
+  const r = match.results, f = v => v.toFixed(2);
+  const pts = r.reduce((a, s) => a + s.points, 0), time = r.reduce((a, s) => a + s.time, 0);
+  $('#match-title').textContent = `${match.def.name}: results`;
+  $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Points</th><th>Time</th><th>Hit factor</th></tr>` +
+    r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${s.points}</td><td>${f(s.time)}</td><td>${f(s.hf)}</td></tr>`).join('') +
+    `<tr><th>Match</th><th>${pts}</th><th>${f(time)}</th><th>${f(time > 0 ? pts / time : 0)}</th></tr></table>` +
+    `<p class="note">Match hit factor = all points / all time. Stage hit factors can be compared with other shooters' on the same stage.</p>`;
+  $('#match').hidden = false;
+  match = null;
+}
+$('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
   log.add(result, lastInput);
+  const inMatch = matchStageDone(result);
   const [zero, label] = reviewZero(active());
   review.finishRun(result, zero, label);
   const walk = isRange3D(range.layout) && views3d[range.layout]?.inspectable?.().length;
   // Repeat mode: the next run starts by itself (any key stops it).
-  if (settings.autoRepeat > 0 && ['drill', 'stage', 'strings', 'classifier'].includes(course().type)) {
+  if (!inMatch && settings.autoRepeat > 0 && ['drill', 'stage', 'strings', 'classifier'].includes(course().type)) {
     repeatAt = performance.now() + settings.autoRepeat * 1000;
     setTimeout(() => { if (repeatAt) toast(`Next run in ${settings.autoRepeat} s - any key stops repeat`); }, 1600);
     return;
@@ -448,6 +488,7 @@ function frame(now) {
   lastFrame = now;
 
   active().update(now);
+  if (match?.nextAt && now >= match.nextAt && !active().busy && !review.isOpen && !range.view3d?.walking && !range.view3d?.inspecting) loadMatchStage();
   if (repeatAt && now >= repeatAt) {
     repeatAt = null;
     if (!active().busy && !review.isOpen && !range.view3d?.walking) actions.start();
@@ -567,6 +608,9 @@ const rangeTime = () => course().time || settings.rangeTime;
 function selectCourse(i, announce = true) {
   if (active().busy) return toast('Finish or cancel the run first (Esc).');
   repeatAt = null;
+  const pick = COURSES[(i + COURSES.length) % COURSES.length];
+  if (pick.type === 'match') return startMatch(pick);
+  if (!matchSelecting) match = null; // another course: the match is over
   courseIndex = (i + COURSES.length) % COURSES.length;
   const c = course();
   active().setCourse(withUpTime(c));
@@ -685,6 +729,10 @@ window.addEventListener('keydown', e => {
 
   if (review.isOpen) {
     if (review.handleKey(e)) e.preventDefault();
+    return;
+  }
+  if (!$('#match').hidden) {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#match').hidden = true; }
     return;
   }
   if (!$('#courses').hidden) {

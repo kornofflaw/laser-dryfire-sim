@@ -171,6 +171,13 @@ kbd {
   padding: 16px;
 }
 #help[hidden] { display: none; }
+#match { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: grid; place-items: center; z-index: 20; padding: 16px; }
+#match[hidden] { display: none; }
+#match .card { background: var(--panel-solid); border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; width: min(620px, 100%); }
+#match h2 { margin-top: 0; }
+#match table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
+#match td, #match th { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+#match td:first-child, #match th:first-child { text-align: left; }
 #help .card {
   background: var(--panel-solid);
   border: 1px solid var(--line);

@@ -92,6 +92,11 @@ export const CONFIG = {
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
+  // ---- Match (course type 'match', main.js) ------------------------------------
+  // After a stage's run the next stage loads nextStageAfter s later (once
+  // you're back from walking the targets or the review).
+  match: { nextStageAfter: 8 },
+
   // ---- Steel Challenge style (course type 'strings', stage.js) -------------------
   // `strings` strings per run; a string ends on the stop plate, each plate
   // still up then adds platePenalty s; no stop plate in maxString s = maxString.

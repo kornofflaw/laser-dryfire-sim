@@ -31,7 +31,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'Match', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -385,6 +385,14 @@ export function stageTargets(stage) {
   }));
 }
 
+// A match: its stages (by course name) shot one after another; main.js runs
+// it (type 'match') and shows the results at the end.
+const MATCHES = [
+  { name: 'Mini Match: 4 Stages', category: 'Match', type: 'match',
+    stages: ['Paper and Steel', 'Swinger', 'Two Positions', 'Virginia Count: Three at Ten'],
+    desc: 'Four stages in a row, like a local match: each loads after the last (press Space to shoot it; I to walk the targets first). Results at the end: points, time and hit factor per stage, and the match total.' },
+];
+
 const DOTS = [
   { name: 'Dot Torture', category: 'Precision', type: 'dots', layout: 'dots',
     desc: '50 rounds on 10 small dots, untimed. Every round must be in the right dot.' },
@@ -407,6 +415,7 @@ export const COURSES = [
   ...POPUPS,
   ...FLIP,
   ...STAGES.map(c => ({ type: 'stage', layout: 'range3d-stage', ...c })),
+  ...MATCHES,
   ...DOTS,
   ...SCENES,
 ];
