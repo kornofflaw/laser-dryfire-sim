@@ -175,6 +175,10 @@ function render() {
   setHTML('#timer', state.hud.timer);
   setHTML('#drill', state.hud.drill);
   setHTML('#stats', state.hud.stats);
+  // Match results (while the Display shows them).
+  $('#match-results').hidden = !state.matchResults;
+  $('#match-results-title').textContent = state.matchResults?.title || '';
+  setHTML('#match-results-body', state.matchResults?.html);
   $('#review-nav').hidden = !state.review.open;
   $('#review-btn').disabled = !state.review.has || state.busy;
   renderSetup(state.controls);

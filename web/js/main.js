@@ -378,7 +378,8 @@ function showSquadResults() {
     const top = rows[0]?.total || 0;
     $('#match-body').innerHTML = `<table><tr><th>#</th><th>Shooter</th>${S.map((s, k) => `<th title="${s}">Stage ${k + 1}</th>`).join('')}<th>Match pts</th><th>%</th></tr>` +
       rows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.n}</td>${r.cells.map((c, k) => `<td title="HF ${f(of(r.n, k)?.hf || 0)}">${f(c)}</td>`).join('')}<td><b>${f(r.total)}</b></td><td>${top ? (100 * r.total / top).toFixed(1) : '0.0'}%</td></tr>`).join('') +
-      `</table><p class="note">USPSA match scoring: on each stage the best hit factor earns the stage's full points; everyone else earns them in proportion to their hit factor. Stages: ${S.map((s, k) => `${k + 1} ${s}`).join(' · ')}.</p>`;
+      `</table><p class="note">Stage winners: ${S.map((s, k) => { const w = names.find(n => best[k] && of(n, k)?.hf === best[k]); return `${k + 1} ${s} - ${w ? `${w} (HF ${f(best[k])})` : 'nobody scored'}`; }).join(' · ')}</p>` +
+      `<p class="note">USPSA match scoring: on each stage the best hit factor earns the stage's full points; everyone else earns them in proportion to their hit factor. Stages: ${S.map((s, k) => `${k + 1} ${s}`).join(' · ')}.</p>`;
   }
   $('#match').hidden = false;
   match = null;
@@ -1503,6 +1504,7 @@ const remote = displayMode && 'BroadcastChannel' in window ? {
       // your own stages (builder.js): the Controller lists them from here
       customs: COURSES.map((c, i) => [c, i]).filter(([c]) => c.custom).map(([c, i]) => ({ name: c.name, desc: c.desc, index: i })),
       hud: { timer: hudCache.timer, drill: hudCache.drill, stats: hudCache.stats },
+      matchResults: $('#match').hidden ? null : { title: $('#match-title').textContent, html: $('#match-body').innerHTML },
       controls: snapshotControls(document),
       review: { open: review.isOpen, has: review.hasRuns },
       calibrating: calibration.active,
