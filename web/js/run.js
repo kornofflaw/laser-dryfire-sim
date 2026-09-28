@@ -338,12 +338,17 @@ export class DrillRunner extends Runner {
         const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
         const transLine = trans.length && same.length ? `<span class="small">Splits on a target avg ${f2(avg(same))} · transitions (→) avg ${f2(avg(trans))}</span>\n` : '';
         const drawLine = draw > 0 && s.length ? `<span class="small">Draw goal ${f2(draw)}: first shot ${f2(s[0])} ${s[0] <= draw ? '<span class="go">made it</span>' : `<span class="bad">+${f2(s[0] - draw)}</span>`}</span>\n` : '';
+        // Called drills: each call and whether its pair landed where called.
+        const C = d.called, callLine = C && this.callSeq.length ? `<span class="small">Calls: ${this.callSeq.map((k, i) => {
+          const ok = this.shotSlots.length >= (i + 1) * C.rounds && this.shotSlots.slice(i * C.rounds, (i + 1) * C.rounds).every((v, j) => v === k && (!this.callHead[i] || this.shotHead[i * C.rounds + j]));
+          return `${k + 1}${this.callHead[i] ? ' head' : ''} ${ok ? '<span class="go">✓</span>' : '<span class="bad">✗</span>'}`;
+        }).join(' · ')}</span>\n` : '';
         const goalLine = goal > 0 && splits.length ? `<span class="small">Split goal ${f2(goal)}: ${under} of ${splits.length} splits made it${under < splits.length ? ` (slowest ${f2(Math.max(...splits))})` : ''}</span>\n` : '';
         return head + `<span class="bigtime">${s.length ? f2(s[s.length - 1]) : '--'}</span>` +
           `${r.shots} shot${r.shots === 1 ? '' : 's'} · 1st ${r.firstShot == null ? '--' : f2(r.firstShot)} · par ${d.parTime.toFixed(2)}\n` +
           (s.length ? `<table class="shots"><tr><th>#</th><th>time</th><th>split</th><th>hit</th></tr>${rows}</table>` +
             (from ? `<span class="muted small">(first ${from} not shown)</span>\n` : '') : '') +
-          drawLine + reloadLine + goalLine + transLine + (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
+          drawLine + reloadLine + callLine + goalLine + transLine + (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
           this.sessionLine() +
           `<span class="muted small">[Space] run again</span>`;
       }
