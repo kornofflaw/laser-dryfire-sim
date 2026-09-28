@@ -815,3 +815,4 @@ he reports a problem.
 - 2026-09-28: New Positions category: Kneeling 2-2-2 and Prone 2-2-2 on the 3D bay, shot from kneeling (1.05 m) or prone (0.35 m) eye height. Course field stance.
 - 2026-09-28: Stage builder: paper and no-shoot rows have a height (normal / low / high on the stand, CONFIG.builder.heights); kept in codes and in copies of stock stages.
 - 2026-09-28: Swinging no-shoot: new stage "Swinging No-Shoot" (the popper releases a no-shoot from behind a wall; it swings across the middle target). Stage builder row "No-shoot: swinger".
+- 2026-09-28: New match "Field Match: 5 Stages": Walk and Shoot, Low Port, Swinging No-Shoot, Barricade, Hard Cover in a row with match results.
