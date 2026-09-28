@@ -816,3 +816,4 @@ he reports a problem.
 - 2026-09-28: Stage builder: paper and no-shoot rows have a height (normal / low / high on the stand, CONFIG.builder.heights); kept in codes and in copies of stock stages.
 - 2026-09-28: Swinging no-shoot: new stage "Swinging No-Shoot" (the popper releases a no-shoot from behind a wall; it swings across the middle target). Stage builder row "No-shoot: swinger".
 - 2026-09-28: New match "Field Match: 5 Stages": Walk and Shoot, Low Port, Swinging No-Shoot, Barricade, Hard Cover in a row with match results.
+- 2026-09-28: Stage builder: swingers (paper or no-shoot) can be held left or right until released, and a "Wall (4 x 8 ft)" row that hides a held swinger; copies of stock stages keep 8 ft walls and left-held swingers.

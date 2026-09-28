@@ -779,6 +779,7 @@ export const CONFIG = {
       left: { cm: 15, label: 'cover: left third' }, right: { cm: 15, label: 'cover: right third' },
       bottom: { cm: 38, label: 'cover: lower half' }, top: { cm: 22, label: 'cover: head' },
     },
+    tallWall: 2.44,         // height (m) of the builder's 4 x 8 ft wall
     starter: [{ type: 'paper', x: -2, yd: 7 }, { type: 'paper', x: 2, yd: 7 }, { type: 'popper', x: 0, yd: 12 }],
   },
 };
