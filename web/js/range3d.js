@@ -136,6 +136,7 @@ export class Range3DView {
     this.buildWeeds();
     this.buildMarkers();
     this.buildBrass();
+    this.buildUprange();
     this.buildSun();
     this.cardboardNormal = cardboardNormalMap();
     this.resize(window.innerWidth, window.innerHeight);
@@ -145,14 +146,15 @@ export class Range3DView {
 
   // ---- environment --------------------------------------------------------------
   buildGround() {
-    const size = 90, B = R().berm;
-    const geo = new THREE.PlaneGeometry(size, size, 180, 180);
+    const size = 90, back = R().uprange.groundBack, depth = size - 10 + back, B = R().berm; // (uprange: back m behind the line)
+    const cz = back - depth / 2; // world z of the plane's centre
+    const geo = new THREE.PlaneGeometry(size, depth, 180, Math.round(depth * 2));
     // Tone: soft patches, and darker where the gravel meets the berms (less sky reaches it).
     const noise = valueNoise(5);
     const pos = geo.attributes.position;
     const col = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = -pos.getY(i) - size / 2 + 10; // world x, z
+      const x = pos.getX(i), z = -pos.getY(i) + cz; // world x, z
       const n = noise(x * 0.12, z * 0.12) * 0.6 + noise(x * 0.5, z * 0.5) * 0.4;
       const toe = Math.max(0, Math.min(-B.backZ - z, B.sideX - Math.abs(x)));
       const v = (0.8 + n * 0.28) * (1 - 0.3 * Math.exp(-toe / 0.7));
@@ -161,12 +163,38 @@ export class Range3DView {
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const ground = new THREE.Mesh(geo, this.mats.gravel);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.z = -size / 2 + 10;
+    ground.position.z = cz;
     ground.receiveShadow = true;
     ground.userData.surface = 'ground';
-    for (const t of [this.tex.gravC, this.tex.gravN, this.tex.gravR]) t.repeat.set(size / R().gravelTile, size / R().gravelTile);
+    for (const t of [this.tex.gravC, this.tex.gravN, this.tex.gravR]) t.repeat.set(size / R().gravelTile, depth / R().gravelTile);
     this.scene.add(ground);
     this.solids.push(ground);
+  }
+
+  // Behind the firing line (seen when a drill turns you round): a steel shade
+  // canopy with a table and a bench under it, and the range's back fence.
+  buildUprange() {
+    const U = R().uprange, C = U.canopy, g = new THREE.Group(), add = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = m.receiveShadow = true;
+      g.add(m);
+      return m;
+    };
+    const post = this.steelMats.frame, roof = new THREE.MeshStandardMaterial({ color: U.roofColor, metalness: 0.5, roughness: 0.55 }), wood = this.mats.wood;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.08, C.h, 0.08), post, C.x + sx * (C.w / 2 - 0.1), C.h / 2, C.z + sz * (C.d / 2 - 0.1));
+    add(new THREE.BoxGeometry(C.w + 0.4, 0.05, C.d + 0.4), roof, C.x, C.h + 0.03, C.z).rotation.x = -0.06; // sloped sheet roof
+    // Table (plywood top on 2x4 legs) and a bench.
+    const T = U.table;
+    add(new THREE.BoxGeometry(T.w, 0.03, T.d), this.plywoodMaterial(), C.x - 0.8, T.h, C.z);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.06, T.h, 0.06), wood, C.x - 0.8 + sx * (T.w / 2 - 0.1), T.h / 2, C.z + sz * (T.d / 2 - 0.1));
+    add(new THREE.BoxGeometry(1.8, 0.05, 0.3), wood, C.x + 1.4, 0.45, C.z + 0.6);
+    for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.06, 0.45, 0.28), wood, C.x + 1.4 + sx * 0.8, 0.225, C.z + 0.6);
+    // Back fence: posts and two rails.
+    const F = U.fence;
+    for (let x = -F.halfWidth; x <= F.halfWidth + 0.01; x += F.span) add(new THREE.BoxGeometry(0.1, F.h, 0.1), wood, x, F.h / 2, F.z);
+    for (const y of [F.h * 0.45, F.h * 0.9]) add(new THREE.BoxGeometry(F.halfWidth * 2, 0.09, 0.04), wood, 0, y, F.z + 0.07);
+    this.scene.add(g);
   }
 
   // Back berm and two side berms: lumpy dirt slopes.

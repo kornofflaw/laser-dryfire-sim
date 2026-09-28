@@ -556,6 +556,13 @@ export const CONFIG = {
     brass: 45,              // spent 9 mm cases lying on the bay floor
     gravelTile: 2.0,        // metres per gravel texture tile
     dirtTile: 3.0,          // metres per berm texture tile
+    // Behind the line: ground `groundBack` m further back, a shade canopy
+    // (w x d m, h tall, centred x, z behind you) with a table, and the fence.
+    uprange: {
+      groundBack: 45, roofColor: '#8d9398',
+      canopy: { x: -2.5, z: 9, w: 6, d: 4, h: 2.6 }, table: { w: 2.0, d: 0.8, h: 0.76 },
+      fence: { z: 32, h: 1.2, span: 2.5, halfWidth: 25 },
+    },
     berm: { width: 44, depth: 9, height: 4.5, backZ: 28, lumps: 0.6, sideX: 7.5, sideLength: 34, sideStartZ: 3 },
     // Yardage markers down both sides of the bay (stake height m, sign w x h
     // m, x from the centre line, turn radians toward the shooter).
