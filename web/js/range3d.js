@@ -438,8 +438,32 @@ export class Range3DView {
     this.mats.gravel.color.copy(this.gravelColor).multiplyScalar(wet ? W.darken : 1);
     if (wet && !this.rain) { this.rain = rainStreaks(W); this.scene.add(this.rain); }
     if (this.rain) this.rain.visible = wet;
+    // Wet steel: darker paint with a sheen; puddles on the bay floor.
+    const paint = this.steelMats.paint;
+    this.paintBase ??= { color: paint.color.clone(), roughness: paint.roughness };
+    paint.color.copy(this.paintBase.color).multiplyScalar(wet ? W.steelDarken : 1);
+    paint.roughness = wet ? W.steelRoughness : this.paintBase.roughness;
+    if (wet && !this.puddles) this.puddles = this.buildPuddles();
+    if (this.puddles) this.puddles.visible = wet;
     this.wetCards();
     this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  // Standing water on the bay floor: flat, glassy patches (random, fixed).
+  buildPuddles() {
+    const P = R().rain.puddles, rnd = mulberry(77);
+    const mat = new THREE.MeshStandardMaterial({ color: P.color, roughness: P.roughness, metalness: 0, envMapIntensity: P.reflect, transparent: true, opacity: P.opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+    const group = new THREE.Group();
+    for (let i = 0; i < P.count; i++) {
+      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 24), mat);
+      m.rotation.x = -Math.PI / 2;
+      m.scale.set(P.size[0] + rnd() * (P.size[1] - P.size[0]), P.size[0] + rnd() * (P.size[1] - P.size[0]) * 0.6, 1);
+      m.position.set((rnd() - 0.5) * P.area[0], 0.004, -P.area[1] * (0.1 + rnd() * 0.9));
+      m.receiveShadow = true;
+      group.add(m);
+    }
+    this.scene.add(group);
+    return group;
   }
 
   // Soaked cardboard is darker (and a little less matte) in the rain.
