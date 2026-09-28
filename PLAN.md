@@ -259,11 +259,11 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-1. Dueling tree: steel paddles on a post that swing across to the other side when hit (two shooters, or you clearing it).
-2. IDPA option: the IDPA cardboard (-0 / -1 / -3 zones, head and body circles) and time-plus scoring (points down x 0.5 s + penalties).
-3. More complete stages mixing the activators (swinger, turner, mover, clamshell) with walls, ports and no-shoots, classifier-style.
-4. Bobber (activated target that rises and sinks behind cover) and a berm-hit thud from a CC0 recording.
-(Done this cycle: steel repainted on reset, popper calibration zone, perforations and earlier shooters' pasters, far steel ring timing, recorded range background.)
+1. Virginia Count stages: exact round count, each extra shot a procedural penalty (-10).
+2. Classifier-style multi-string stages (e.g. freestyle, strong hand only, weak hand only strings), one hit factor over all strings.
+3. Low-light range: dusk / night on the 3D range with floodlights on the targets.
+4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
+(Done: dueling tree, bobber, Steel Challenge style courses, recorded falling-steel clunks, and everything listed in the changelog below.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -669,3 +669,8 @@ he reports a problem.
 - Shot review (V) for Steel Challenge runs: each string's shots are timed
   from that string's own beep (no split across strings), instead of all
   from the last string's beep.
+- Virginia Count stages (stage scoring: 'virginia'): exactly the round
+  count (2 per paper + 1 per steel); each extra shot is a -10 procedural
+  on the score sheet. The stage panel shows "Virginia Count: exactly N
+  rounds" and "Rounds: n / N" during the run. New stage "Virginia Count:
+  Three at Ten" (CONFIG.stage.procedural).

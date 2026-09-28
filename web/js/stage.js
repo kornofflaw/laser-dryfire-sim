@@ -114,17 +114,24 @@ export class StageRunner extends DrillRunner {
     }
     points += this.down.size * P.Steel;
     mikes += this.steel.length - this.down.size;
-    points += mikes * S.missPenalty + this.nsHits * P.NS;
-    return { points: Math.max(0, points), mikes, sheet, counted };
+    // Virginia Count: exactly the round count; every extra shot is a procedural.
+    const procedurals = this.virginia ? Math.max(0, this.shots - this.roundCount) : 0;
+    points += mikes * S.missPenalty + this.nsHits * P.NS + procedurals * S.procedural;
+    return { points: Math.max(0, points), mikes, sheet, counted, procedurals };
   }
+
+  get virginia() { return this.course.stage.scoring === 'virginia'; }
+  // Rounds the stage needs: the hits per paper plus one per steel.
+  get roundCount() { return this.papers.length * this.perPaper + this.steel.length; }
 
   finish(complete) {
     const d = this.course;
     const s = this.shotTimes;
     const time = s.length ? s[s.length - 1] : 0;
-    const { points, mikes, sheet, counted } = this.tally();
+    const { points, mikes, sheet, counted, procedurals } = this.tally();
     const madePar = complete && s.length > 0 && time <= d.parTime;
     const problems = [];
+    if (procedurals) problems.push(`${procedurals} extra shot${procedurals > 1 ? 's' : ''}: procedural${procedurals > 1 ? 's' : ''} (${procedurals * CONFIG.stage.procedural})`);
     if (mikes) problems.push(`${mikes} miss${mikes > 1 ? 'es' : ''} (-${mikes * -CONFIG.stage.missPenalty})`);
     if (this.nsHits) problems.push(`${this.nsHits} no-shoot${this.nsHits > 1 ? 's' : ''} (${this.nsHits * CONFIG.points.NS})`);
     this.result = {
@@ -146,7 +153,7 @@ export class StageRunner extends DrillRunner {
       hitFactor: time > 0.0001 ? points / time : 0,
       madePar,
       problems,
-      passed: complete && madePar && mikes === 0 && this.nsHits === 0,
+      passed: complete && madePar && mikes === 0 && this.nsHits === 0 && !procedurals,
       early: this.early,
       notes: problems.join('; '),
     };
@@ -167,7 +174,7 @@ export class StageRunner extends DrillRunner {
       return head + `<span class="go">${d.name}</span>\n` +
         (this.papers.length ? `Paper done: ${paperDone} / ${this.papers.length}\n` : '') +
         (this.steel.length ? `Steel down: ${this.down.size} / ${this.steel.length}\n` : '') +
-        `Rounds: ${this.shots}` + (this.nsHits ? `   <span class="bad">No-shoots: ${this.nsHits}</span>` : '');
+        `Rounds: ${this.shots}${this.virginia ? ` / ${this.roundCount}` : ''}` + (this.nsHits ? `   <span class="bad">No-shoots: ${this.nsHits}</span>` : '');
     }
     const r = this.result;
     if (r && r.course === d.name) {
@@ -182,7 +189,8 @@ export class StageRunner extends DrillRunner {
       for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
       return head + lines.join('\n') + '\n' + footer;
     }
-    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${need}  ·  par ${d.parTime.toFixed(1)}s\n` + footer;
+    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${need}  ·  par ${d.parTime.toFixed(1)}s` +
+      (this.virginia ? `\n<b>Virginia Count</b>: exactly ${this.roundCount} rounds` : '') + '\n' + footer;
   }
 }
 

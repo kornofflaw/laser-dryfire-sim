@@ -124,6 +124,8 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// scoring: 'virginia' (in stage) = Virginia Count: exactly the round count,
+// each extra shot a procedural (CONFIG.stage.procedural).
 // Steel plates may set in (diameter in inches, default 8) or rect: [w, h]
 // inches; stop: true makes one the stop plate (Steel Challenge style
 // courses, type 'strings').
@@ -284,6 +286,17 @@ const STAGES = [
         { type: 'plate', x: -1.8, yd: 25, in: 10, h: 1.3 },
         { type: 'plate', x: 1.8, yd: 25, in: 10, h: 1.3 },
         { type: 'plate', x: 0, yd: 15, rect: [18, 24], h: 1.0, stop: true },
+      ],
+    } },
+  { name: 'Virginia Count: Three at Ten', category: 'Stages', parTime: 5.0, maxShots: 12,
+    desc: 'Three paper at 10 yards and a popper, Virginia Count: exactly 7 rounds. Every extra shot is a procedural (-10), so make-up shots cost you.',
+    stage: {
+      scoring: 'virginia',
+      items: [
+        { type: 'paper', x: -1.8, yd: 10 },
+        { type: 'paper', x: 0, yd: 10 },
+        { type: 'paper', x: 1.8, yd: 10 },
+        { type: 'popper', x: 3.4, yd: 12 },
       ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,

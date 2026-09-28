@@ -53,7 +53,9 @@ export const CONFIG = {
   // Best `perPaper` hits on each paper count; each missing hit, and each steel
   // left standing, is a miss (missPenalty). No-shoot hits are CONFIG.points.NS.
   // Stage points never go below zero. Hit factor = points / time.
-  stage: { perPaper: 2, missPenalty: -10 },
+  // Virginia Count stages (stage.scoring 'virginia'): exactly the round count
+  // (hits per paper + one per steel); each extra shot is a procedural.
+  stage: { perPaper: 2, missPenalty: -10, procedural: -10 },
 
   // ---- Targets -------------------------------------------------------------
   targets: {
