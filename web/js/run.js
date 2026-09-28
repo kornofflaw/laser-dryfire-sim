@@ -289,17 +289,22 @@ export class DrillRunner extends Runner {
         const r = this.result, s = this.shotTimes;
         const letter = z => ({ Head: 'H', Steel: 'S', Miss: 'M', NS: 'NS', Tile: 'S', Dot: 'X' }[z] || z || '');
         const max = CONFIG.timer.reviewRows;
-        const from = Math.max(0, s.length - max);
+        const from = Math.max(0, s.length - max), goal = CONFIG.timer.splitGoal;
         const rows = s.slice(from).map((t, k) => {
           const i = from + k, z = this.shotZones[i];
           const cls = z === 'Miss' || z === 'NS' ? ' class="bad"' : '';
-          return `<tr${cls}><td>${i + 1}</td><td>${f2(t)}</td><td>${i ? f2(t - s[i - 1]) : '—'}</td><td>${letter(z)}</td></tr>`;
+          // Split goal (Setup): a split slower than the goal is flagged.
+          const split = i ? t - s[i - 1] : null, slow = goal > 0 && split != null && split > goal;
+          return `<tr${cls}><td>${i + 1}</td><td>${f2(t)}</td><td${slow ? ' class="slow"' : ''}>${i ? f2(split) : '—'}</td><td>${letter(z)}</td></tr>`;
         }).join('');
+        const splits = s.slice(1).map((t, i) => t - s[i]);
+        const under = splits.filter(v => v <= goal).length;
+        const goalLine = goal > 0 && splits.length ? `<span class="small">Split goal ${f2(goal)}: ${under} of ${splits.length} splits made it${under < splits.length ? ` (slowest ${f2(Math.max(...splits))})` : ''}</span>\n` : '';
         return head + `<span class="bigtime">${s.length ? f2(s[s.length - 1]) : '--'}</span>` +
           `${r.shots} shot${r.shots === 1 ? '' : 's'} · 1st ${r.firstShot == null ? '--' : f2(r.firstShot)} · par ${d.parTime.toFixed(2)}\n` +
           (s.length ? `<table class="shots"><tr><th>#</th><th>time</th><th>split</th><th>hit</th></tr>${rows}</table>` +
             (from ? `<span class="muted small">(first ${from} not shown)</span>\n` : '') : '') +
-          (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
+          goalLine + (r.early ? `<span class="bad">Jumped the beep (${r.early})</span>\n` : '') +
           this.sessionLine() +
           `<span class="muted small">[Space] run again</span>`;
       }

@@ -60,6 +60,7 @@ const settings = Object.assign({
   volAmb: 1,          // background sound volume (Setup slider)
   roCommands: true,   // "Make ready... Are you ready? Standby" before the beep
   paperDing: true,    // a ding on paper hits (real cardboard is silent)
+  splitGoal: 0,       // shot timer: flag splits slower than this (s; 0 = off)
   autoRepeat: 0,      // shot timer REP mode: next drill / stage run starts this many s after the last (0 = off)
   earPro: 'none',     // hearing protection you hear through: none | electronic | passive
   paste: true,        // 3D range: paste holes between runs
@@ -68,6 +69,7 @@ const settings = Object.assign({
 }, load(CONFIG.storage.settings, {}));
 CONFIG.post.quality = settings.quality; // 3D graphics (read by post3d.js)
 CONFIG.timer.commands.on = settings.roCommands;
+CONFIG.timer.splitGoal = settings.splitGoal;
 CONFIG.range3d.paste.on = settings.paste;
 Object.assign(CONFIG.points, CONFIG.powerFactor[settings.powerFactor] || CONFIG.powerFactor.minor);
 const persist = () => save(CONFIG.storage.settings, settings);
@@ -1098,6 +1100,7 @@ $('#test-glass').onclick = () => glassBreak();
 $('#test-distant').onclick = () => distantShot();
 $('#opt-ro').onchange = e => { settings.roCommands = CONFIG.timer.commands.on = e.target.checked; persist(); };
 $('#opt-ding').onchange = e => { settings.paperDing = e.target.checked; persist(); };
+$('#opt-split').onchange = e => { settings.splitGoal = CONFIG.timer.splitGoal = Number(e.target.value); persist(); };
 $('#opt-repeat').onchange = e => { settings.autoRepeat = Number(e.target.value); repeatAt = null; persist(); };
 $('#opt-earpro').onchange = e => {
   settings.earPro = e.target.value;
@@ -1109,6 +1112,7 @@ function refreshSound() {
   $('#opt-ro').checked = settings.roCommands;
   $('#opt-ding').checked = settings.paperDing;
   $('#opt-repeat').value = String(settings.autoRepeat);
+  $('#opt-split').value = Number(settings.splitGoal).toFixed(2) === '0.00' ? '0' : Number(settings.splitGoal).toFixed(2);
   $('#opt-earpro').value = settings.earPro;
   $('#opt-paste').checked = settings.paste;
   const c = soundChoices();

@@ -261,7 +261,7 @@ all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
 2. Lean views around a wall edge at a position (shoot left / right of the barricade), picked by a key or the Controller.
-3. Split-time drills: show the target split (e.g. 0.20 s) as a line on the review timeline and flag slow splits.
+3. Transition splits: on multi-target drills show target-to-target transitions separately from same-target splits.
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
 (Done: Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
@@ -787,3 +787,7 @@ he reports a problem.
   complete runs of that course from the run log (time for drills, hit
   factor for stages), latest value labelled, hover a point for its value
   and date (CONFIG.review.progressRuns).
+- Split goal (Setup -> Sound, next to Repeat): pick 0.15-0.50 s; after a
+  run the shot timer marks splits slower than the goal in orange and says
+  "Split goal 0.25: 3 of 5 splits made it (slowest 0.41)". Also on the
+  Controller. CONFIG.timer.splitGoal.

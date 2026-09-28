@@ -265,6 +265,7 @@ button.course.current { border-color: var(--accent); box-shadow: inset 0 0 0 1px
 }
 .rv-card header { display: flex; align-items: center; gap: 12px; }
 #review-progress { margin-top: 10px; }
+table.shots td.slow { color: #ff8f6b; font-weight: 700; }
 #review-progress h3 { font-size: 13px; margin: 0 0 4px; color: #c3c2b7; font-weight: 600; }
 #review-progress svg { width: 100%; height: 110px; display: block; }
 #review-progress .pt { fill: #3987e5; stroke: var(--panel-solid, #1a1a19); stroke-width: 2; }

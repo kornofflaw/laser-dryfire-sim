@@ -89,6 +89,7 @@ export const CONFIG = {
     },
     incompleteGrace: 3.0,   // seconds past par before an unfinished drill ends
     par: { step: 0.1, min: 0.5, max: 60 }, // your own par ([ ] on drills and stages), seconds
+    splitGoal: 0,           // Setup: a split slower than this (s) is flagged in the review (0 = off)
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
