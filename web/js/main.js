@@ -298,7 +298,7 @@ function loadMatchStage() {
 }
 function matchStageDone(result) {
   if (!match || result.course !== match.def.stages[match.i]) return false;
-  match.results.push({ name: result.course, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete });
+  match.results.push({ name: result.course, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete, bench: result.benchmark || 0 });
   match.i++;
   if (match.i < match.def.stages.length) match.nextAt = performance.now() + CONFIG.match.nextStageAfter * 1000;
   else setTimeout(showMatchResults, 1500);
@@ -318,10 +318,13 @@ function showMatchResults() {
     match = null;
     return;
   }
-  $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Points</th><th>Time</th><th>Hit factor</th></tr>` +
-    r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${s.points}</td><td>${f(s.time)}</td><td>${f(s.hf)}</td></tr>`).join('') +
-    `<tr><th>Match</th><th>${pts}</th><th>${f(time)}</th><th>${f(time > 0 ? pts / time : 0)}</th></tr></table>` +
-    `<p class="note">Match hit factor = all points / all time. Stage hit factors can be compared with other shooters' on the same stage.</p>`;
+  // % of each stage's benchmark (an estimated top-shooter run); the match %
+  // is the average over the stages that have one.
+  const pct = s => (s.bench ? Math.round((100 * s.hf) / s.bench) : null), pcts = r.map(pct).filter(v => v != null);
+  $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Points</th><th>Time</th><th>Hit factor</th><th>% of benchmark</th></tr>` +
+    r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${s.points}</td><td>${f(s.time)}</td><td>${f(s.hf)}</td><td>${pct(s) != null ? pct(s) + '%' : '-'}</td></tr>`).join('') +
+    `<tr><th>Match</th><th>${pts}</th><th>${f(time)}</th><th>${f(time > 0 ? pts / time : 0)}</th><th>${pcts.length ? Math.round(pcts.reduce((a, v) => a + v, 0) / pcts.length) + '%' : '-'}</th></tr></table>` +
+    `<p class="note">Match hit factor = all points / all time. Stage hit factors can be compared with other shooters' on the same stage; the benchmark is an estimated top-shooter run.</p>`;
   $('#match').hidden = false;
   match = null;
 }

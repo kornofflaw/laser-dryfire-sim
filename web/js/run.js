@@ -125,7 +125,7 @@ export class DrillRunner extends Runner {
   sessionLine() {
     const runs = (DrillRunner.history?.[this.course.name] || []).filter(r => r.complete);
     const pb = DrillRunner.bests?.[this.course.name];
-    const pbLine = pb != null ? `<span class="muted small">Personal best: ${this.byHitFactor ? 'HF ' : ''}${f2(pb)}${this.byHitFactor ? '' : ' s'}${this.result?.newBest ? ' <span class="go">NEW!</span>' : ''}</span>\n` : '';
+    const pbLine = pb != null ? `<span class="muted small">Personal best: ${this.byHitFactor ? 'HF ' : ''}${f2(pb)}${this.byHitFactor ? '' : ' s'}${this.byHitFactor && this.result?.benchmark ? ` (${Math.round((100 * pb) / this.result.benchmark)}% of benchmark)` : ''}${this.result?.newBest ? ' <span class="go">NEW!</span>' : ''}</span>\n` : '';
     if (runs.length < 2) return pbLine;
     const stage = this.byHitFactor;
     const vals = runs.map(r => (stage ? r.hf : r.time));
