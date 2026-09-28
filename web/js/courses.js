@@ -137,6 +137,8 @@ const FLIP = [
 // Steel plates may set in (diameter in inches, default 8) or rect: [w, h]
 // inches; stop: true makes one the stop plate (Steel Challenge style
 // courses, type 'strings').
+// pop: { by: 'S1' } makes a paper an activated pop-up: flat on its hinge
+// until that steel falls, then up for good (not a disappearing target).
 // bob: { by: 'S1', times? } makes a paper a bobber: sunk behind low cover
 // until that steel falls, then it rises and sinks `times` times.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
@@ -342,6 +344,17 @@ const STAGES = [
         { type: 'plate', x: -4.4, yd: 10 },
         { type: 'plate', x: 4.4, yd: 10 },
         { type: 'popper', x: 1.1, yd: 15 },
+      ],
+    } },
+  { name: 'Pop-up Surprise', category: 'Stages', parTime: 8.0, maxShots: 14,
+    desc: 'Two paper and a plate. The plate pops up two more paper that were lying flat on their hinges - they stay up, so they must be shot (2 each).',
+    stage: {
+      items: [
+        { type: 'paper', x: -2.8, yd: 7 },
+        { type: 'plate', x: 0, yd: 10 },
+        { type: 'paper', x: 2.8, yd: 7 },
+        { type: 'paper', x: -1.2, yd: 12, pop: { by: 'S1' } },
+        { type: 'paper', x: 1.2, yd: 12, pop: { by: 'S1' } },
       ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,

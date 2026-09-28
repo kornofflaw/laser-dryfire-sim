@@ -559,6 +559,9 @@ export const CONFIG = {
     // behind low cover; once released it rises in `rise` s, stays `up` s,
     // sinks and waits `down` s, `times` times, then stays down.
     bobber: { drop: 1.0, rise: 0.25, up: 0.9, down: 0.8, times: 3 },
+    // Activated pop-up (stage paper with pop: { by }): lies back `down` rad on
+    // its hinge until released, then springs up in `rise` s (bounce: overshoot).
+    popUp: { down: 1.5, rise: 0.3, bounce: 0.06 },
     // Activators (a popper for a swinger or turner) release it by a cable as
     // they fall: this many seconds after the hit.
     activateDelay: 0.3,

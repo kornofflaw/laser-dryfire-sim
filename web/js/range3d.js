@@ -492,6 +492,7 @@ export class Range3DView {
     this.turners = [];
     this.trolleys = [];
     this.bobbers = [];
+    this.poppers = [];
     this.clamshells = [];
     this.steel = null;
     this.walk = this.inspecting = null;
@@ -693,6 +694,7 @@ export class Range3DView {
     if (opts.turn) this.mountTurner(group, card, opts.turn);
     if (opts.run) this.mountTrolley(group, card, opts.run);
     if (opts.bob) this.mountBobber(group, card, opts.bob);
+    if (opts.pop) this.mountPopUp(card, opts.pop);
     return { x, slot, group, pivot, face, card, solids, id: card.id };
   }
 
@@ -797,6 +799,24 @@ export class Range3DView {
     card.meta.hides = true;
     group.position.y = -R().bobber.drop;
     this.bobbers.push({ group, by: bob.by, times: bob.times ?? R().bobber.times, t0: null });
+  }
+
+  // An activated pop-up: the paper lies back flat on its hinge (nothing to
+  // hit) until its activator steel falls, then springs up and stays up.
+  // pop: { by }.
+  mountPopUp(card, pop) {
+    card.tilt = -R().popUp.down;
+    this.poppers.push({ card, by: pop.by, t0: null });
+  }
+
+  updatePopUps(now) {
+    const P = R().popUp;
+    for (const s of this.poppers) {
+      const u = s.t0 == null ? 0 : Math.max(0, now - s.t0) / P.rise;
+      // Up fast, with a small overshoot as it hits its stop.
+      const a = u < 1 ? u * u : 1 + P.bounce * Math.sin(Math.min(1, (u - 1) * 3) * Math.PI) * Math.exp(-(u - 1) * 4);
+      s.card.tilt = -P.down * (1 - Math.min(1.05, a));
+    }
   }
 
   // How far up a released bobber is, 0 (sunk) .. 1 (up), u s after release.
@@ -909,7 +929,7 @@ export class Range3DView {
       const z = -it.yd * YARD;
       if (it.steel) { steel.push({ ...it, z }); continue; }
       const t = this.makeTarget(it.x, slot++, {
-        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, bob: it.bob, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
+        z, id: it.id, noShoot: it.type === 'noshoot', dy: it.dy, hard: it.hard, swing: it.swing, turn: it.turn, run: it.run, bob: it.bob, pop: it.pop, pxPerCm: it.yd <= 7 ? PX_PER_CM : R().farPxPerCm,
       });
       if (R().paste.on) this.earlierShooters(t.card);
       this.targets.push(t);
@@ -1112,6 +1132,7 @@ export class Range3DView {
     this.turners?.forEach(s => { s.t0 = null; });
     this.trolleys?.forEach(s => { s.t0 = null; });
     this.bobbers?.forEach(s => { s.t0 = null; });
+    this.poppers?.forEach(s => { s.t0 = null; });
     this.clamshells?.forEach(s => { s.t0 = null; });
     this.steel?.reset();
     this.movers?.forEach(m => { this.startMover(m, m.i === 0 ? -1 : 1, m.i === 0 ? 0.3 : -0.2); m.t.pivot.rotation.x = 0; });
@@ -1247,13 +1268,14 @@ export class Range3DView {
         rx += c.jolt.rx * s;
         if (k > 1.2) c.jolt = null;
       }
-      t.pivot.rotation.set(rx, ry + (c.yaw || 0), 0);
+      t.pivot.rotation.set(rx + (c.tilt || 0), ry + (c.yaw || 0), 0);
     }
     if (this.movers?.length) this.updateMovers(dt, now);
     if (this.swingers?.length) this.updateSwingers(now);
     if (this.turners?.length) this.updateTurners(now);
     if (this.trolleys?.length) this.updateTrolleys(now);
     if (this.bobbers?.length) this.updateBobbers(now);
+    if (this.poppers?.length) this.updatePopUps(now);
     if (this.clamshells?.length) this.updateClamshells(now);
     if (this.walk) this.updateWalk(now);
     if (this.raining && this.rain) moveRain(this.rain, R().rain, dt, this.camera.position.x, this.camera.position.z);
@@ -1314,7 +1336,7 @@ export class Range3DView {
         const zone = classifyUspsa(cm.x, cm.y);
         if (!zone) continue; // outside the die-cut shape: the round goes past
         // A turner nearly edge-on: the round slips past the cardboard's edge.
-        if (card.yaw && Math.abs(o.getWorldDirection(new THREE.Vector3()).dot(dir)) < R().turner.edge) continue;
+        if ((card.yaw || card.tilt) && Math.abs(o.getWorldDirection(new THREE.Vector3()).dot(dir)) < R().turner.edge) continue;
         // Hard cover stops the round: it can't score (a hole in the paint, a miss).
         if (card.meta.kind === 'backer') return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm }; // off the dot sheet
         if (inHardCover(card.meta.hard, cm)) return { ...miss, point: h.point, dir, card, uv: h.uv, local: cm, hardCover: true };
@@ -1375,7 +1397,7 @@ export class Range3DView {
         this.steel.hit(score.steel, score.point, score.dir, now);
         // An activator: releases its swinger.
         // (released by a cable as it falls: activateDelay s later)
-        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || []), ...(this.clamshells || []), ...(this.bobbers || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
+        for (const s of [...(this.swingers || []), ...(this.turners || []), ...(this.trolleys || []), ...(this.clamshells || []), ...(this.bobbers || []), ...(this.poppers || [])]) if (s.t0 == null && s.by === score.targetId) s.t0 = now + R().activateDelay;
       }
       // Lead and paint spray off the face, mostly sideways and down.
       this.fx.push(debris(this.scene, score.point, score.dir.clone().negate(), '#8a8c8f', 16, [1.5, 4], 0.006, 0.6));
@@ -1449,6 +1471,7 @@ export class Range3DView {
       this.swingers?.some(s => s.t0 != null) || this.turners?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 2 * R().turner.time + s.show) ||
       this.trolleys?.some(s => s.t0 != null && Math.abs(s.group.position.x - s.x1) > 1e-4) ||
       this.bobbers?.some(s => s.t0 != null && s.group.position.y > -R().bobber.drop + 1e-4) ||
+      this.poppers?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 3 * R().popUp.rise) ||
       this.clamshells?.some(s => s.t0 != null && performance.now() / 1000 - s.t0 < 3 * R().props.clamshell.fall) ||
       (this.kind === 'popup' && !!this.bank?.lanes.some(L => L.state === 'rising' || L.state === 'falling'));
   }

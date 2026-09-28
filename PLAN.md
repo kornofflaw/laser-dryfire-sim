@@ -731,3 +731,7 @@ he reports a problem.
 - "Steel Match: 3 Stages" (the three Steel Challenge style courses); a
   Steel Challenge match's results show each stage's total time and the
   match time (lowest wins) instead of points.
+- Activated pop-up (stage paper with pop: { by }): lies back flat on its
+  hinge (can't be hit) until its activator falls, then springs up with a
+  small overshoot and stays up - not a disappearing target, so misses
+  count. New stage "Pop-up Surprise" (CONFIG.range3d.popUp).

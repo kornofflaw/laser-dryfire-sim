@@ -219,7 +219,7 @@ export class StageRunner extends DrillRunner {
   // targets, start position, par.
   briefing() {
     const st = this.course.stage, n = t => this.items.filter(i => i.type === t).length;
-    const steel = this.steel.length, ns = n('noshoot'), act = this.items.filter(i => i.swing || i.turn || i.run || i.bob).length;
+    const steel = this.steel.length, ns = n('noshoot'), act = this.items.filter(i => i.swing || i.turn || i.run || i.bob || i.pop).length;
     const targets = [`${this.papers.length} paper`, ns ? `${ns} no-shoot${ns > 1 ? 's' : ''}` : '', steel ? `${steel} steel` : '', act ? `${act} activated` : '']
       .filter(Boolean).join(', ');
     const strings = st.strings?.length || 1, per = this.perString ?? this.perPaper;
