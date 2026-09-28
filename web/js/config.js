@@ -602,7 +602,12 @@ export const CONFIG = {
       wall: { w: 1.22, h: 1.83, lift: 0.08, thick: 0.018, tint: [0.8, 0.78, 0.75] },
       barrel: { r: 0.29, h: 0.88, color: '#24569e' },
       clamshell: { w: 0.8, h: 1.85, lift: 0.05, fall: 0.7, bounce: 0.05 },
+      // Port walls (stage builder): w x h m with a port pw x ph m centred
+      // y m up - 'high' for standing, 'low' for kneeling.
+      ports: { w: 2.44, h: 2.2, high: { y: 1.5, w: 0.6, h: 0.45 }, low: { y: 0.95, w: 0.6, h: 0.42 } },
     },
+    kneelEye: 1.05,         // eye height (m) at a stage position with kneel: true
+    kneelLookY: 0.8,        // ...and the height it looks at downrange (low ports sit low)
     maxPixelRatio: 2,
     shadowIdleInterval: 0.25, // seconds between shadow redraws when nothing is moving
     // Slow frames (average over `frames`) above slowMs lower the render

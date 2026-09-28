@@ -260,10 +260,10 @@ Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
 1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
-2. Port / window shooting: a builder wall with a port (low port, high port) so builder stages can force shooting through an opening.
+2. Barricade (VTAC-style) with several ports at different heights: standing, kneeling, prone-ish, as a stock stage and builder prop.
 3. Partial no-shoot overlap in the builder: a no-shoot hung in front of a paper target, covering part of it (dx / dy offsets).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: port walls + kneeling, walk-and-shoot stages, shooting-on-the-move drills, lean left / right, builder hard cover, staggered bay distances, Three Positions, start positions, rain splashes / wet steel / puddles, builder map, builder clamshells / positions / Controller list, activated pop-ups, night match, repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -809,3 +809,4 @@ he reports a problem.
 - 2026-09-28: 3D range: Q / E lean out left / right of a wall or barricade (0.4 m over, head dropped and tilted; press again to stand upright). Shots count while leaning; resets with each run and position. Controller: Lean left / Lean right buttons. CONFIG.range3d.lean.
 - 2026-09-28: Movement drills (3D): Walk Up (walk 5 yd toward three targets), Back Up (retreat 5 yd) and Crossing Fire (walk 6 m across) - at the beep the view walks at a slow shooting pace with footsteps and a slight head bob, and shots count on the way; it stops where the walk got to and goes back to the start for the next run. Course field advance { from, to, speed }; CONFIG.range3d.advance.
 - 2026-09-28: Stages: a position can be walked to while shooting (onMove) - the view walks there at a slow shooting pace and shots count on the way. New stage "Walk and Shoot"; stage builder row "You walk to here, shooting on the way" (blue on the map). Moving between positions now has footsteps (running or walking). CONFIG.range3d.move.
+- 2026-09-28: Kneeling and low ports: a stage position can be kneeling (eyes at 1.05 m; the view drops as you get there). New stage "Low Port" (kneel behind an 8 ft wall, targets seen only through a low port). Stage builder: "Wall with a port" / "Wall with a low port (kneel)" rows (can stand 1 yd out) and a standing / kneeling choice on each "You run to here" row; kept in stage codes and copies. CONFIG.range3d.props.ports, kneelEye.

@@ -1193,7 +1193,7 @@ export class Range3DView {
     const P = this.kind === 'stage' && this.builtStage?.positions?.[this.station || 0];
     if (P) {
       const lx = P.look?.x ?? P.x, lyd = P.look?.yd ?? (P.yd || 0) + this.lookYards;
-      return { pos: new THREE.Vector3(P.x || 0, CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, R().aimY.stage, -lyd * YARD) };
+      return { pos: new THREE.Vector3(P.x || 0, P.kneel ? R().kneelEye : CONFIG.knife.eyeHeight, -(P.yd || 0) * YARD), look: new THREE.Vector3(lx, P.kneel ? R().kneelLookY : R().aimY.stage, -lyd * YARD) };
     }
     const s = this.step; // shooting on the move: where the walk has got to
     if (s) return { pos: new THREE.Vector3(s.x, CONFIG.knife.eyeHeight + s.bob, -s.yd * YARD), look: new THREE.Vector3(0, R().aimY[this.kind], -this.lookYards * YARD) };

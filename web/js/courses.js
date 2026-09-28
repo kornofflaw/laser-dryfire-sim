@@ -362,6 +362,20 @@ const STAGES = [
         { type: 'popper', x: 3.4, yd: 13, pos: 1 },
       ],
     } },
+  { name: 'Low Port', category: 'Stages', parTime: 12.0, maxShots: 16,
+    desc: 'Start standing on the left: two paper. Then move right and kneel behind the wall: two paper and a plate, seen only through a low port. Rounds into the wall are misses. 2 per paper, the plate down.',
+    stage: {
+      start: 'standing at position 1, hands relaxed at your sides',
+      positions: [{ x: -2.5, yd: 0 }, { x: 1.5, yd: 1, kneel: true }],
+      items: [
+        { type: 'paper', x: -4.0, yd: 7 },
+        { type: 'paper', x: -1.9, yd: 8 },
+        { type: 'paper', x: 0.7, yd: 9, pos: 1 },
+        { type: 'paper', x: 2.5, yd: 9, pos: 1 },
+        { type: 'plate', x: 1.6, yd: 12, pos: 1 },
+      ],
+      props: [{ type: 'wall', x: 1.5, yd: 2.5, w: 2.44, h: 2.2, port: { x: 0, y: 0.95, w: 0.6, h: 0.42 } }],
+    } },
   { name: 'Low Light: Under the Lights', category: 'Stages', parTime: 9.0, maxShots: 16, time: 'night',
     desc: 'A night stage: the bay lit only by a floodlight behind you (whatever the Setup time of day). Three paper, two plates in the half-dark and a popper. 2 per paper, all steel down.',
     stage: {
