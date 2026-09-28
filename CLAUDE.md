@@ -91,7 +91,7 @@ web/                    the app; deploy this folder as-is
   js/config.js          ALL tunables
   js/main.js            wiring, shoot(), course selection/picker, HUD, keyboard, setup drawer
   js/courses.js         course list: drills, Dot Torture sequence, scenario entries, stages, matches
-  js/builder.js         stage builder (B): your own stages, saved in this browser, listed under My Stages
+  js/builder.js         stage builder (Build button / B): a map of the bay to click targets onto and drag around, plus the row list with each target's details; saved in this browser, listed under My Stages
   js/run.js             Runner base + DrillRunner: shot timer, drills, pass/fail, hit factor
   js/dots.js            DotTortureRunner (50 rounds, stage by stage)
   js/scenario.js        ScenarioRunner: plays a scene, grades shoot/no-shoot
