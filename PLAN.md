@@ -654,3 +654,11 @@ he reports a problem.
   landing, pop-ups going down) now clunks with real recordings (Kenney
   heavy metal impacts, CC0) instead of a generated click; the generated one
   stays as the fallback. CONFIG.sound.samples.steelFall.
+- Steel Challenge style (new "Steel Challenge" category): "Five Plates" -
+  four plates (10" and 12") and a stop plate marked by a red pole. Each
+  string runs beep to stop plate; a plate left up costs 3 s; the steel
+  resets itself between strings ("Are you ready? Standby" and a random
+  delay); five strings, the slowest thrown out, the other four added up
+  against a goal time. The shot timer lists the strings. New course type
+  'strings' (stage.js StringsRunner, CONFIG.steelChallenge); plates can
+  have their size (in: inches) and stop: true in any stage.

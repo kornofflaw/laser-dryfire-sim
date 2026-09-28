@@ -17,7 +17,7 @@ import { ScenarioRunner } from './scenario.js';
 import { PopupRunner } from './popdrill.js';
 import { KnifeRunner } from './knife.js';
 import { FlipRunner } from './flipdrill.js';
-import { StageRunner } from './stage.js';
+import { StageRunner, StringsRunner } from './stage.js';
 import { COURSES, CATEGORIES } from './courses.js';
 import { ShotReview } from './review.js';
 import { RunLog } from './log.js';
@@ -91,6 +91,7 @@ const runners = {
   knife: new KnifeRunner(range),
   flip: new FlipRunner(range),
   stage: new StageRunner(),
+  strings: new StringsRunner(),
 };
 // 3D courses load three.js and their assets on demand. Each 3D layout has
 // its own view (canvas + scene); range.view3d is the one for the current layout.
@@ -237,7 +238,7 @@ const review = new ShotReview({ canvases: () => [views3d[range.layout]?.canvas, 
 // What shot times count from, per course type.
 function reviewZero(r) {
   switch (course().type) {
-    case 'drill': case 'stage': return [r.runStart || null, 'beep'];
+    case 'drill': case 'stage': case 'strings': return [r.runStart || null, 'beep'];
     case 'dots': return [r.startT, 'start'];
     case 'scenario': return [r.sceneStart, 'scene appearing'];
     case 'popup': return [r.startT, 'start'];
@@ -434,6 +435,8 @@ function frame(now) {
   lastFrame = now;
 
   active().update(now);
+  // Between Steel Challenge strings the RO resets the steel.
+  if (active().wantsReset) { active().wantsReset = false; range.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the
   // targets stay as shot (holes, steel down) until the next one, to be
   // looked at or walked up to.
@@ -555,7 +558,7 @@ const actions = {
     unlockAudio();
     const r = active();
     if (r.busy) return;
-    if (course().type === 'drill' || course().type === 'stage') showCourseLayout(course());
+    if (['drill', 'stage', 'strings'].includes(course().type)) showCourseLayout(course());
     // Not while a 3D range/scene is still loading: its targets or people
     // wouldn't be there yet (every shot a miss, or a scenario played unseen).
     // The knife and office scenarios have their own loading runner.

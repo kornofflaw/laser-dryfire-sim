@@ -278,7 +278,7 @@ export class StageSteel extends FallingSet {
   constructor(items, mats) {
     super('S');
     for (const it of items) {
-      if (it.type === 'plate') addPlateStand(this, mats, it.x, it.z, it.h ?? S().plateStand.height);
+      if (it.type === 'plate') addPlateStand(this, mats, it.x, it.z, it.h ?? S().plateStand.height, it);
       else addPopper(this, mats, it.x, it.z, it.type === 'mini' ? S().mini.height : S().popper.height);
       this.items[this.items.length - 1].id = it.id;
     }
@@ -305,8 +305,17 @@ function addPopper(set, mats, x, z, height) {
 }
 
 // A single 8" plate on a paddle hinged to the top of a post (a "plate stand").
-function addPlateStand(set, mats, x, z, height) {
-  const P = S().plateStand, r = S().rack.plateRadius;
+// A round plate on a post; opts.in: its diameter in inches (default 8);
+// opts.stop: it's the stop plate (Steel Challenge), marked by a red pole.
+function addPlateStand(set, mats, x, z, height, opts = {}) {
+  const P = S().plateStand, r = opts.in ? (opts.in * 0.0254) / 2 : S().rack.plateRadius;
+  if (opts.stop) {
+    const pole = box(0.045, P.stopPole, 0.045, stopPoleMaterial());
+    pole.position.set(x + P.stopPoleX, P.stopPole / 2, z - 0.04);
+    pole.userData.surface = 'steel-frame';
+    set.group.add(pole);
+    set.solids.push(pole);
+  }
   const post = box(0.05, height, 0.05, mats.frame);
   post.position.set(x, height / 2, z - 0.04);
   const foot = box(0.4, 0.03, 0.4, mats.frame);
@@ -323,6 +332,12 @@ function addPlateStand(set, mats, x, z, height) {
   set.group.add(pivot);
   set.solids.push(paddle);
   set.addItem(pivot, disc, THICK / 2, P.paddle + r, S().rack.kick, P.fallTo, 2 * r);
+}
+
+let stopPoleMat = null;
+function stopPoleMaterial() {
+  stopPoleMat ??= new THREE.MeshStandardMaterial({ color: S().plateStand.stopColor, roughness: 0.6 });
+  return stopPoleMat;
 }
 
 // ---- Texas Star ---------------------------------------------------------------------

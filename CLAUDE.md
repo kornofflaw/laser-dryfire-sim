@@ -112,7 +112,8 @@ web/                    the app; deploy this folder as-is
   js/range3d.js         photo-real 3D range: paper, pop-ups and steel layouts ('range3d-*'); courses switch to it via range.js TO_3D;
                         stage props (walls, ports, barrels, clamshells), activated targets (swinger, drop turner, mover), walk the targets (I)
   js/steel3d.js         3D steel for the range: plate rack, poppers, mini poppers, plate stands, dueling tree, flip grid, Texas Star (rotation from star.js)
-  js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor, disappearing targets
+  js/stage.js           StageRunner: USPSA-style stages (paper + no-shoots + steel), stage score + hit factor, disappearing targets;
+                        StringsRunner: Steel Challenge style (stop plate, 5 strings, slowest thrown out)
   assets/3d/            3D models, animations, sky, range textures (see CREDITS.md)
   assets/sounds/        recorded pistol reports, steel clanks, footsteps, glass, rain, range background (see CREDITS.md)
   vendor/three/         three.js 0.186 + the addons we use (GLTF/Draco/HDR loaders, SkeletonUtils)

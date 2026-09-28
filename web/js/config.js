@@ -89,6 +89,16 @@ export const CONFIG = {
     reviewRows: 12,         // shots listed in the timer's review after a run (the last ones)
   },
 
+  // ---- Steel Challenge style (course type 'strings', stage.js) -------------------
+  // `strings` strings per run; a string ends on the stop plate, each plate
+  // still up then adds platePenalty s; no stop plate in maxString s = maxString.
+  // Between strings the steel resets resetAfter s after the stop plate, then
+  // (readyAfter s later) the RO's `say` calls and the usual random delay.
+  steelChallenge: {
+    strings: 5, platePenalty: 3, maxString: 30, resetAfter: 2.5, readyAfter: 1.0,
+    say: [['Are you ready?', 1.6], ['Standby.', 0.6]],
+  },
+
   // Drill, dot torture and scenario definitions live in courses.js and
   // scenarios.js (content, not tunables).
 
@@ -563,7 +573,9 @@ export const CONFIG = {
         wobble: { angle: 0.05, time: 0.9, freq: 22, damping: 5 } },
       star: { hubY: 1.5 },  // hub height (m); arm and plate sizes and the physics are CONFIG.star
       mini: { height: 0.71 },                         // USPSA mini popper (2/3 scale)
-      plateStand: { height: 0.95, paddle: 0.2, fallTo: 1.45 }, // single 8" plate on a post
+      // A single plate on a post (8" unless a stage item sets in: inches); a
+      // stop plate has a red pole (stopPole m tall, stopPoleX m to its right).
+      plateStand: { height: 0.95, paddle: 0.2, fallTo: 1.45, stopPole: 1.8, stopPoleX: 0.3, stopColor: '#b3261e' },
     },
   },
 

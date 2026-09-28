@@ -185,3 +185,136 @@ export class StageRunner extends DrillRunner {
     return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${need}  ·  par ${d.parTime.toFixed(1)}s\n` + footer;
   }
 }
+
+// ---- Steel Challenge style (course type 'strings') ------------------------------
+// Plates plus a stop plate (a stage item with stop: true, marked by a red
+// pole). Each string runs from the beep to the hit on the stop plate; any
+// plate still up then costs platePenalty s. No stop plate within maxString s:
+// the string counts as maxString. The steel is reset between strings, the
+// slowest of the `strings` strings is thrown out and the rest added up (a
+// lower total is better; par is the goal for that total).
+const SC = () => CONFIG.steelChallenge;
+
+export class StringsRunner extends StageRunner {
+  setCourse(course) {
+    super.setCourse(course);
+    this.stopId = stageTargets(this.course.stage).find(i => i.stop)?.id;
+    this.strings = [];
+  }
+
+  get nStrings() { return this.course.strings ?? SC().strings; }
+  get plates() { return this.steel.filter(id => id !== this.stopId); }
+
+  start(nowMs) {
+    if (this.busy) return;
+    this.strings = [];
+    super.start(nowMs);
+  }
+
+  update(nowMs) {
+    this.speakCalls(nowMs);
+    if (this.state === State.Delay && this.resetAt != null && nowMs >= this.resetAt) { this.resetAt = null; this.wantsReset = true; }
+    if (this.state === State.Delay && nowMs >= this.beepAt) {
+      startBeep();
+      this.runStart = nowMs;
+      this.state = State.Running;
+    }
+    if (this.state === State.Running && this.elapsed(nowMs) >= SC().maxString) this.endString(nowMs);
+  }
+
+  onShot(score) {
+    DrillRunner.prototype.onShot.call(this, score); // timing, counts, early shots
+    if (this.state !== State.Running || score.zone !== 'Steel' || !score.targetId) return;
+    this.down.add(score.targetId);
+    if (score.targetId === this.stopId) this.endString(score.t);
+  }
+
+  endString(tMs) {
+    const stopped = this.down.has(this.stopId);
+    const up = this.plates.filter(id => !this.down.has(id)).length;
+    const time = stopped ? Math.max(0, (tMs - this.runStart) / 1000) : SC().maxString;
+    const penalty = stopped ? up * SC().platePenalty : 0;
+    this.strings.push({ time, penalty, total: Math.min(SC().maxString, time + penalty), up: stopped ? up : null, shots: this.shots, firstShot: this.firstShot });
+    if (this.strings.length >= this.nStrings) return this.finish(true);
+    // The next string: the RO resets the steel, then "Are you ready?" ... "Standby".
+    const now = performance.now(), early = this.early;
+    this.clearRun();
+    this.early = early;
+    this.resetAt = now + SC().resetAfter * 1000;
+    this.calls = [];
+    let t = this.resetAt + SC().readyAfter * 1000;
+    if (CONFIG.timer.commands.on) for (const [text, gap] of SC().say) { this.calls.push({ at: t, text }); t += gap * 1000; }
+    this.standbyAt = t;
+    this.beepAt = t + (CONFIG.timer.minDelay + Math.random() * (CONFIG.timer.maxDelay - CONFIG.timer.minDelay)) * 1000;
+    this.state = State.Delay;
+  }
+
+  finish(complete) {
+    if (this.state === State.Running && this.strings.length < this.nStrings) this.endString(performance.now()); // stopped mid-string
+    if (this.state === State.Done) return;
+    const all = this.strings, d = this.course;
+    const worst = all.length > 1 ? all.reduce((w, s, i) => (s.total > all[w].total ? i : w), 0) : -1;
+    const total = all.reduce((a, s, i) => a + (i === worst ? 0 : s.total), 0);
+    const plateHits = all.reduce((a, s) => a + (this.plates.length - (s.up ?? this.plates.length)), 0);
+    const penalties = all.reduce((a, s) => a + (s.up || 0), 0);
+    complete = complete && all.length >= this.nStrings;
+    const problems = [];
+    if (penalties) problems.push(`${penalties} plate${penalties > 1 ? 's' : ''} left up (+${penalties * SC().platePenalty} s)`);
+    if (all.some(s => s.up == null)) problems.push(`a string timed out (${SC().maxString} s)`);
+    this.result = {
+      datetime: new Date(), course: d.name, type: 'strings', parTime: d.parTime, complete,
+      time: total, firstShot: all[0]?.firstShot ?? null, splits: [],
+      strings: all.map(s => ({ ...s })), worst,
+      shots: all.reduce((a, s) => a + s.shots, 0), hits: plateHits + all.filter(s => s.up != null).length,
+      points: 0, counts: { ...this.counts }, sheet: [], hitFactor: 0,
+      madePar: complete && total <= d.parTime, problems,
+      passed: complete ? total <= d.parTime : false,
+      early: this.early, notes: problems.join('; '),
+    };
+    this.state = State.Done;
+    this.closingCalls();
+    this.remember(this.result);
+    this.emit();
+  }
+
+  timerHTML(now) {
+    const head = `<b class="title">SHOT TIMER</b>`, k = this.strings.length + 1, N = this.nStrings;
+    switch (this.state) {
+      case State.Idle:
+        return head + `Press [Space] to start\n${N} strings · goal ${this.course.parTime.toFixed(1)}s`;
+      case State.Delay:
+        return head + `String ${k} of ${N}\n` + (performance.now() < this.standbyAt ? `<span class="wait">RESET · MAKE READY…</span>` : `<span class="wait">STAND BY…</span>\nwait for the beep`);
+      case State.Running:
+        return head + `<span class="go">GO!</span>  String ${k} of ${N}\n<span class="bigtime">${f2(this.elapsed(now))}</span>` +
+          `Plates down: ${this.plates.filter(id => this.down.has(id)).length} / ${this.plates.length}`;
+      case State.Done: {
+        const r = this.result;
+        const rows = r.strings.map((s, i) => `<tr${i === r.worst ? ' class="muted"' : s.penalty || s.up == null ? ' class="bad"' : ''}><td>${i + 1}</td><td>${f2(s.time)}</td><td>${s.penalty ? '+' + s.penalty : s.up == null ? 'max' : ''}</td><td>${f2(s.total)}${i === r.worst ? ' ✗' : ''}</td></tr>`).join('');
+        return head + `<span class="bigtime">${f2(r.time)}</span>` +
+          `total of the best ${Math.max(1, r.strings.length - 1)} · goal ${r.parTime.toFixed(2)}\n` +
+          `<table class="shots"><tr><th>#</th><th>time</th><th>pen</th><th>total</th></tr>${rows}</table>` +
+          `<span class="muted small">✗ slowest string, thrown out</span>\n` +
+          this.sessionLine() + `<span class="muted small">[Space] run again</span>`;
+      }
+    }
+    return head;
+  }
+
+  panelHTML() {
+    const d = this.course;
+    const head = `<b class="title">STEEL CHALLENGE STYLE</b>`;
+    const footer = `<span class="muted small">[D] courses  ·  [Tab] next  ·  [Space] run</span>`;
+    if (this.busy) {
+      return head + `<span class="go">${d.name}</span>\nString ${Math.min(this.nStrings, this.strings.length + 1)} of ${this.nStrings}\n` +
+        this.strings.map((s, i) => `  ${i + 1}: ${f2(s.total)}${s.penalty ? ` (+${s.penalty})` : ''}`).join('\n');
+    }
+    const r = this.result;
+    if (r && r.course === d.name) {
+      const verdict = r.passed ? '<span class="go">UNDER GOAL</span>' : r.complete ? '<span class="bad">OVER GOAL</span>' : '<span class="bad">INCOMPLETE</span>';
+      const lines = [`<b>${d.name}</b> — ${verdict}`, `Total <b>${f2(r.time)}</b> s (best ${Math.max(1, r.strings.length - 1)} of ${r.strings.length} strings)`];
+      for (const p of r.problems) lines.push(`<span class="bad">✗ ${p}</span>`);
+      return head + lines.join('\n') + '\n' + footer;
+    }
+    return head + `<b>${d.name}</b>\n<span class="muted">${d.desc}</span>\n${this.plates.length} plates + stop plate · ${this.nStrings} strings, slowest thrown out · goal ${d.parTime.toFixed(1)}s\n` + footer;
+  }
+}

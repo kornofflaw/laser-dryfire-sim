@@ -31,7 +31,7 @@
 
 import { SCENARIOS } from './scenarios.js';
 
-export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Stages', 'Precision', 'Judgment'];
+export const CATEGORIES = ['Fundamentals', 'Transitions', 'Movement', 'Pop-ups', 'Flip Grid', 'Steel', 'Steel Challenge', 'Stages', 'Precision', 'Judgment'];
 
 const DRILLS = [
   // Fundamentals
@@ -124,6 +124,8 @@ const FLIP = [
 // steel falls, then it faces you for `show` s and turns away (disappearing).
 // run: { by: 'S1', to, speed? } puts a paper on a trolley: when that steel
 // falls it runs across to x = to (m) at speed m/s, usually wall to wall.
+// Steel plates may set in (diameter in inches, default 8); stop: true makes
+// one the stop plate (Steel Challenge style courses, type 'strings').
 // bob: { by: 'S1', times? } makes a paper a bobber: sunk behind low cover
 // until that steel falls, then it rises and sinks `times` times.
 // props: plywood walls { type: 'wall', x, yd, w?, h?, port?: { x, y, w, h } }
@@ -249,6 +251,17 @@ const STAGES = [
         { type: 'paper', x: 2.6, yd: 7 },
       ],
       props: [{ type: 'wall', x: -0.4, yd: 8.4, w: 1.22, h: 1.0 }],
+    } },
+  { name: 'Steel Challenge style: Five Plates', category: 'Steel Challenge', type: 'strings', parTime: 14.0,
+    desc: 'Four plates and the stop plate (the one with the red pole) - shoot the stop plate last. Five strings: the steel resets between them, the slowest is thrown out, the other four are added up. A plate left up costs 3 s.',
+    stage: {
+      items: [
+        { type: 'plate', x: -3.0, yd: 10, in: 10, h: 1.3 },
+        { type: 'plate', x: -1.2, yd: 15, in: 12, h: 1.3 },
+        { type: 'plate', x: 1.2, yd: 15, in: 12, h: 1.3 },
+        { type: 'plate', x: 3.0, yd: 10, in: 10, h: 1.3 },
+        { type: 'plate', x: 0, yd: 12, in: 12, h: 1.3, stop: true },
+      ],
     } },
   { name: 'Accelerator', category: 'Stages', parTime: 6.0, maxShots: 10,
     desc: 'Three targets at 15, 10 and 5 yards, far to near, 2 hits each. Slow down for the far one, speed up as they get closer.',
