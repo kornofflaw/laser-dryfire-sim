@@ -259,11 +259,11 @@ recording (with credits) rather than pure synthesis.
 Andrew: "shift focus to the drills and shooting range type stuff, we want that
 all to be refined... more realism". Office / knife / judgment scenes only when
 he reports a problem.
-1. Shot timer repetitive mode: the next run starts by itself a set time after the last (reps without touching anything).
-2. Wet cardboard in the rain (darker, rain spots), and a recorded outdoor wind for Windy.
-3. More stages combining positions, activators and Virginia Count (a small "match" of 3-4 stages with a total).
+1. A recorded outdoor wind for Windy (needs a CC0 outdoor wind recording; the one found is a window howl).
+2. Pop-up targets released by an activator plate in stages.
+3. More matches (e.g. a night match mixing the low-light stage).
 4. IDPA target and time-plus scoring - on hold: the official target dimensions are needed (web references are blocked in this environment); ask Andrew if he wants it.
-(Done: Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
+(Done: repeat mode, wet cardboard, matches, Virginia Count, classifier strings, night range, rain and wind, positions, Steel Challenge, dueling tree, bobber, 3D Dot Torture - see the changelog.)
 
 ## Realism queue (office / lot / judgment - paused; hourly pass takes the range queue first)
 1. Office fire alarm: swap the generated horn for a free recording if Andrew doesn't like it.
@@ -728,3 +728,6 @@ he reports a problem.
   end a results table: points, time and hit factor per stage and the match
   total (all points / all time). Picking another course ends the match.
   Course type 'match' (courses.js stages list), CONFIG.match.
+- "Steel Match: 3 Stages" (the three Steel Challenge style courses); a
+  Steel Challenge match's results show each stage's total time and the
+  match time (lowest wins) instead of points.

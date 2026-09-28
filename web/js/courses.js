@@ -391,6 +391,9 @@ const MATCHES = [
   { name: 'Mini Match: 4 Stages', category: 'Match', type: 'match',
     stages: ['Paper and Steel', 'Swinger', 'Two Positions', 'Virginia Count: Three at Ten'],
     desc: 'Four stages in a row, like a local match: each loads after the last (press Space to shoot it; I to walk the targets first). Results at the end: points, time and hit factor per stage, and the match total.' },
+  { name: 'Steel Match: 3 Stages', category: 'Match', type: 'match',
+    stages: ['Steel Challenge style: Five Plates', 'Steel Challenge style: Wide Open', 'Steel Challenge style: Near and Far'],
+    desc: 'The three Steel Challenge style stages in a row, five strings each. Lowest total time wins: the results show each stage\'s total and the match total.' },
 ];
 
 const DOTS = [

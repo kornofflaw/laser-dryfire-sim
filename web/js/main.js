@@ -275,7 +275,7 @@ function loadMatchStage() {
 }
 function matchStageDone(result) {
   if (!match || result.course !== match.def.stages[match.i]) return false;
-  match.results.push({ name: result.course, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete });
+  match.results.push({ name: result.course, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete });
   match.i++;
   if (match.i < match.def.stages.length) match.nextAt = performance.now() + CONFIG.match.nextStageAfter * 1000;
   else setTimeout(showMatchResults, 1500);
@@ -286,6 +286,15 @@ function showMatchResults() {
   const r = match.results, f = v => v.toFixed(2);
   const pts = r.reduce((a, s) => a + s.points, 0), time = r.reduce((a, s) => a + s.time, 0);
   $('#match-title').textContent = `${match.def.name}: results`;
+  if (r.every(s => s.type === 'strings')) {
+    // Steel Challenge style: each stage's total time, lowest wins.
+    $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Total time</th></tr>` +
+      r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${f(s.time)}</td></tr>`).join('') +
+      `<tr><th>Match</th><th>${f(time)}</th></tr></table><p class="note">Each stage: its best four strings added up. Lowest match time wins.</p>`;
+    $('#match').hidden = false;
+    match = null;
+    return;
+  }
   $('#match-body').innerHTML = `<table><tr><th>Stage</th><th>Points</th><th>Time</th><th>Hit factor</th></tr>` +
     r.map(s => `<tr><td>${s.name}${s.complete ? '' : ' (incomplete)'}</td><td>${s.points}</td><td>${f(s.time)}</td><td>${f(s.hf)}</td></tr>`).join('') +
     `<tr><th>Match</th><th>${pts}</th><th>${f(time)}</th><th>${f(time > 0 ? pts / time : 0)}</th></tr></table>` +
