@@ -298,16 +298,39 @@ function loadMatchStage() {
   selectCourse(COURSES.findIndex(c => c.name === name), false);
   matchSelecting = false;
   match.nextAt = null;
-  const who = match.shooters.length > 1 ? ` Shooter: ${match.shooters[match.j]}${match.shooters[match.j + 1] ? ` (on deck: ${match.shooters[match.j + 1]})` : ''}.` : '';
+  const up = shooterUp(), deck = shooterUp(1);
+  const who = up ? ` Shooter: ${up}${deck ? ` (on deck: ${deck})` : ''}.` : '';
   const walk = course().stage?.positions?.length > 1 ? ' W for the walkthrough,' : '';
   toast(`${match.def.name}: stage ${match.i + 1} of ${match.def.stages.length} - ${name}.${who}${walk} Space when ready.`);
+  // The RO calls the shooter up and the next one on deck.
+  if (up && CONFIG.timer.commands.on) say(`Shooter, ${up}.${deck ? ` On deck, ${deck}.` : ''}`, { rate: 1.0 });
+}
+// Reshoot (U): the RO orders the last run shot again (equipment failure, a
+// target that didn't work): its result is thrown out and the same shooter
+// shoots the same stage again.
+function matchReshoot() {
+  if (!match?.results.length || active().busy) return toast(match ? 'Nothing to reshoot yet.' : 'Reshoot is for match stages.');
+  clearTimeout(match.resultsAt);
+  const last = match.results.pop();
+  if (match.j > 0) match.j--;
+  else { match.i--; match.j = match.shooters.length - 1; }
+  loadMatchStage();
+  toast(`Reshoot: ${last.shooter} on ${last.name}. Space when ready.`);
+}
+// A squad's shooting order rotates each stage (as at a match, so the same
+// person doesn't always go first): shooter j of stage i, or `ahead` later.
+// null when it's just you.
+function shooterUp(ahead = 0) {
+  if (!match || match.shooters.length < 2) return null;
+  const n = match.shooters.length, j = match.j + ahead;
+  return j < n ? match.shooters[(match.i + j) % n] : null;
 }
 function matchStageDone(result) {
   if (!match || result.course !== match.def.stages[match.i]) return false;
-  match.results.push({ name: result.course, shooter: match.shooters[match.j], stage: match.i, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete, bench: result.benchmark || 0, max: result.maxPoints || 0 });
+  match.results.push({ name: result.course, shooter: shooterUp() || match.shooters[0], stage: match.i, type: result.type, points: result.points, time: result.time, hf: result.hitFactor, complete: result.complete, bench: result.benchmark || 0, max: result.maxPoints || 0 });
   if (++match.j >= match.shooters.length) { match.j = 0; match.i++; }
   if (match.i < match.def.stages.length) match.nextAt = performance.now() + CONFIG.match.nextStageAfter * 1000;
-  else setTimeout(showMatchResults, 1500);
+  else match.resultsAt = setTimeout(showMatchResults, CONFIG.match.resultsAfter * 1000); // (U before then: a reshoot)
   return true;
 }
 function showMatchResults() {
@@ -379,7 +402,7 @@ $('#drill').addEventListener('click', e => inspectTarget(e.target.closest?.('.sh
 $('#drill').addEventListener('mouseout', e => { if (!e.relatedTarget?.closest?.('.sheet')) range.view3d?.flashTag?.(null); });
 $('[data-act="close-match"]').onclick = () => { $('#match').hidden = true; };
 function runDone(result) {
-  log.add(result, lastInput, match && result.course === match.def.stages[match.i] ? { shooter: match.shooters.length > 1 ? match.shooters[match.j] : '', match: match.def.name } : {});
+  log.add(result, lastInput, match && result.course === match.def.stages[match.i] ? { shooter: shooterUp() || '', match: match.def.name } : {});
   const inMatch = matchStageDone(result);
   if (result.newBest) setTimeout(() => toast(`New personal best on ${result.course}!`), 400);
   const [zero, label] = reviewZero(active());
@@ -585,7 +608,7 @@ function frame(now) {
   walkOn(now);
   walkthroughStep(now);
   // A squad match: only the first shooter (this browser's owner) sets personal bests.
-  DrillRunner.guest = !!(match && match.shooters.length > 1 && match.j > 0);
+  DrillRunner.guest = !!(shooterUp() && shooterUp() !== match.shooters[0]);
   // Between classifier strings only the steel is reset (paper is scored at the end).
   if (active().wantsSteelReset) { active().wantsSteelReset = false; views3d[range.layout]?.steel?.reset(); }
   // Free practice: cleared steel stands back up. Not after a run: the
@@ -627,7 +650,7 @@ function frame(now) {
   setHUD('stats', statsHTML(now));
   setHUD('timer', active().timerHTML(now));
   // A squad match: whose turn it is (also reaches the Controller with the panel).
-  const up = match?.shooters.length > 1 ? `<span class="small">Shooter <b>${match.shooters[match.j]}</b>${match.shooters[match.j + 1] ? ` · on deck ${match.shooters[match.j + 1]}` : ''}</span>\n` : '';
+  const up = shooterUp() ? `<span class="small">Shooter <b>${shooterUp()}</b>${shooterUp(1) ? ` · on deck ${shooterUp(1)}` : ''}</span>\n` : '';
   setHUD('drill', up + active().panelHTML(now));
   setHUD('start', active().busy ? 'Stop <kbd>Esc</kbd>' : 'Start <kbd>Space</kbd>');
 
@@ -881,6 +904,7 @@ window.addEventListener('keydown', e => {
     ']': () => adjustUpTime(1),
     x: () => active().setCover?.(true), // hold: take cover (office)
     w: () => startWalkthrough(),
+    u: () => matchReshoot(), // match: the RO orders a reshoot of the last run
     q: () => lean(-1), // 3D range: lean out left / right (again: upright)
     e: () => lean(1),
     Escape: () => {
