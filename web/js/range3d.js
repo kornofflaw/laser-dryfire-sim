@@ -188,7 +188,19 @@ export class Range3DView {
     const T = U.table;
     add(new THREE.BoxGeometry(T.w, 0.03, T.d), this.plywoodMaterial(), C.x - 0.8, T.h, C.z);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(new THREE.BoxGeometry(0.06, T.h, 0.06), wood, C.x - 0.8 + sx * (T.w / 2 - 0.1), T.h / 2, C.z + sz * (T.d / 2 - 0.1));
+    // On the table: a range bag, a shot timer, water bottles and a box of ammo.
+    const top = T.h + 0.015, tx = C.x - 0.8, cloth = new THREE.MeshStandardMaterial({ color: '#2f3a2c', roughness: 0.95 });
+    add(new THREE.BoxGeometry(0.55, 0.3, 0.32), cloth, tx - 0.5, top + 0.15, C.z - 0.1).rotation.y = 0.2;
+    add(new THREE.BoxGeometry(0.07, 0.03, 0.12), new THREE.MeshStandardMaterial({ color: '#e0b21c', roughness: 0.6 }), tx + 0.1, top + 0.015, C.z + 0.15).rotation.y = -0.4;
+    const bottle = new THREE.MeshStandardMaterial({ color: '#9fc4dc', roughness: 0.15, metalness: 0, transparent: true, opacity: 0.7 });
+    for (const [bx, bz] of [[0.45, -0.2], [0.55, -0.05]]) add(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 12), bottle, tx + bx, top + 0.11, C.z + bz);
+    add(new THREE.BoxGeometry(0.16, 0.05, 0.1), new THREE.MeshStandardMaterial({ color: '#b83a2a', roughness: 0.8 }), tx + 0.3, top + 0.025, C.z + 0.2).rotation.y = 0.5;
     add(new THREE.BoxGeometry(1.8, 0.05, 0.3), wood, C.x + 1.4, 0.45, C.z + 0.6);
+    // Spare target stands leaning on a canopy post.
+    for (const k of [0, 1]) {
+      const s = add(new THREE.BoxGeometry(0.46, 1.1, 0.02), this.plywoodMaterial(), C.x + C.w / 2 - 0.35 - k * 0.05, 0.6, C.z - C.d / 2 + 0.35 + k * 0.06);
+      s.rotation.x = -0.18; s.rotation.y = 0.3 + k * 0.1;
+    }
     for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.06, 0.45, 0.28), wood, C.x + 1.4 + sx * 0.8, 0.225, C.z + 0.6);
     // Back fence: posts and two rails.
     const F = U.fence;
