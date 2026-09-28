@@ -236,6 +236,7 @@ export class StageRunner extends DrillRunner {
       `<b>Scoring</b> ${scoring}${strings > 1 ? ` (${strings} strings)` : ''}`,
       `<b>Targets</b> ${targets} · ${per} per paper`,
       `<b>Start</b> ${st.start || CONFIG.stage.start}${this.positions ? ` · ${this.positions.length} positions` : ''}`,
+      ...(this.positions?.some(P => P.stance || P.onMove) ? [`<b>Positions</b> ${this.positions.map((P, k) => `${k + 1} ${P.onMove ? 'walk there shooting' : P.stance === 'kneel' ? 'kneeling' : P.stance === 'prone' ? 'prone' : 'standing'}`).join(' · ')}`] : []),
       `<b>Par</b> ${this.course.parTime.toFixed(1)}s${strings > 1 ? ' per string' : ''}`,
     ];
     return `<span class="small">${lines.join('\n')}</span>`;

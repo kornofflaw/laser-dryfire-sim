@@ -819,3 +819,4 @@ he reports a problem.
 - 2026-09-28: Stage builder: swingers (paper or no-shoot) can be held left or right until released, and a "Wall (4 x 8 ft)" row that hides a held swinger; copies of stock stages keep 8 ft walls and left-held swingers.
 - 2026-09-28: Stages with positions: a shooting box of 2x4 boards on the ground at each position (CONFIG.range3d.props.box).
 - 2026-09-28: Deploy note: push main before the branch - Vercel skipped production builds when the same commit had already been built from the branch.
+- 2026-09-28: Stage briefing: a Positions line when a stage has kneeling / prone / walk-while-shooting positions ("1 standing · 2 kneeling · 3 prone").
